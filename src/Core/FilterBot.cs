@@ -12,6 +12,8 @@
     using PokeFilterBot.Configuration;
     using PokeFilterBot.Data;
     using PokeFilterBot.Utilities;
+    using DSharpPlus.Entities;
+    using DSharpPlus.EventArgs;
 
     public class FilterBot
     {
@@ -20,6 +22,7 @@
         private DiscordClient _client;
         private readonly Database _db;
         private readonly Config _config;
+        private readonly string _teamAssignmentChannelName = "general";
 
         private readonly Random _rand;
 
@@ -58,10 +61,10 @@
                 return;
             }
 
-            _client = new DiscordClient(new DiscordConfig
+            _client = new DiscordClient(new DiscordConfiguration
             {
                 AutoReconnect = true,
-                DiscordBranch = Branch.Stable,
+                //DiscordBranch = Branch.Stable,
                 LogLevel = LogLevel.Debug,
                 Token = _config.AuthToken,
                 TokenType = TokenType.Bot
@@ -128,14 +131,14 @@
         {
             //Console.WriteLine($"Message recieved from server {e.Guild.Name} #{e.Message.Channel.Name}: {e.Message.Author.Username} (IsBot: {e.Message.Author.IsBot}) {e.Message.Content}");
 
-            if (e.Message.Author == _client.CurrentUser) return;
+            if (e.Message.Author.Id == _client.CurrentUser.Id) await Task.CompletedTask;
 
             if (e.Message.Author.IsBot)
             {
                 await CheckSponsoredRaids(e.Message);
                 await CheckSubscriptions(e.Message);
             }
-            else
+            else if (e.Message.Channel.Name == _teamAssignmentChannelName)
             {
                 await ParseCommand(e.Message);
             }
@@ -190,7 +193,7 @@
                 discordUser = await _client.GetUserAsync(user.UserId);
                 if (discordUser == null) continue;
 
-                if (!user.Channels.Contains(message.Channel.Id)) continue;
+                if (!user.Channels.Contains(message.Channel.Name)) continue;
 
                 foreach (var pokeId in user.PokemonIds)
                 {
@@ -307,24 +310,41 @@
             return list;
         }
 
-        private async Task<List<string>> GetChannelNames(ulong userId)
+        private List<string> GetChannelNames(ulong userId)
         {
             var list = new List<string>();
             if (_db.Subscriptions.ContainsKey(userId))
             {
                 var channelIds = _db.Subscriptions[userId].Channels;
-                channelIds.Sort();
+                //channelIds.Sort();
+                return channelIds;
 
-                foreach (ulong id in channelIds)
+                //foreach (string channel in channelIds)
+                //{
+                //    var channel = await _client.GetChannelAsync(id);
+                //    if (channel == null) continue;
+
+                //    list.Add(channel);
+                //}
+            }
+            //list.Sort();
+            return list;
+        }
+
+        private DiscordChannel GetChannelByName(string channelName)
+        {
+            foreach (var guild in _client.Guilds)
+            {
+                foreach (var channel in guild.Value.Channels)
                 {
-                    var channel = await _client.GetChannelAsync(id);
-                    if (channel == null) continue;
-
-                    list.Add(channel.Name);
+                    if (channel.Name == channelName)
+                    {
+                        return channel;
+                    }
                 }
             }
-            list.Sort();
-            return list;
+
+            return null;
         }
 
         private string GetRandomWakeupMessage()
@@ -338,6 +358,7 @@
 
         private async Task ParseCommand(DiscordMessage message)
         {
+            //_client.Guilds[0].Roles[0].
             var command = new Command(message.Content);
             if (!command.ValidCommand && !message.Author.IsBot)
             {
@@ -362,12 +383,11 @@
                     await ParseVersionCommand(message);
                     break;
                 case "setup":
-                //case "channels":
                     await ParseSetupCommand(message, command);
                     break;
-                //case "subs":
-                //    await ParseSubscriptionsCommand(message);
-                //    break;
+                case "remove":
+                    await ParseRemoveCommand(message, command);
+                    break;
                 case "sub":
                     await ParseSubscribeCommand(message, command);
                     break;
@@ -375,10 +395,13 @@
                     await ParseUnsubscribeCommand(message, command);
                     break;
                 case "enable":
-                    ParseEnableDisableCommand(message, true);
+                    await ParseEnableDisableCommand(message, true);
                     break;
                 case "disable":
-                    ParseEnableDisableCommand(message, false);
+                    await ParseEnableDisableCommand(message, false);
+                    break;
+                case "iam":
+                    await ParseTeamAssignmentCommand(message, command);
                     break;
             }
 
@@ -405,32 +428,74 @@
             if (command.HasArgs && command.Args.Count == 1)
             {
                 var author = message.Author.Id;
-                foreach (var arg in command.Args[0].Split(','))
+                foreach (var chlName in command.Args[0].Split(','))
                 {
-                    var channelId = Convert.ToUInt64(arg);
-                    var channel = await _client.GetChannelAsync(channelId);
+                    var channelName = chlName;
+                    if (channelName[0] == '#') channelName = channelName.Remove(0, 1);
+
+                    var channel = GetChannelByName(channelName);
                     if (channel == null)
                     {
-                        await message.RespondAsync($"Channel id {channelId} is not a valid channel id.");
+                        await message.RespondAsync($"Channel name {channelName} is not a valid channel.");
                         continue;
                     }
 
                     if (!_db.Subscriptions.ContainsKey(author))
                     {
-                        _db.Subscriptions.Add(new Subscription(author, new List<uint>(), new List<ulong> { channelId }));
+                        _db.Subscriptions.Add(new Subscription(author, new List<uint>(), new List<string> { channel.Name }));
                         await message.RespondAsync($"You have successfully subscribed to #{channel.Name} notifications!");
                     }
                     else
                     {
                         //User has already subscribed before, check if their new requested sub already exists.
-                        if (!_db.Subscriptions[author].Channels.Contains(channelId))
+                        if (!_db.Subscriptions[author].Channels.Contains(channel.Name))
                         {
-                            _db.Subscriptions[author].Channels.Add(channelId);
+                            _db.Subscriptions[author].Channels.Add(channel.Name);
                             await message.RespondAsync($"You have successfully subscribed to #{channel.Name} notifications!");
                         }
                         else
                         {
                             await message.RespondAsync($"You are already subscribed to #{channel.Name} notifications.");
+                        }
+                    }
+                }
+            }
+        }
+
+        private async Task ParseRemoveCommand(DiscordMessage message, Command command)
+        {
+            if (command.HasArgs && command.Args.Count == 1)
+            {
+                var author = message.Author.Id;
+                foreach (var chlName in command.Args[0].Split(','))
+                {
+                    var channelName = chlName;
+                    if (channelName[0] == '#') channelName = channelName.Remove(0, 1);
+
+                    var channel = GetChannelByName(channelName);
+                    if (channel == null)
+                    {
+                        await message.RespondAsync($"Channel name {channelName} is not a valid channel.");
+                        continue;
+                    }
+
+                    if (!_db.Subscriptions.ContainsKey(author))
+                    {
+                        await message.RespondAsync($"You are not currently subscribed to any Pokemon notifications from any channels.");
+                    }
+                    else
+                    {
+                        //User has already subscribed before, check if their new requested sub already exists.
+                        if (_db.Subscriptions[author].Channels.Contains(channel.Name))
+                        {
+                            if (_db.Subscriptions[author].Channels.Remove(channel.Name))
+                            {
+                                await message.RespondAsync($"You have successfully unsubscribed from #{channel.Name} Pokemon notifications.");
+                            }
+                        }
+                        else
+                        {
+                            await message.RespondAsync($"You are not currently subscribed to any #{channel.Name} Pokemon notifications.");
                         }
                     }
                 }
@@ -477,7 +542,7 @@ help - shows this message
 
                     if (!_db.Subscriptions.ContainsKey(author))
                     {
-                        _db.Subscriptions.Add(new Subscription(author, new List<uint> { index }, new List<ulong>()));
+                        _db.Subscriptions.Add(new Subscription(author, new List<uint> { index }, new List<string>()));
                         await message.RespondAsync($"You have successfully subscribed to {pokemon.Name} notifications!");
                     }
                     else
@@ -540,13 +605,103 @@ help - shows this message
             }
         }
 
-        private void ParseEnableDisableCommand(DiscordMessage message, bool enable)
+        private async Task ParseEnableDisableCommand(DiscordMessage message, bool enable)
         {
             var author = message.Author.Id;
             if (_db.Subscriptions.ContainsKey(author))
             {
                 _db.Subscriptions[author].Enabled = enable;
+                await message.RespondAsync($"You have {(enable ? "" : "de-")}activated Pokemon notifications.");
             }
+        }
+
+        private async Task ParseTeamAssignmentCommand(DiscordMessage message, Command command)
+        {
+            if (command.HasArgs && command.Args.Count == 1)
+            {
+                var team = command.Args[0];
+                switch (team)
+                {
+                    case "Valor":
+                    case "valor":
+                    case "Mystic":
+                    case "mystic":
+                    case "Instinct":
+                    case "instinct":
+                    case "None":
+                    case "none":
+                        try
+                        {
+                            var member = await GetMemberFromUserId(message.Author.Id);
+                            var teamRole = GetRoleFromName(team);
+                            var reason = "User initiated team assignment via PokeFilterBot.";
+                            //TODO: Only retrieve the current guild.
+                            if (message.Channel.Guild == null)
+                            {
+                                //TODO: Ask what server to assign to.
+                                //foreach (var guild in _client.Guilds)
+                                //{
+                                //    await guild.Value.GrantRoleAsync(member, teamRole, reason);
+                                //}
+                                await message.RespondAsync($"Currently I only support team assignment via the channel #{_teamAssignmentChannelName}, direct message support is coming soon.");
+                                return;
+                            }
+
+                            foreach (var role in member.Roles)
+                            {
+                                if (role.Name == "Valor" || role.Name == "Mystic" || role.Name == "Instinct")
+                                {
+                                    await message.Channel.Guild.RevokeRoleAsync(member, role, reason);
+                                    await message.RespondAsync($"{message.Author.Username} has left team {role.Name}.");
+                                }
+                            }
+
+                            if (teamRole != null)
+                            {
+                                await message.Channel.Guild.GrantRoleAsync(member, teamRole, reason);
+                                await message.RespondAsync($"{message.Author.Username} has joined team {teamRole.Name}.");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"ERROR: {ex}");
+                        }
+                        break;
+                    default:
+                        await message.RespondAsync($"You have entered an incorrect team name, please enter one of the following: Valor, Mystic, or Instinct.");
+                        break;
+                }
+            }
+        }
+
+        private DiscordRole GetRoleFromName(string roleName)
+        {
+            foreach (var guild in _client.Guilds)
+            {
+                foreach (var role in guild.Value.Roles)
+                {
+                    if (string.Compare(role.Name, roleName, true) == 0)
+                    {
+                        return role;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private async Task<DiscordMember> GetMemberFromUserId(ulong userId)
+        {
+            foreach (var guild in _client.Guilds)
+            {
+                var user = await guild.Value.GetMemberAsync(userId);
+                if (user != null)
+                {
+                    return user;
+                }
+            }
+
+            return null;
         }
 
         private async Task ParseInfoCommand(DiscordMessage message)
@@ -561,7 +716,7 @@ help - shows this message
             {
                 if (hasPokemon && hasChannels)
                 {
-                    msg = $"You are currently subscribed to {string.Join(", ", GetSubscriptionNames(author))} notifications from channels #{string.Join(", #", await GetChannelNames(author))}.";
+                    msg = $"You are currently subscribed to {string.Join(", ", GetSubscriptionNames(author))} notifications from channels #{string.Join(", #", GetChannelNames(author))}.";
                 }
                 else if (hasPokemon && !hasChannels)
                 {
@@ -569,7 +724,7 @@ help - shows this message
                 }
                 else if (!hasPokemon && hasChannels)
                 {
-                    msg = $"You are not currently subscribed to any Pokemon notifications from channels #{string.Join(", #", await GetChannelNames(author))}.";
+                    msg = $"You are not currently subscribed to any Pokemon notifications from channels #{string.Join(", #", GetChannelNames(author))}.";
                 }
                 else if (!hasPokemon && !hasChannels)
                 {
@@ -588,35 +743,27 @@ help - shows this message
         {
             await message.RespondAsync
             (
-                $".info - Shows the your current Pokemon subscriptions and which channels to listen to.\r\n" +
+                $".info - Shows the your current Pokemon subscriptions and which channels to listen to.\r\n\r\n" +
                 ".setup - Include Pokemon from the specified channels to be notified of.\r\n" +
-                    "\tExample: .setup 34293948729384,3984279823498\r\n" + 
-                    "\tExample: .setup 34982374982734\r\n" +
+                    "\tExample: .setup channel1,channel2\r\n" +//34293948729384,3984279823498\r\n" + 
+                    "\tExample: .setup channel1\r\n\r\n" +//34982374982734\r\n" +
+                ".remove - Removes the selected channels from being notified of Pokemon.\r\n" +
+                    "\tExample: .remove channel1,channel2\r\n" +
+                    "\tExample: .remove single_channel1\r\n\r\n" +
                 //".subs - Lists all Pokemon subscriptions.\r\n" +
                 ".sub - Subscribe to Pokemon notifications via pokedex number.\r\n" +
                     "\tExample: .sub 147.\r\n" +
-                    "\tExample: .sub 113,242,248\r\n" + 
+                    "\tExample: .sub 113,242,248\r\n\r\n" + 
                 ".unsub - Unsubscribe from a single or multiple Pokemon notification or even all subscribed Pokemon notifications.\r\n" +
                     "\tExample: .unsub 149\r\n" +
                     "\tExample: .unsub 3,6,9,147,148,149\r\n" + 
-                    "\tExample: .unsub (Removes all subscribed Pokemon notifications.)\r\n" +
-                ".enable - Activates all Pokemon notification subscriptions.\r\n" + 
-                ".disable - Deactivates all Pokemon notification subscriptions.\r\n" +
+                    "\tExample: .unsub (Removes all subscribed Pokemon notifications.)\r\n\r\n" +
+                ".enable - Activates the Pokemon notification subscriptions.\r\n" + 
+                ".disable - Deactivates the Pokemon notification subscriptions.\r\n\r\n" +
                 $".demo - Display a demo of the {AssemblyUtils.AssemblyName}.\r\n" + 
                 $".v, .ver, or .version - Display the current {AssemblyUtils.AssemblyName} version.\r\n" +
                 ".help - Shows this help message."
             );
-        }
-
-        private DiscordChannel GetChannelByName(string channelName)
-        {
-            foreach (var channel in _client.Guilds[0].Channels)
-            {
-                if (channel.Name == channelName)
-                    return channel;
-            }
-
-            return null;
         }
 
         #endregion
