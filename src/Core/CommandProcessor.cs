@@ -484,6 +484,9 @@
         {
             await message.RespondAsync
             (
+                ".iam - Assign yourself to a team role, available teams to join are the following: Value, Mystic, or Instinct. You can only join one team at a time, type .iam None to leave a team.\r\n" + 
+                    "\tExample: .iam Valor\r\n" + 
+                    "\tExample: .iam None\r\n\r\n" +
                 $".info - Shows the your current Pokemon subscriptions and which channels to listen to.\r\n\r\n" +
                 ".setup - Include Pokemon from the specified channels to be notified of.\r\n" +
                     "\tExample: .setup channel1,channel2\r\n" +//34293948729384,3984279823498\r\n" + 
@@ -502,11 +505,11 @@
                 ".enable - Activates the Pokemon notification subscriptions.\r\n" +
                 ".disable - Deactivates the Pokemon notification subscriptions.\r\n\r\n" +
                 $".demo - Display a demo of the {AssemblyUtils.AssemblyName}.\r\n" +
-                $".v, .ver, or .version - Display the current {AssemblyUtils.AssemblyName} version.\r\n\r\n" +
+                $".v, .ver, or .version - Display the current {AssemblyUtils.AssemblyName} version.\r\n" +
+                ".help - Shows this help message.\r\n\r\n" + 
                 $"If you are the owner of the bot you can execute the following additional commands:\r\n" +
                 ".create_roles - Creates the required team roles to be assigned when users type the .iam <team> commmand.\r\n" +
-                ".delete_roles - Deletes all team roles that the PokeFilterBot created.\r\n" +
-                ".help - Shows this help message."
+                ".delete_roles - Deletes all team roles that the PokeFilterBot created.\r\n"
             );
         }
 
