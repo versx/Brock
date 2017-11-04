@@ -5,45 +5,45 @@
 
 	public class Command
 	{
-		public const char Prefix = '.';
+        public const char Prefix = '.';
 
-		#region Properties
+        #region Properties
 
         /// <summary>
         /// Gets the full command line received.
         /// </summary>
-		public string FullCommand { get; private set; }
+        public string FullCommand { get; private set; }
 
         /// <summary>
         /// Gets the name of the command. e.g. help
         /// </summary>
-		public string Name { get; private set; }
+        public string Name { get; private set; }
 
         /// <summary>
         /// Gets a value determining whether the command contains arguments.
         /// </summary>
-		public bool HasArgs { get; private set; }
+        public bool HasArgs { get; private set; }
 
         /// <summary>
         /// Gets a value determining whether the command is valid.
         /// </summary>
-		public bool ValidCommand { get; private set; }
+        public bool ValidCommand { get; private set; }
 
         /// <summary>
         /// Gets a list of the arguments passed.
         /// </summary>
-		public List<string> Args { get; private set; }
+        public List<string> Args { get; private set; }
 
-		#endregion
+        #endregion
 
-		#region Constructor
+        #region Constructor
 
-		public Command(string command)
-		{
+        public Command(string command)
+        {
             ParseCommand(command);
-		}
+        }
 
-		#endregion
+        #endregion
 
         private void ParseCommand(string command)
         {

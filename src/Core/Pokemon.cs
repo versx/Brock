@@ -12,7 +12,6 @@
         [XmlAttribute("name")]
         public string Name { get; set; }
 
-
         public Pokemon()
         {
         }

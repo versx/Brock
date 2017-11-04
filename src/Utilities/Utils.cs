@@ -4,6 +4,8 @@
     using System.IO;
     using System.Net;
 
+    using Newtonsoft.Json;
+
     public static class Utils
     {
         public static void MakeWebRequest(string url, string payload)
@@ -53,6 +55,29 @@
             {
                 LogError(ex);
                 return null;
+            }
+        }
+
+        public static dynamic GetWebHookData(string webHook)
+        {
+            /**Example:
+             * {
+             *   "name": "Pogo", 
+             *   "channel_id": "352137087182416016", 
+             *   "token": "fCdHsCZWeGB_vTkdPRqnB4_7fXil5tutXDLAZQYDurkXWQOqzSptiSQHbiCOBGlsF8J8", 
+             *   "avatar": null, 
+             *   "guild_id": "322025055510855680", 
+             *   "id": "352156775101032449"
+             * }
+             * 
+             */
+
+            using (var wc = new WebClient())
+            {
+                wc.Proxy = null;
+                string json = wc.DownloadString(webHook);
+                dynamic data = JsonConvert.DeserializeObject(json);
+                return data;
             }
         }
 

@@ -43,6 +43,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Configuration\Config.cs" />
+    <Compile Include="Core\CommandProcessor.cs" />
     <Compile Include="Core\FilterBot.cs" />
     <Compile Include="Core\Pokemon.cs" />
     <Compile Include="Data\Database.cs" />

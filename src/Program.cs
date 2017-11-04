@@ -12,16 +12,16 @@
      */
 
     class MainClass
-	{
-		public static void Main(string[] args) => MainAsync(args).ConfigureAwait(false).GetAwaiter().GetResult();
+    {
+        public static void Main(string[] args) => MainAsync(args).ConfigureAwait(false).GetAwaiter().GetResult();
 
-		static async Task MainAsync(string[] args)
-		{
+        static async Task MainAsync(string[] args)
+        {
             var bot = new FilterBot();
             await bot.Start();
 
             Console.Read();
             await bot.Stop();
-		}
-	}
+        }
+    }
 }
