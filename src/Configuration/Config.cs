@@ -8,6 +8,7 @@
     using Newtonsoft.Json;
 
     using PokeFilterBot.Serialization;
+    using PokeFilterBot.Utilities;
 
     /// <summary>
     /// The main configuration file containing various important
@@ -22,7 +23,23 @@
         /// </summary>
         public const string DefaultConfigFileName = "Config.xml"; //"config.json";
 
-        #region Variables
+        #region Properties
+
+        [XmlElement("ownerId")]
+        [JsonProperty("ownerId")]
+        public ulong OwnerId { get; set; }
+
+        [XmlElement("commandsChannel")]
+        [JsonProperty("commandsChannel")]
+        public string CommandsChannel { get; set; }
+
+        [XmlElement("authToken")]
+        [JsonProperty("authToken")]
+        public string AuthToken { get; set; }
+
+        [XmlElement("webHookUrl")]
+        [JsonProperty("webHookUrl")]
+        public string WebHookUrl { get; set; }
 
         /// <summary>
         /// Gets the config full config file path.
@@ -40,18 +57,6 @@
                 );
             }
         }
-
-        #endregion
-
-        #region Properties
-
-        [XmlElement("authToken")]
-        [JsonProperty("authToken")]
-        public string AuthToken { get; set; }
-
-        [XmlElement("webHookUrl")]
-        [JsonProperty("webHookUrl")]
-        public string WebHookUrl { get; set; }
 
         #endregion
 
@@ -112,7 +117,7 @@
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"LoadConfig: {ex}");
+                Utils.LogError(ex);
             }
 
             return null;

@@ -95,3 +95,42 @@
         }
 	}
 }
+
+//public class DiscordCommand
+//{
+//    public string Prefix { get; private set; }
+
+//    public string Command { get; private set; }
+
+//    public List<string> Arguments { get; private set; }
+
+//    public DiscordCommand()
+//    {
+//    }
+
+//    public DiscordCommand(string prefix, string command, List<string> arguments)
+//    {
+//        Prefix = prefix;
+//        Command = command;
+//        Arguments = arguments;
+//    }
+
+//    public static DiscordCommand ParseCommand(string line)
+//    {
+//        var lines = line.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+//        var cmd = new DiscordCommand()
+//        {
+//            Prefix = line[0].ToString(),
+//            Command = lines[0]
+//        };
+//        var list = new List<string>();
+//        foreach (var item in lines)
+//        {
+//            if (lines[0] == item) continue;
+//            list.Add(item);
+//        }
+//        cmd.Arguments = list;
+
+//        return cmd;
+//    }
+//}

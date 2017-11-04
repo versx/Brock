@@ -6,14 +6,14 @@
     using System.Threading.Tasks;
 
     using DSharpPlus;
+    using DSharpPlus.Entities;
+    using DSharpPlus.EventArgs;
 
     using Newtonsoft.Json;
 
     using PokeFilterBot.Configuration;
     using PokeFilterBot.Data;
     using PokeFilterBot.Utilities;
-    using DSharpPlus.Entities;
-    using DSharpPlus.EventArgs;
 
     public class FilterBot
     {
@@ -22,7 +22,6 @@
         private DiscordClient _client;
         private readonly Database _db;
         private readonly Config _config;
-        private readonly string _teamAssignmentChannelName = "general";
 
         private readonly Random _rand;
 
@@ -135,10 +134,10 @@
 
             if (e.Message.Author.IsBot)
             {
-                await CheckSponsoredRaids(e.Message);
+                await CheckSponsorRaids(e.Message);
                 await CheckSubscriptions(e.Message);
             }
-            else if (e.Message.Channel.Name == _teamAssignmentChannelName)
+            else if (e.Message.Channel.Name == _config.CommandsChannel)
             {
                 await ParseCommand(e.Message);
             }
@@ -157,7 +156,7 @@
 
         #region Private Methods
 
-        private async Task CheckSponsoredRaids(DiscordMessage message)
+        private async Task CheckSponsorRaids(DiscordMessage message)
         {
             foreach (DiscordEmbed embed in message.Embeds)
             {
@@ -273,11 +272,11 @@
             /**Example:
              * {
              *   "name": "Pogo", 
-             *   "channel_id": "352137087782486016", 
-             *   "token": "fCdHsCZWeGB_vTkdPRqnB4_7fXil5tutXDLCZQYDurkTWQOqzSptiSQHbiCOBGlsF8J8", 
+             *   "channel_id": "352137087182416016", 
+             *   "token": "fCdHsCZWeGB_vTkdPRqnB4_7fXil5tutXDLAZQYDurkXWQOqzSptiSQHbiCOBGlsF8J8", 
              *   "avatar": null, 
-             *   "guild_id": "342025055510855680", 
-             *   "id": "352137475101032449"
+             *   "guild_id": "322025055510855680", 
+             *   "id": "352156775101032449"
              * }
              * 
              */
@@ -358,13 +357,9 @@
 
         private async Task ParseCommand(DiscordMessage message)
         {
-            //_client.Guilds[0].Roles[0].
             var command = new Command(message.Content);
-            if (!command.ValidCommand && !message.Author.IsBot)
-            {
-                await message.RespondAsync("Invalid command, try sending me .help to see what available commands I can do.");
-                return;
-            }
+            if (!command.ValidCommand && !message.Author.IsBot) return;
+            var isOwner = message.Author.Id == _config.OwnerId;
 
             switch (command.Name)
             {
@@ -403,6 +398,27 @@
                 case "iam":
                     await ParseTeamAssignmentCommand(message, command);
                     break;
+                default:
+                    await message.RespondAsync("Invalid command, try sending me .help to see what available commands I can do.");
+                    break;
+            }
+
+            if (isOwner)
+            {
+                switch (command.Name)
+                {
+                    case "create_roles":
+                        await ParseCreateRolesCommand(message);
+                        break;
+                    case "delete_roles":
+                        await ParseDeleteRolesCommand(message);
+                        break;
+                    case "restart":
+                        break;
+                    case "shutdown":
+                        Environment.Exit(0);
+                        break;
+                }
             }
 
             _db.Save();
@@ -515,18 +531,7 @@
 
         private async Task ParseSubscribeCommand(DiscordMessage message, Command command)
         {
-            //New Style: .sub 149 2300 90
-            //           .sub 147,148,149
-            /*
-Hey there! Here's some stuff you can ask me to do:
-notify <pokemon name> <minimum cp> <minimum iv> - Will notify you of any spawns of that pokemon
-unnotify <pokemon name> - Will stop notifying you about any of the specified pokemon
-list - see all subscriptions you currently have
-nuke - removes all subscriptions, THIS ACTION IS IRREVERSIBLE
-version - show's Brads current version
-help - shows this message
-             */
-
+            //notify <pkmn> <min_cp> <min_iv>
             var author = message.Author.Id;
             if (command.HasArgs && command.Args.Count == 1)
             {
@@ -643,7 +648,7 @@ help - shows this message
                                 //{
                                 //    await guild.Value.GrantRoleAsync(member, teamRole, reason);
                                 //}
-                                await message.RespondAsync($"Currently I only support team assignment via the channel #{_teamAssignmentChannelName}, direct message support is coming soon.");
+                                await message.RespondAsync($"Currently I only support team assignment via the channel #{_config.CommandsChannel}, direct message support is coming soon.");
                                 return;
                             }
 
@@ -753,17 +758,72 @@ help - shows this message
                 //".subs - Lists all Pokemon subscriptions.\r\n" +
                 ".sub - Subscribe to Pokemon notifications via pokedex number.\r\n" +
                     "\tExample: .sub 147.\r\n" +
-                    "\tExample: .sub 113,242,248\r\n\r\n" + 
+                    "\tExample: .sub 113,242,248\r\n\r\n" +
                 ".unsub - Unsubscribe from a single or multiple Pokemon notification or even all subscribed Pokemon notifications.\r\n" +
                     "\tExample: .unsub 149\r\n" +
-                    "\tExample: .unsub 3,6,9,147,148,149\r\n" + 
+                    "\tExample: .unsub 3,6,9,147,148,149\r\n" +
                     "\tExample: .unsub (Removes all subscribed Pokemon notifications.)\r\n\r\n" +
-                ".enable - Activates the Pokemon notification subscriptions.\r\n" + 
+                ".enable - Activates the Pokemon notification subscriptions.\r\n" +
                 ".disable - Deactivates the Pokemon notification subscriptions.\r\n\r\n" +
-                $".demo - Display a demo of the {AssemblyUtils.AssemblyName}.\r\n" + 
-                $".v, .ver, or .version - Display the current {AssemblyUtils.AssemblyName} version.\r\n" +
+                $".demo - Display a demo of the {AssemblyUtils.AssemblyName}.\r\n" +
+                $".v, .ver, or .version - Display the current {AssemblyUtils.AssemblyName} version.\r\n\r\n" +
+                $"If you are the owner of the bot you can execute the following additional commands:\r\n" + 
+                ".create_roles - Creates the required team roles to be assigned when users type the .iam <team> commmand.\r\n" +
+                ".delete_roles - Deletes all team roles that the PokeFilterBot created.\r\n" + 
                 ".help - Shows this help message."
             );
+        }
+
+        private async Task ParseCreateRolesCommand(DiscordMessage message)
+        {
+            var teams = new[] { "Valor", "Mystic", "Instinct" };
+            var colors = new[] { DiscordColor.Red, DiscordColor.Blue, DiscordColor.Yellow };
+
+            for (int i = 0; i < teams.Length; i++)
+            {
+                try
+                {
+                    if (GetRoleFromName(teams[i]) == null)
+                    {
+                        if (message.Channel.Guild != null)
+                        {
+                            await message.Channel.Guild.CreateRoleAsync(teams[i], message.Channel.Guild.EveryoneRole.Permissions, colors[i], null, true, null);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Utils.LogError(ex);
+                    await message.RespondAsync($"Failed to create team role {teams[i]}, it might already exist or I do not have the correct permissions to manage roles.");
+                }
+            }
+
+            await message.RespondAsync("Valor, Mystic, and Instinct team roles were successfully created.");
+        }
+
+        private async Task ParseDeleteRolesCommand(DiscordMessage message)
+        {
+            try
+            {
+                foreach (var role in message.Channel.Guild.Roles)
+                {
+                    switch (role.Name)
+                    {
+                        case "Valor":
+                        case "Mystic":
+                        case "Instinct":
+                            await message.Channel.Guild.DeleteRoleAsync(role);
+                            break;
+                    }
+                }
+
+                await message.RespondAsync("All team roles have been deleted.");
+            }
+            catch (Exception ex)
+            {
+                Utils.LogError(ex);
+                await message.RespondAsync("Failed to delete one or more team roles.");
+            }
         }
 
         #endregion

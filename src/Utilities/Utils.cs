@@ -1,4 +1,4 @@
-﻿namespace PokeFilterBot
+﻿namespace PokeFilterBot.Utilities
 {
     using System;
     using System.IO;
@@ -8,7 +8,7 @@
     {
         public static void MakeWebRequest(string url, string payload)
         {
-            var request = (HttpWebRequest)System.Net.WebRequest.Create(url);
+            var request = (HttpWebRequest)WebRequest.Create(url);
             request.Method = "POST";
             request.ContentType = "application/json";
             request.ContentLength = payload.Length;
@@ -33,10 +33,9 @@
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Console.WriteLine("-----------------");
-                Console.WriteLine(e.Message);
+                LogError(ex);
             }
         }
 
