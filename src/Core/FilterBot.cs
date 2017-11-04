@@ -14,6 +14,8 @@
     using PokeFilterBot.Extensions;
     using PokeFilterBot.Utilities;
 
+    //TODO: Create raid lobbies with user wait time, amount of users in lobby, when the raid starts/ends, the name and description, raid info etc.
+
     public class FilterBot
     {
         #region Variables
@@ -119,11 +121,6 @@
             _client = null;
         }
 
-        private async Task SendWelcomeMessage()
-        {
-            await SendMessage(_config.WebHookUrl, GetRandomWakeupMessage());
-        }
-
         #endregion
 
         #region Discord Events
@@ -131,7 +128,9 @@
         private async Task Client_Ready(ReadyEventArgs e)
         {
             await DisplaySettings();
-            await SendWelcomeMessage();
+
+            var randomWelcomeMessage = _wakeupMessages[_rand.Next(0, _wakeupMessages.Length - 1)];
+            await SendMessage(_config.WebHookUrl, randomWelcomeMessage);
 
             foreach (var user in _client.Presences)
             {
@@ -197,14 +196,18 @@
         {
             var command = new Command(message.Content);
             if (!command.ValidCommand && !message.Author.IsBot) return;
-            var isOwner = message.Author.Id == _config.OwnerId;
 
-            foreach (var cmd in Commands)
+            if (Commands.ContainsKey(command.Name))
             {
-                if (string.Compare(cmd.Key, command.Name, true) == 0)
+                var isOwner = message.Author.Id == _config.OwnerId;
+                if ((Commands[command.Name].AdminCommand && isOwner) || !Commands[command.Name].AdminCommand)
                 {
-                    await cmd.Value.Execute(message, command);
+                    await Commands[command.Name].Execute(message, command);
                 }
+                //else
+                //{
+                //    //TODO: You are not the owner so your commands are not recognized.
+                //}
             }
 
             _db.Save();
@@ -309,7 +312,31 @@
             Console.WriteLine($"Owner: {owner?.Username} ({_config.OwnerId})");
             Console.WriteLine($"Authentication Token: {_config.AuthToken}");
             Console.WriteLine($"Commands Channel: {_config.CommandsChannel}");
-            Console.WriteLine($"Welcome WebHook: {_config.WebHookUrl}");
+            Console.WriteLine($"Startup WebHook: {_config.WebHookUrl}");
+            Console.WriteLine();
+            Console.WriteLine("Current Subscriptions:");
+            Console.WriteLine();
+            foreach (var sub in _db.Subscriptions)
+            {
+                var user = await _client.GetUserAsync(sub.UserId);
+                if (user != null)
+                {
+                    Console.WriteLine($"Enabled: {(sub.Enabled ? "Yes" : "No")}");
+                    Console.WriteLine($"Username: {user.Username}");
+                    Console.WriteLine($"Pokemon Notifications:");
+                    foreach (var pokeId in sub.PokemonIds)
+                    {
+                        Console.WriteLine(_db.Pokemon.Find(x => x.Index == pokeId).Name + $" ({pokeId})");
+                    }
+                    Console.WriteLine($"Channel Subscriptions:");
+                    foreach (var channel in sub.Channels)
+                    {
+                        Console.WriteLine("#" + channel);
+                    }
+                    Console.WriteLine();
+                    Console.WriteLine();
+                }
+            }
         }
 
         private void Notify(DiscordUser user, string message, Pokemon pokemon, DiscordEmbed embed)
@@ -328,11 +355,6 @@
             Console.ResetColor();
 
             Console.WriteLine($"Alerting discord user {user.Username} of {message}");
-        }
-
-        private string GetRandomWakeupMessage()
-        {
-            return _wakeupMessages[_rand.Next(0, _wakeupMessages.Length - 1)];
         }
 
         #endregion

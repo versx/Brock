@@ -9,6 +9,8 @@
 
     public class HelpCommand : ICustomCommand
     {
+        public bool AdminCommand => false;
+
         public async Task Execute(DiscordMessage message, Command command)
         {
             await message.RespondAsync
@@ -34,7 +36,7 @@
                 ".enable - Activates the Pokemon notification subscriptions.\r\n" +
                 ".disable - Deactivates the Pokemon notification subscriptions.\r\n\r\n" +
                 $".demo - Display a demo of the {AssemblyUtils.AssemblyName}.\r\n" +
-                $".v, .ver, or .version - Display the current {AssemblyUtils.AssemblyName} version.\r\n" +
+                $".version - Display the current {AssemblyUtils.AssemblyName} version.\r\n" +
                 ".help - Shows this help message.\r\n\r\n" +
                 $"If you are the owner of the bot you can execute the following additional commands:\r\n" +
                 ".create_roles - Creates the required team roles to be assigned when users type the .iam <team> commmand.\r\n" +

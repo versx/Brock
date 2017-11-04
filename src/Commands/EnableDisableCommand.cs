@@ -12,6 +12,8 @@
         private readonly Database _db;
         private readonly bool _enable;
 
+        public bool AdminCommand => false;
+
         public EnableDisableCommand(Database db, bool enable)
         {
             _db = db;

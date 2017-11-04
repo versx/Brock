@@ -13,6 +13,8 @@
     {
         private readonly DiscordClient _client;
 
+        public bool AdminCommand => true;
+
         public CreateRolesCommand(DiscordClient client)
         {
             _client = client;

@@ -10,6 +10,8 @@
 
     public class RestartCommand : ICustomCommand
     {
+        public bool AdminCommand => true;
+
         public async Task Execute(DiscordMessage message, Command command)
         {
             //Application.Restart();

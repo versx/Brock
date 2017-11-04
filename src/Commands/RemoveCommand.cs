@@ -14,6 +14,8 @@
         private readonly DiscordClient _client;
         private readonly Database _db;
 
+        public bool AdminCommand => false;
+
         public RemoveCommand(DiscordClient client, Database db)
         {
             _client = client;

@@ -7,6 +7,8 @@
 
     public class ShutdownCommand : ICustomCommand
     {
+        public bool AdminCommand => true;
+
         public async Task Execute(DiscordMessage message, Command command)
         {
             Environment.Exit(0);

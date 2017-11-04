@@ -12,6 +12,8 @@
     {
         private readonly DiscordClient _client;
 
+        public bool AdminCommand => true;
+
         public DeleteRolesCommand(DiscordClient client)
         {
             _client = client;

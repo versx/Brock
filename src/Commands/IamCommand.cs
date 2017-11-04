@@ -15,6 +15,8 @@
         private readonly DiscordClient _client;
         private readonly Config _config;
 
+        public bool AdminCommand => false;
+
         public IamCommand(DiscordClient client, Config config)
         {
             _client = client;

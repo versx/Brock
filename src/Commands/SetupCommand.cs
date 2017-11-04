@@ -15,6 +15,8 @@
         private readonly DiscordClient _client;
         private readonly Database _db;
 
+        public bool AdminCommand => false;
+
         public SetupCommand(DiscordClient client, Database db)
         {
             _client = client;

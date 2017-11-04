@@ -8,6 +8,8 @@
 
     public class VersionCommand : ICustomCommand
     {
+        public bool AdminCommand => false;
+
         public async Task Execute(DiscordMessage message, Command command)
         {
             await message.RespondAsync

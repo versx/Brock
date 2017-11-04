@@ -11,6 +11,8 @@
     {
         private readonly Database _db;
 
+        public bool AdminCommand => false;
+
         public UnsubscribeCommand(Database db)
         {
             _db = db;

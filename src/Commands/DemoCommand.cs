@@ -9,6 +9,8 @@
 
     public class DemoCommand : ICustomCommand
     {
+        public bool AdminCommand => false;
+
         public async Task Execute(DiscordMessage message, Command command)
         {
             await message.RespondAsync($"Below is a demo of how to operate {AssemblyUtils.AssemblyName}:");
