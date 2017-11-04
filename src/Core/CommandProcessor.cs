@@ -2,7 +2,6 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
     using System.Threading.Tasks;
 
     using DSharpPlus;
@@ -78,27 +77,20 @@
                 case "iam":
                     await ParseTeamAssignmentCommand(message, command);
                     break;
+                case "create_roles":
+                    if (isOwner) await ParseCreateRolesCommand(message);
+                    break;
+                case "delete_roles":
+                    if (isOwner) await ParseDeleteRolesCommand(message);
+                    break;
+                case "restart":
+                    break;
+                case "shutdown":
+                    if (isOwner) Environment.Exit(0);
+                    break;
                 default:
                     await message.RespondAsync("Invalid command, try sending me .help to see what available commands I can do.");
                     break;
-            }
-
-            if (isOwner)
-            {
-                switch (command.Name)
-                {
-                    case "create_roles":
-                        await ParseCreateRolesCommand(message);
-                        break;
-                    case "delete_roles":
-                        await ParseDeleteRolesCommand(message);
-                        break;
-                    case "restart":
-                        break;
-                    case "shutdown":
-                        Environment.Exit(0);
-                        break;
-                }
             }
 
             _db.Save();
@@ -428,7 +420,7 @@
 
                             foreach (var role in member.Roles)
                             {
-                                if (role.Name == "Valor" || role.Name == "Mystic" || role.Name == "Instinct")
+                                if ((role.Name == "Valor" || role.Name == "Mystic" || role.Name == "Instinct") && role.Name != teamRole.Name)
                                 {
                                     await message.Channel.Guild.RevokeRoleAsync(member, role, reason);
                                     await message.RespondAsync($"{message.Author.Username} has left team {role.Name}.");
