@@ -1,14 +1,17 @@
 ﻿namespace PokeFilterBot
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
 
     using DSharpPlus;
     using DSharpPlus.Entities;
     using DSharpPlus.EventArgs;
 
+    using PokeFilterBot.Commands;
     using PokeFilterBot.Configuration;
     using PokeFilterBot.Data;
+    using PokeFilterBot.Extensions;
     using PokeFilterBot.Utilities;
 
     public class FilterBot
@@ -18,8 +21,6 @@
         private DiscordClient _client;
         private readonly Database _db;
         private readonly Config _config;
-        private CommandProcessor _processor;
-
         private readonly Random _rand;
 
         private readonly string[] _wakeupMessages =
@@ -35,6 +36,8 @@
         };
 
         #endregion
+
+        public Dictionary<string, ICustomCommand> Commands { get; private set; }
 
         #region Constructor
 
@@ -69,23 +72,35 @@
             _client.MessageCreated += Client_MessageCreated;
             _client.Ready += Client_Ready;
             _client.DmChannelCreated += Client_DmChannelCreated;
+            _client.GuildMemberAdded += Client_GuildMemberAdded;
+            _client.GuildMemberRemoved += Client_GuildMemberRemoved;
+            _client.GuildBanAdded += Client_GuildBanAdded;
+            _client.GuildBanRemoved += Client_GuildBanRemoved;
 
-            _processor = new CommandProcessor(_config, _client, _db);
+            if (Commands == null)
+            {
+                Commands = new Dictionary<string, ICustomCommand>()
+                {
+                    { "demo", new DemoCommand() },
+                    { "help", new HelpCommand() },
+                    { "info", new InfoCommand(_db) },
+                    { "version", new VersionCommand() },
+                    { "setup", new SetupCommand(_client, _db) },
+                    { "remove", new RemoveCommand(_client, _db) },
+                    { "sub", new SubscribeCommand(_db) },
+                    { "unsub", new UnsubscribeCommand(_db) },
+                    { "enable", new EnableDisableCommand(_db, true) },
+                    { "disable", new EnableDisableCommand(_db, false) },
+                    { "iam", new IamCommand(_client, _config) },
+                    { "create_roles", new CreateRolesCommand(_client) },
+                    { "delete_roles", new DeleteRolesCommand(_client) },
+                    { "restart", new RestartCommand() },
+                    { "shutdown", new ShutdownCommand() }
+                };
+            }
 
             Console.WriteLine("Connecting to discord server...");
             await _client.ConnectAsync();
-
-            await SendWelcomeMessage();
-
-            //var embed = new DiscordEmbed()
-            //{
-            //    Title = "Sponsor Gym Test",
-            //    Description = $"Starbucks coffee is good.",
-            //    Color = 0xFF0000 // red
-            //};
-
-            //await SendMessage("https://discordapp.com/api/webhooks/366082287705784330/KsjTJ277pM9UPE_4KetoiBT3ZsQb6WUpryd47qvt006EF2197yRKO_yGTOduCoHvau3i", "Starbucks", embed);
-
             await Task.Delay(-1);
         }
 
@@ -113,11 +128,10 @@
 
         #region Discord Events
 
-#pragma warning disable CS1998
         private async Task Client_Ready(ReadyEventArgs e)
         {
-#pragma warning restore
-            //await DisplaySettings();
+            await DisplaySettings();
+            await SendWelcomeMessage();
 
             foreach (var user in _client.Presences)
             {
@@ -138,8 +152,7 @@
             }
             else if (e.Message.Channel.Name == _config.CommandsChannel)
             {
-                await _processor.ParseCommand(e.Message);
-                //await ParseCommand(e.Message);
+                await ParseCommand(e.Message);
             }
         }
 
@@ -148,13 +161,54 @@
             var msg = await e.Channel.GetMessageAsync(e.Channel.LastMessageId);
             if (msg != null)
             {
-                await _processor.ParseCommand(msg);
+                await ParseCommand(msg);
             }
+        }
+
+        private async Task Client_GuildBanAdded(GuildBanAddEventArgs e)
+        {
+            var channel = _client.GetChannelByName(_config.CommandsChannel);
+            await channel.SendMessageAsync($"OH SNAP! The ban hammer was just dropped on {e.Member.Mention}, cya!");
+        }
+
+        private async Task Client_GuildBanRemoved(GuildBanRemoveEventArgs e)
+        {
+            var channel = _client.GetChannelByName(_config.CommandsChannel);
+            await channel.SendMessageAsync($"Zeus was feeling nice today and unbanned {e.Member.Mention}, welcome back! Hopefully you'll learn to behave this time around.");
+        }
+
+        private async Task Client_GuildMemberAdded(GuildMemberAddEventArgs e)
+        {
+            var channel = _client.GetChannelByName(_config.CommandsChannel);
+            await channel.SendMessageAsync($"Everyone let's welcome {e.Member.Mention} to the server! We've been waiting for you!");
+        }
+
+        private async Task Client_GuildMemberRemoved(GuildMemberRemoveEventArgs e)
+        {
+            var channel = _client.GetChannelByName(_config.CommandsChannel);
+            await channel.SendMessageAsync($"Sorry to see you go {e.Member.Mention}, hope to see you back soon!");
         }
 
         #endregion
 
         #region Private Methods
+
+        public async Task ParseCommand(DiscordMessage message)
+        {
+            var command = new Command(message.Content);
+            if (!command.ValidCommand && !message.Author.IsBot) return;
+            var isOwner = message.Author.Id == _config.OwnerId;
+
+            foreach (var cmd in Commands)
+            {
+                if (string.Compare(cmd.Key, command.Name, true) == 0)
+                {
+                    await cmd.Value.Execute(message, command);
+                }
+            }
+
+            _db.Save();
+        }
 
         private async Task CheckSponsorRaids(DiscordMessage message)
         {
@@ -247,6 +301,15 @@
             }
 
             await channel.SendMessageAsync(message, false, embed);
+        }
+
+        private async Task DisplaySettings()
+        {
+            var owner = await _client.GetUserAsync(_config.OwnerId);
+            Console.WriteLine($"Owner: {owner?.Username} ({_config.OwnerId})");
+            Console.WriteLine($"Authentication Token: {_config.AuthToken}");
+            Console.WriteLine($"Commands Channel: {_config.CommandsChannel}");
+            Console.WriteLine($"Welcome WebHook: {_config.WebHookUrl}");
         }
 
         private void Notify(DiscordUser user, string message, Pokemon pokemon, DiscordEmbed embed)

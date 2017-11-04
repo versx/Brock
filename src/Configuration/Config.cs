@@ -37,6 +37,7 @@
         [JsonProperty("authToken")]
         public string AuthToken { get; set; }
 
+        //REVIEW: Startup webhook.
         [XmlElement("webHookUrl")]
         [JsonProperty("webHookUrl")]
         public string WebHookUrl { get; set; }
