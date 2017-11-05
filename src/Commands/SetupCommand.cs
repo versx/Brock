@@ -8,6 +8,7 @@
     using DSharpPlus.Entities;
 
     using PokeFilterBot.Data;
+    using PokeFilterBot.Data.Models;
     using PokeFilterBot.Extensions;
 
     public class SetupCommand : ICustomCommand

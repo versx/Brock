@@ -14,7 +14,7 @@
             {
                 foreach (var channel in guild.Value.Channels)
                 {
-                    if (channel.Name == channelName)
+                    if (string.Compare(channel.Name, channelName, true) == 0)
                     {
                         return channel;
                     }
@@ -48,6 +48,36 @@
                 if (user != null)
                 {
                     return user;
+                }
+            }
+
+            return null;
+        }
+
+        public static async Task<DiscordMessage> GetMessageById(this DiscordClient client, ulong messageId)
+        {
+            foreach (var guild in client.Guilds)
+            {
+                foreach (var channel in guild.Value.Channels)
+                {
+                    try
+                    {
+                        foreach (var message in await channel.GetMessagesAsync())
+                        {
+                            if (message.Id == messageId)
+                            {
+                                return message;
+                            }
+                        }
+                    }
+#pragma warning disable RECS0022
+                    catch { }
+#pragma warning restore RECS0022
+                    //var message = await channel.GetMessageAsync(messageId);
+                    //if (message != null)
+                    //{
+                    //    return message;
+                    //}
                 }
             }
 

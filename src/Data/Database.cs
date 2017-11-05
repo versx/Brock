@@ -7,6 +7,7 @@
 
     using Newtonsoft.Json;
 
+    using PokeFilterBot.Data.Models;
     using PokeFilterBot.Serialization;
 
     [XmlRoot("database")]
@@ -39,6 +40,9 @@
         [XmlElement("subscriptions")]
         public Subscriptions Subscriptions { get; }
 
+        [XmlElement("lobbies")]
+        public List<RaidLobby> Lobbies { get; }
+
         [XmlIgnore]
         [JsonIgnore]
         public List<Pokemon> Pokemon { get; }
@@ -49,6 +53,7 @@
 
         public Database()
         {
+            Lobbies = new List<RaidLobby>();
             Subscriptions = new Subscriptions();
             Pokemon = new List<Pokemon>
             {

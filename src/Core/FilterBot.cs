@@ -14,8 +14,6 @@
     using PokeFilterBot.Extensions;
     using PokeFilterBot.Utilities;
 
-    //TODO: Create raid lobbies with user wait time, amount of users in lobby, when the raid starts/ends, the name and description, raid info etc.
-
     public class FilterBot
     {
         #region Variables
@@ -39,7 +37,11 @@
 
         #endregion
 
+        #region Properties
+
         public Dictionary<string, ICustomCommand> Commands { get; private set; }
+
+        #endregion
 
         #region Constructor
 
@@ -96,6 +98,9 @@
                     { "iam", new IamCommand(_client, _config) },
                     { "create_roles", new CreateRolesCommand(_client) },
                     { "delete_roles", new DeleteRolesCommand(_client) },
+                    { "lobby", new CreateRaidLobbyCommand(_client, _db) },
+                    { "checkin", new RaidLobbyCheckInCommand(_client, _db) },
+                    { "ontheway", new RaidLobbyOnTheWayCommand(_client, _db) },
                     { "restart", new RestartCommand() },
                     { "shutdown", new ShutdownCommand() }
                 };
@@ -209,6 +214,38 @@
                 //    //TODO: You are not the owner so your commands are not recognized.
                 //}
             }
+
+            //switch (command.Name)
+            //{
+            //    case "lobby":
+            //        if (command.HasArgs && command.Args.Count == 2)
+            //        {
+            //            switch (command.Args[0])
+            //            {
+            //                case "checkin":
+            //                    await new RaidLobbyCheckInCommand(_db).Execute(message, command);
+            //                    break;
+            //                case "join":
+            //                    //await new RaidLobbyCheckInCommand(_db).Execute(message, command);
+            //                    break;
+            //                case "ontheway":
+            //                    await new OnTheWayRaidLobbyCommand(_client, _db).Execute(message, command);
+            //                    break;
+            //                default:
+
+            //                    break;
+            //            }
+            //            //if (command.Args[0] == "checkin")
+            //            //{
+            //            //    var lobbyName = command.Args[1];
+            //            //    var eta = command.Args[2];
+
+            //            //    return;
+            //            //}
+            //            //var raidMessageId = Convert.ToUInt64(command.Args[1]);
+            //        }
+            //        break;
+            //}
 
             _db.Save();
         }

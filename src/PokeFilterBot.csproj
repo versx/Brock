@@ -42,6 +42,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Commands\CreateRaidLobbyCommand.cs" />
     <Compile Include="Commands\CreateRolesCommand.cs" />
     <Compile Include="Commands\DeleteRolesCommand.cs" />
     <Compile Include="Commands\DemoCommand.cs" />
@@ -50,6 +51,8 @@
     <Compile Include="Commands\IamCommand.cs" />
     <Compile Include="Commands\ICustomCommand.cs" />
     <Compile Include="Commands\InfoCommand.cs" />
+    <Compile Include="Commands\RaidLobbyCheckInCommand.cs" />
+    <Compile Include="Commands\RaidLobbyOnTheWayCommand.cs" />
     <Compile Include="Commands\RemoveCommand.cs" />
     <Compile Include="Commands\RestartCommand.cs" />
     <Compile Include="Commands\SetupCommand.cs" />
@@ -62,8 +65,9 @@
     <Compile Include="Core\Pokemon.cs" />
     <Compile Include="Core\Roles.cs" />
     <Compile Include="Data\Database.cs" />
-    <Compile Include="Data\Subscription.cs" />
-    <Compile Include="Data\Subscriptions.cs" />
+    <Compile Include="Data\Models\RaidLobby.cs" />
+    <Compile Include="Data\Models\Subscription.cs" />
+    <Compile Include="Data\Models\Subscriptions.cs" />
     <Compile Include="Extensions\DiscordExtensions.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -1,4 +1,4 @@
-﻿namespace PokeFilterBot.Data
+﻿namespace PokeFilterBot.Data.Models
 {
     using System;
     using System.Collections.Generic;

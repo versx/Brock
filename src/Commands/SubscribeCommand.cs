@@ -7,6 +7,7 @@
     using DSharpPlus.Entities;
 
     using PokeFilterBot.Data;
+    using PokeFilterBot.Data.Models;
 
     public class SubscribeCommand : ICustomCommand
     {
