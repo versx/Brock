@@ -46,9 +46,9 @@
                     else
                     {
                         //User has already subscribed before, check if their new requested sub already exists.
-                        if (_db.Subscriptions[author].Channels.Contains(channel.Name))
+                        if (_db.Subscriptions[author].Channels.Contains(channel.Id))
                         {
-                            if (_db.Subscriptions[author].Channels.Remove(channel.Name))
+                            if (_db.Subscriptions[author].Channels.Remove(channel.Id))
                             {
                                 await message.RespondAsync($"You have successfully unsubscribed from #{channel.Name} Pokemon notifications.");
                             }

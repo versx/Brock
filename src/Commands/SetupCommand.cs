@@ -43,15 +43,15 @@
 
                     if (!_db.Subscriptions.ContainsKey(author))
                     {
-                        _db.Subscriptions.Add(new Subscription(author, new List<uint>(), new List<string> { channel.Name }));
+                        _db.Subscriptions.Add(new Subscription(author, new List<uint>(), new List<ulong> { channel.Id }));
                         await message.RespondAsync($"You have successfully subscribed to #{channel.Name} notifications!");
                     }
                     else
                     {
                         //User has already subscribed before, check if their new requested sub already exists.
-                        if (!_db.Subscriptions[author].Channels.Contains(channel.Name))
+                        if (!_db.Subscriptions[author].Channels.Contains(channel.Id))
                         {
-                            _db.Subscriptions[author].Channels.Add(channel.Name);
+                            _db.Subscriptions[author].Channels.Add(channel.Id);
                             await message.RespondAsync($"You have successfully subscribed to #{channel.Name} notifications!");
                         }
                         else

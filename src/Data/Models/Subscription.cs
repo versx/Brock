@@ -16,16 +16,16 @@
 
         [XmlArrayItem("channel")]
         [XmlArray("channels")]
-        public List<string> Channels { get; set; }
+        public List<ulong> Channels { get; set; }
 
-        [XmlElement("enabled")]
+        [XmlAttribute("enabled")]
         public bool Enabled { get; set; }
 
         public Subscription()
         {
         }
 
-        public Subscription(ulong userId, List<uint> pokemonIds, List<string> channels)
+        public Subscription(ulong userId, List<uint> pokemonIds, List<ulong> channels)
         {
             UserId = userId;
             PokemonIds = pokemonIds;

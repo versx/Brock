@@ -38,7 +38,7 @@
 
                     if (!_db.Subscriptions.ContainsKey(author))
                     {
-                        _db.Subscriptions.Add(new Subscription(author, new List<uint> { index }, new List<string>()));
+                        _db.Subscriptions.Add(new Subscription(author, new List<uint> { index }, new List<ulong>()));
                         await message.RespondAsync($"You have successfully subscribed to {pokemon.Name} notifications!");
                     }
                     else

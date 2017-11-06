@@ -43,11 +43,12 @@
             {
                 var lobbyName = command.Args[0];
                 var raidMessageId = Convert.ToUInt64(command.Args[1]);
-                var raidMessage = await _client.GetMessageById(raidMessageId);
+
+                var raidMessage = await _client.GetMessageById(message.Channel.GuildId, raidMessageId);
                 if (raidMessage == null)
                 {
                     await message.RespondAsync($"Failed to find a message matching the provided message id '{raidMessageId}.");
-                    await Task.CompletedTask;
+                    return;
                 }
 
                 var category = _client.GetChannelByName(ActiveRaidLobbies);
@@ -56,8 +57,6 @@
                     category = await message.Channel.Guild.CreateChannelAsync(ActiveRaidLobbies, ChannelType.Category);
                 }
 
-                var lobby = new RaidLobby(lobbyName, raidMessageId); //lobby channel id.
-                //lobby.PokemonName = raidMessage.Embeds[0].Author.Name;
                 /**
 Available Until: 06:49:07pm (46m 24s)
 Where: unknown gym.
@@ -77,28 +76,26 @@ Charge Move: Fire Blast (DPS: 33.33, Damage: 140)
 
                 var raidMsgEmbed = raidMessage.Embeds[0];
                 var content = raidMsgEmbed.Description.Split(new string[] { Environment.NewLine }, StringSplitOptions.None);
-                var expireTime = Utils.GetBetween(content[0], "Available Until: ", " (");
-                var remainingTime = Utils.GetBetween(content[1], "(", ")");
+                var expires = Utils.GetBetween(content[0], "Available Until: ", " (");
+                var expireTime = DateTime.Parse(expires);
+                var remainingTime = Utils.GetBetween(content[0], "(", ")");
                 var gymName = Utils.GetBetween(content[1], "Where: ", " gym.");
                 var address = content[2];
-                var description = content[3];
-                //4 = empty
-                var quickMoveInfo = content[5];
-                var chargeMoveInfo = content[6];
-                var coordinates = content[7];
-                var pokemon = raidMessage.Author.Username; //Includes " Raid" part.
+                var pokemon = raidMessage.Author.Username.Replace(" Raid", null);
 
-                var raidInfoMessage = await lobbyChannel.SendMessageAsync
-                (
-                    $"# Expire Time: {expireTime}\r\n" +
-                    $"Gym Name: {gymName}\r\n" +
-                    $"Address: {address}\r\n" +
-                    $"Description: {description}\r\n" +
-                    $"Raid Boss Quick Move: {quickMoveInfo}\r\n" +
-                    $"Raid Boss Charge Move: {chargeMoveInfo}\r\n" +
-                    $"Co-ordinates: {coordinates}\r\n"
-                , false, raidMessage.Embeds[0]);
-                await raidInfoMessage.PinAsync();
+                var lobby = new RaidLobby
+                {
+                    Address = address,
+                    ChannelId = lobbyChannel.Id,
+                    ExpireTime = expireTime,
+                    GymName = gymName,
+                    LobbyName = lobbyName,
+                    OriginalRaidMessageId = raidMessage.Id,
+                    PokemonName = pokemon,
+                    StartTime = expireTime - TimeSpan.FromMinutes(45),
+                };
+
+                await _client.SendLobbyStatus(lobby, raidMessage.Embeds[0], true);
 
                 if (!_db.Lobbies.Contains(lobby))
                 {

@@ -7,7 +7,9 @@
     using DSharpPlus.Entities;
 
     using PokeFilterBot.Data;
+    using PokeFilterBot.Data.Models;
     using PokeFilterBot.Extensions;
+    using PokeFilterBot.Utilities;
 
     public class RaidLobbyCheckInCommand : ICustomCommand
     {
@@ -26,26 +28,55 @@
         {
             if (!command.HasArgs) return;
 
-            if (command.Args.Count == 2)
+            if (command.Args.Count == 1)
             {
                 var lobbyName = command.Args[0];
-                var lobby = _db.Lobbies.Find(x => x.LobbyName == lobbyName);
-                if (lobby != null)
+                if (string.IsNullOrEmpty(lobbyName))
                 {
-                    if (!lobby.PlayersCheckedIn.Contains(message.Author.Id))
-                    {
-                        lobby.PlayersCheckedIn.Add(message.Author.Id);
-                    }
+                    await message.RespondAsync("You must enter a lobby name in order to send the on the way command.");
+                    return;
                 }
-                var count = command.Args[1];
-                var lobbyChannel = _client.GetChannelByName(lobbyName);
+
+                var lobby = _db.Lobbies.Find(x => string.Compare(x.LobbyName, lobbyName, true) == 0);
+                if (lobby == null)
+                {
+                    await message.RespondAsync($"Lobby {lobbyName} does not exist.");
+                    return;
+                }
+
+                var lobbyChannel = await _client.GetChannelAsync(lobby.ChannelId);
                 if (lobbyChannel == null)
                 {
                     await message.RespondAsync("Unrecognized lobby name.");
                     return;
                 }
-                await lobbyChannel.SendMessageAsync($"{message.Author.Username} has checked into raid lobby '{lobbyChannel.Name}' with {count} people.");
+
+                if (lobby.UserCheckInList.ContainsKey(message.Author.Id))
+                {
+                    if (lobby.UserCheckInList[message.Author.Id].IsCheckedIn)
+                    {
+                        await message.RespondAsync($"You are already checked-in to raid lobby {lobbyName} with {lobby.UserCheckInList[message.Author.Id].UserCount} people with you.");
+                        return;
+                    }
+
+                    lobby.UserCheckInList[message.Author.Id].CheckInTime = DateTime.Now;
+                    lobby.UserCheckInList[message.Author.Id].IsCheckedIn = true;
+                    lobby.UserCheckInList[message.Author.Id].IsOnTheWay = false;
+                }
+                else
+                {
+                    lobby.UserCheckInList.Add(new RaidLobbyUser(message.Author.Id, true, false, 1, string.Empty));
+                }
+
+                await message.RespondAsync($"{message.Author.Mention} has checked into raid lobby {lobbyChannel.Name} as ready with {lobby.UserCheckInList[message.Author.Id].UserCount} people.");
+                await lobbyChannel.SendMessageAsync($"{message.Author.Mention} has checked into raid lobby **{lobbyChannel.Name}** as ready with **{lobby.UserCheckInList[message.Author.Id].UserCount}** people.");
+
+                await _client.UpdateLobbyStatus(lobby);
             }
         }
     }
 }
+//TODO: Have a global list of people and the amount of time they have waited since they checked in.
+/**
+ * Users can checkin without setting on the way.
+ */

@@ -65,7 +65,9 @@
     <Compile Include="Core\Pokemon.cs" />
     <Compile Include="Core\Roles.cs" />
     <Compile Include="Data\Database.cs" />
+    <Compile Include="Data\Models\CheckInList.cs" />
     <Compile Include="Data\Models\RaidLobby.cs" />
+    <Compile Include="Data\Models\RaidLobbyUser.cs" />
     <Compile Include="Data\Models\Subscription.cs" />
     <Compile Include="Data\Models\Subscriptions.cs" />
     <Compile Include="Extensions\DiscordExtensions.cs" />

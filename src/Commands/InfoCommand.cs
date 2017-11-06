@@ -4,18 +4,21 @@
     using System.Collections.Generic;
     using System.Threading.Tasks;
 
+    using DSharpPlus;
     using DSharpPlus.Entities;
 
     using PokeFilterBot.Data;
 
     public class InfoCommand : ICustomCommand
     {
+        private readonly DiscordClient _client;
         private readonly Database _db;
 
         public bool AdminCommand => false;
 
-        public InfoCommand(Database db)
+        public InfoCommand(DiscordClient client, Database db)
         {
+            _client = client;
             _db = db;
         }
 
@@ -73,24 +76,20 @@
             return list;
         }
 
-        private List<string> GetChannelNames(ulong userId)
+        private async Task<List<string>> GetChannelNames(ulong userId)
         {
             var list = new List<string>();
             if (_db.Subscriptions.ContainsKey(userId))
             {
-                var channelIds = _db.Subscriptions[userId].Channels;
-                //channelIds.Sort();
-                return channelIds;
-
-                //foreach (string channel in channelIds)
-                //{
-                //    var channel = await _client.GetChannelAsync(id);
-                //    if (channel == null) continue;
-
-                //    list.Add(channel);
-                //}
+                foreach (var channelId in _db.Subscriptions[userId].Channels)
+                {
+                    var channel = await _client.GetChannelAsync(channelId);
+                    if (channel != null)
+                    {
+                        list.Add(channel.Name);
+                    }
+                }
             }
-            //list.Sort();
             return list;
         }
     }

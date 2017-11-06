@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+    using Timer = System.Timers.Timer;
 
     using DSharpPlus;
     using DSharpPlus.Entities;
@@ -22,6 +23,7 @@
         private readonly Database _db;
         private readonly Config _config;
         private readonly Random _rand;
+        private Timer _timer;
 
         private readonly string[] _wakeupMessages =
         {
@@ -87,7 +89,7 @@
                 {
                     { "demo", new DemoCommand() },
                     { "help", new HelpCommand() },
-                    { "info", new InfoCommand(_db) },
+                    { "info", new InfoCommand(_client, _db) },
                     { "version", new VersionCommand() },
                     { "setup", new SetupCommand(_client, _db) },
                     { "remove", new RemoveCommand(_client, _db) },
@@ -104,6 +106,32 @@
                     { "restart", new RestartCommand() },
                     { "shutdown", new ShutdownCommand() }
                 };
+            }
+
+            if (_timer == null)
+            {
+                _timer = new Timer(5000);
+#pragma warning disable RECS0165
+                _timer.Elapsed += async (sender, e) =>
+#pragma warning restore RECS0165
+                {
+                    if (_client == null) return;
+                    foreach (var lobby in _db.Lobbies)
+                    {
+                        if (lobby.IsExpired)
+                        {
+                            var channel = await _client.GetChannelAsync(lobby.ChannelId);
+                            if (channel == null)
+                            {
+                                Utils.LogError(new Exception($"Failed to find raid lobby channel {lobby.LobbyName} ({lobby.ChannelId})."));
+                                return;
+                            }
+                            await channel.DeleteAsync($"Raid lobby {lobby.LobbyName} ({lobby.ChannelId}) no longer needed.");
+                        }
+                        await _client.UpdateLobbyStatus(lobby);
+                    }
+                };
+                _timer.Start();
             }
 
             Console.WriteLine("Connecting to discord server...");
@@ -147,7 +175,7 @@
         {
             //Console.WriteLine($"Message recieved from server {e.Guild.Name} #{e.Message.Channel.Name}: {e.Message.Author.Username} (IsBot: {e.Message.Author.IsBot}) {e.Message.Content}");
 
-            if (e.Message.Author.Id == _client.CurrentUser.Id) await Task.CompletedTask;
+            if (e.Message.Author.Id == _client.CurrentUser.Id) return;
 
             if (e.Message.Author.IsBot)
             {
@@ -183,6 +211,8 @@
 
         private async Task Client_GuildMemberAdded(GuildMemberAddEventArgs e)
         {
+            await SendBotIntroMessage(e.Member);
+
             var channel = _client.GetChannelByName(_config.CommandsChannel);
             await channel.SendMessageAsync($"Everyone let's welcome {e.Member.Mention} to the server! We've been waiting for you!");
         }
@@ -215,64 +245,32 @@
                 //}
             }
 
-            //switch (command.Name)
-            //{
-            //    case "lobby":
-            //        if (command.HasArgs && command.Args.Count == 2)
-            //        {
-            //            switch (command.Args[0])
-            //            {
-            //                case "checkin":
-            //                    await new RaidLobbyCheckInCommand(_db).Execute(message, command);
-            //                    break;
-            //                case "join":
-            //                    //await new RaidLobbyCheckInCommand(_db).Execute(message, command);
-            //                    break;
-            //                case "ontheway":
-            //                    await new OnTheWayRaidLobbyCommand(_client, _db).Execute(message, command);
-            //                    break;
-            //                default:
-
-            //                    break;
-            //            }
-            //            //if (command.Args[0] == "checkin")
-            //            //{
-            //            //    var lobbyName = command.Args[1];
-            //            //    var eta = command.Args[2];
-
-            //            //    return;
-            //            //}
-            //            //var raidMessageId = Convert.ToUInt64(command.Args[1]);
-            //        }
-            //        break;
-            //}
-
             _db.Save();
         }
 
         private async Task CheckSponsorRaids(DiscordMessage message)
         {
-            foreach (DiscordEmbed embed in message.Embeds)
+            switch (message.Channel.Id)
             {
-                if (embed.Description.Contains("Starbucks") ||
-                    embed.Description.Contains("Sprint"))
-                {
-                    switch (message.Channel.Id)
+                case 375047782827950092: //Legendary_Raids
+                case 366049816188420096: //Upland_Raids
+                case 374809552928899082: //Upland_Legendary_Raids
+                case 366359725857832973: //Ontario_Raids
+                case 374817863690747905: //Ontario_Legendary_Raids
+                case 366049617642520596: //Pomona_Raids
+                case 374817900273336321: //Pomona_Legendary_Raids
+                case 366049983725830145: //EastLA_Raids
+                case 374819488174178304: //EastLA_Legendary_Raids
+                    foreach (DiscordEmbed embed in message.Embeds)
                     {
-                        case 375047782827950092: //Legendary_Raids
-                        case 366049816188420096: //Upland_Raids
-                        case 374809552928899082: //Upland_Legendary_Raids
-                        case 366359725857832973: //Ontario_Raids
-                        case 374817863690747905: //Ontario_Legendary_Raids
-                        case 366049617642520596: //Pomona_Raids
-                        case 374817900273336321: //Pomona_Legendary_Raids
-                        case 366049983725830145: //EastLA_Raids
-                        case 374819488174178304: //EastLA_Legendary_Raids
+                        if (embed.Description.Contains("Starbucks") ||
+                            embed.Description.Contains("Sprint"))
+                        {
                             var webHook = "https://discordapp.com/api/webhooks/374830905547816960/qjSyb2EPRSdmKXOK2N_82nna8fZGAWHmUoLjBrxI5518Ua2OOcOGRpzKCltZqOA45wOh";
                             await SendMessage(webHook, string.Empty, embed);
-                            break;
+                        }
                     }
-                }
+                    break;
             }
         }
 
@@ -286,7 +284,7 @@
                 discordUser = await _client.GetUserAsync(user.UserId);
                 if (discordUser == null) continue;
 
-                if (!user.Channels.Contains(message.Channel.Name)) continue;
+                if (!user.Channels.Contains(message.Channel.Id)) continue;
 
                 foreach (var pokeId in user.PokemonIds)
                 {
@@ -341,6 +339,18 @@
             }
 
             await channel.SendMessageAsync(message, false, embed);
+        }
+
+        private async Task SendBotIntroMessage(DiscordUser user)
+        {
+            await DirectMessage
+            (
+                user,
+                $"Hello {user.Username}, and welcome to versx's discord server!\r\n" +
+                "I am here to help you with certain things if you require them such as notifications of Pokemon that have spawned as well as setting up Raid Lobbies.\r\n\r\n" +
+                "To see a full list of my available commands please send me a direct message containing `.help`.",
+                null
+            );
         }
 
         private async Task DisplaySettings()
