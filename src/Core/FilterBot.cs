@@ -15,6 +15,8 @@
     using PokeFilterBot.Extensions;
     using PokeFilterBot.Utilities;
 
+    //TODO: Notify via SMS or Twilio or w/e.
+
     public class FilterBot
     {
         #region Variables

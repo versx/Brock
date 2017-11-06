@@ -31,6 +31,19 @@
 **.v**, **.ver**, or **.version** - Display the current PokeFilterBot version.  
 **.help** - Shows this help message.  
 
+
+**Raid Lobby System:**  
+
+**.lobby** - Creates a new raid lobby channel.  
+	Example: `.lobby Magikarp_4th 34234234234234`  
+	
+**.ontheway** - Notifies people in the specified lobby that you are on the way with x amount of people and ETA.  
+	Example: `.ontheway Magikarp_4th 5mins 3` (Registers that you have 3 people including yourself on the way.  
+	Example: `.ontheway Magikarp_4th 5mins` (Registers that you are by yourself on the way.  
+	
+**.checkin** - Checks you into the specified raid lobby notifying everyone that you have arrived to the raid location.  
+	Example: `.checkin Magikarp_4th`  
+
 If you are the owner of the bot you can execute the following additional commands:  
 **.create\_roles** - Creates the required team roles to be assigned when users type the `.iam <team>` commmand.  
 **.delete\_roles** - Deletes all team roles that the PokeFilterBot created.
