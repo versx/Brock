@@ -1,0 +1,7 @@
+https://gitlab.com/PoroCYon/PokeApi.NET/tree/v2
+
+https://rocketmap.readthedocs.io/en/develop/extras/webhooks.html
+
+https://rocketmap.readthedocs.io/en/latest/extras/Webhooks.html
+
+https://github.com/chafla/SomebodysPC/blob/master/utils.py

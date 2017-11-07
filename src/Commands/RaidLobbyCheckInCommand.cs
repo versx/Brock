@@ -44,7 +44,7 @@
                     return;
                 }
 
-                var lobbyChannel = await _client.GetChannelAsync(lobby.ChannelId);
+                var lobbyChannel = await _client.GetChannel(lobby.ChannelId);
                 if (lobbyChannel == null)
                 {
                     await message.RespondAsync("Unrecognized lobby name.");

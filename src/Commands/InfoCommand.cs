@@ -8,6 +8,7 @@
     using DSharpPlus.Entities;
 
     using PokeFilterBot.Data;
+    using PokeFilterBot.Extensions;
 
     public class InfoCommand : ICustomCommand
     {
@@ -34,7 +35,7 @@
             {
                 if (hasPokemon && hasChannels)
                 {
-                    msg = $"You are currently subscribed to {string.Join(", ", GetSubscriptionNames(author))} notifications from channels #{string.Join(", #", GetChannelNames(author))}.";
+                    msg = $"You are currently subscribed to {string.Join(", ", GetSubscriptionNames(author))} notifications from channels #{string.Join(", #", await GetChannelNames(author))}.";
                 }
                 else if (hasPokemon && !hasChannels)
                 {
@@ -42,7 +43,7 @@
                 }
                 else if (!hasPokemon && hasChannels)
                 {
-                    msg = $"You are not currently subscribed to any Pokemon notifications from channels #{string.Join(", #", GetChannelNames(author))}.";
+                    msg = $"You are not currently subscribed to any Pokemon notifications from channels #{string.Join(", #", await GetChannelNames(author))}.";
                 }
                 else if (!hasPokemon && !hasChannels)
                 {
@@ -83,7 +84,7 @@
             {
                 foreach (var channelId in _db.Subscriptions[userId].Channels)
                 {
-                    var channel = await _client.GetChannelAsync(channelId);
+                    var channel = await _client.GetChannel(channelId);
                     if (channel != null)
                     {
                         list.Add(channel.Name);

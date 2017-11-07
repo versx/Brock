@@ -27,6 +27,18 @@
             return null;
         }
 
+        public static async Task<DiscordChannel> GetChannel(this DiscordClient client, ulong channelId)
+        {
+            try
+            {
+                return await client.GetChannelAsync(channelId);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
         public static DiscordRole GetRoleFromName(this DiscordClient client, string roleName)
         {
             foreach (var guild in client.Guilds)
@@ -85,7 +97,7 @@
             var lobbyChannel = client.GetChannelByName(lobbyName);
             if (lobbyChannel == null)
             {
-                Utils.LogError(new Exception("Unrecognized lobby name '{lobbyName}'."));
+                Utils.LogError(new Exception($"Unrecognized lobby name '{lobbyName}'."));
                 return null;
             }
 
@@ -106,7 +118,7 @@
                 return null;
             }
 
-            var lobbyChannel = await client.GetChannelAsync(lobby.ChannelId);
+            var lobbyChannel = await client.GetChannel(lobby.ChannelId);
             if (lobbyChannel == null)
             {
                 Utils.LogError(new Exception($"Failed to get raid lobby channel from {lobby.LobbyName} ({lobby.ChannelId})."));
@@ -120,7 +132,7 @@
                 return null;
             }
 
-            return await pinnedMessage.ModifyAsync(new Optional<string>(CreateLobbyStatus(lobby)));
+            return await pinnedMessage.ModifyAsync(new Optional<string>(await CreateLobbyStatus(client, lobby)));
         }
 
         public static async Task<DiscordMessage> SendLobbyStatus(this DiscordClient client, RaidLobby lobby, DiscordEmbed embed, bool pin)
@@ -131,32 +143,63 @@
                 return null;
             }
 
-            var lobbyChannel = await client.GetChannelAsync(lobby.ChannelId);
+            var lobbyChannel = await client.GetChannel(lobby.ChannelId);
             if (lobbyChannel == null)
             {
                 Utils.LogError(new Exception($"Failed to get raid lobby channel from {lobby.LobbyName} ({lobby.ChannelId})."));
                 return null;
             }
 
-            var message = await lobbyChannel.SendMessageAsync(CreateLobbyStatus(lobby), false, embed);
+            var message = await lobbyChannel.SendMessageAsync(await CreateLobbyStatus(client, lobby), false, embed);
             if (pin) await message.PinAsync();
             lobby.PinnedRaidMessageId = message.Id;
 
             return message;
         }
 
-        private static string CreateLobbyStatus(RaidLobby lobby)
+        private static async Task<string> CreateLobbyStatus(DiscordClient client, RaidLobby lobby)
         {
-            return $"# **{lobby.LobbyName} RAID LOBBY** ({DateTime.Now.ToLongDateString()})\r\n" +
-                   $"**TIME LEFT: {(lobby.ExpireTime - lobby.StartTime).TotalMinutes} Minutes**\r\n" +
-                   $"Raid Boss: {lobby.PokemonName}\r\n" +
+            return $"**{lobby.LobbyName} RAID LOBBY** ({DateTime.Now.ToLongDateString()})\r\n" +
+                   $"**{(uint)(lobby.ExpireTime - DateTime.Now).TotalMinutes} Minutes Left!**\r\n" +
+                   $"Raid Boss: **{lobby.PokemonName}**\r\n" +
                    $"Start Time: {lobby.StartTime.ToLongTimeString()}\r\n" +
                    $"Expire Time: {lobby.ExpireTime.ToLongTimeString()}\r\n" +
                    $"Gym Name: {lobby.GymName}\r\n" +
-                   $"Address: {lobby.Address}\r\n" +
-                   $"No. Users On The Way: {lobby.NumUsersOnTheWay}\r\n" +
-                   $"No. Users Checked-In: {lobby.NumUsersCheckedIn}\r\n" +
-                   $"**{lobby.NumUsersCheckedIn}/{lobby.NumUsersCheckedIn + lobby.NumUsersOnTheWay}** Users Ready!\r\n";
+                   $"Address: {lobby.Address}\r\n\r\n" +
+                   await RaidLobbyUserStatus(client, lobby);
+        }
+
+        public static async Task<string> RaidLobbyUserStatus(this DiscordClient client, RaidLobby lobby)
+        {
+            var lobbyUserStatus = "**Raid Lobby User Status:**\r\n";
+
+            foreach (var lobbyUser in lobby.UserCheckInList)
+            {
+                var user = await client.GetUserAsync(lobbyUser.UserId);
+                if (user == null)
+                {
+                    Utils.LogError(new Exception($"Failed to find user {lobbyUser.UserId}"));
+                    return string.Empty;
+                }
+
+                var people = lobbyUser.UserCount;
+
+                if (lobbyUser.IsCheckedIn && !lobbyUser.IsOnTheWay)
+                {
+                    lobbyUserStatus += $"{user.Username} **checked-in** at {lobbyUser.CheckInTime.ToLongTimeString()} and is ready to start.\r\n";
+                }
+                else
+                {
+                    lobbyUserStatus += $"{user.Username} was **on the way** at **{lobbyUser.OnTheWayTime.ToLongTimeString()}** with {lobbyUser.UserCount} participants and an ETA of {lobbyUser.ETA}.\r\n";
+                }
+
+                lobbyUserStatus += 
+                    $"{lobby.NumUsersOnTheWay} users on their way.\r\n" +
+                    $"{lobby.NumUsersCheckedIn} users already checked in and ready.\r\n" +
+                    $"**{lobby.NumUsersCheckedIn}/{lobby.NumUsersCheckedIn + lobby.NumUsersOnTheWay}** Users Ready!\r\n";
+            }
+
+            return lobbyUserStatus;
         }
     }
 }

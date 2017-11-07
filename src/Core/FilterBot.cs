@@ -16,6 +16,8 @@
     using PokeFilterBot.Utilities;
 
     //TODO: Notify via SMS or Twilio or w/e.
+    //TODO: Pokemon lookup.
+    //TODO: Testing
 
     public class FilterBot
     {
@@ -112,26 +114,34 @@
 
             if (_timer == null)
             {
-                _timer = new Timer(5000);
+                _timer = new Timer(15000);
 #pragma warning disable RECS0165
                 _timer.Elapsed += async (sender, e) =>
 #pragma warning restore RECS0165
                 {
                     if (_client == null) return;
-                    foreach (var lobby in _db.Lobbies)
+                    try
                     {
-                        if (lobby.IsExpired)
+                        foreach (var lobby in _db.Lobbies)
                         {
-                            var channel = await _client.GetChannelAsync(lobby.ChannelId);
-                            if (channel == null)
+                            if (lobby.IsExpired)
                             {
-                                Utils.LogError(new Exception($"Failed to find raid lobby channel {lobby.LobbyName} ({lobby.ChannelId})."));
-                                return;
+                                var channel = await _client.GetChannel(lobby.ChannelId);
+                                if (channel == null)
+                                {
+                                    Utils.LogError(new Exception($"Failed to delete expired raid lobby channel because channel {lobby.LobbyName} ({lobby.ChannelId}) does not exist."));
+                                    continue;
+                                }
+                                //await channel.DeleteAsync($"Raid lobby {lobby.LobbyName} ({lobby.ChannelId}) no longer needed.");
                             }
-                            await channel.DeleteAsync($"Raid lobby {lobby.LobbyName} ({lobby.ChannelId}) no longer needed.");
+                            await _client.UpdateLobbyStatus(lobby);
                         }
-                        await _client.UpdateLobbyStatus(lobby);
+
+                        _db.Lobbies.RemoveAll(x => x.IsExpired);
                     }
+#pragma warning disable RECS0022
+                    catch { }
+#pragma warning restore RECS0022
                 };
                 _timer.Start();
             }
@@ -293,7 +303,7 @@
                     var pokemon = _db.Pokemon.Find(x => x.Index == pokeId);
                     if (pokemon == null) continue;
 
-                    if (string.Compare(message.Author.Username, pokemon.Name, true) == 0)
+                    if (message.Author.Username.ToLower().Contains(pokemon.Name.ToLower()))
                     {
                         var msg = $"A wild {pokemon.Name} has appeared!\r\n\r\n" + message.Content;
 

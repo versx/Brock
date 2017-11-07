@@ -59,6 +59,18 @@
             //    return;
             //}
 
+            var numPeople = 1;
+            if (!string.IsNullOrEmpty(amountOfPeople))
+            {
+                if (!int.TryParse(amountOfPeople, out int value))
+                {
+                    await message.RespondAsync("You entered an invalid value for the amount of people that are on the way. Please make sure it is a numerical value or if it's just yourself you do not need to specify the amount of people.");
+                    return;
+                }
+
+                numPeople = value;
+            }
+
             var lobby = _db.Lobbies.Find(x => string.Compare(x.LobbyName, lobbyName, true) == 0);
             if (lobby == null)
             {
@@ -66,7 +78,7 @@
                 return;
             }
 
-            var lobbyChannel = await _client.GetChannelAsync(lobby.ChannelId);
+            var lobbyChannel = await _client.GetChannel(lobby.ChannelId);
             if (lobbyChannel == null)
             {
                 await message.RespondAsync("Unrecognized lobby name.");
@@ -87,7 +99,7 @@
                 message.Author.Id,
                 false,
                 true,
-                string.IsNullOrEmpty(amountOfPeople) ? 1 : Convert.ToInt32(amountOfPeople),
+                numPeople,
                 eta
             )
             { OnTheWayTime = DateTime.Now });

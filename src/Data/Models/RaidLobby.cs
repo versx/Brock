@@ -45,7 +45,7 @@
         [XmlIgnore]
         public bool IsExpired
         {
-            get { return ExpireTime < DateTime.Now; }
+            get { return ExpireTime <= DateTime.Now; }
         }
 
         [XmlIgnore]
