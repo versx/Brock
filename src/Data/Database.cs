@@ -1,4 +1,4 @@
-﻿namespace PokeFilterBot.Data
+﻿namespace BrockBot.Data
 {
     using System;
     using System.Collections.Generic;
@@ -7,25 +7,31 @@
 
     using Newtonsoft.Json;
 
-    using PokeFilterBot.Data.Models;
-    using PokeFilterBot.Serialization;
+    using BrockBot.Data.Models;
+    using BrockBot.Serialization;
 
     [XmlRoot("database")]
+    [JsonObject("database")]
     public class Database
     {
         /// <summary>
         /// The default config file name with extension.
         /// </summary>
-        public const string DefaultDatabaseFileName = "Database.xml";
+        public const string DefaultDatabaseFileName = "database.json";//"Database.xml";
 
         #region Properties
 
-        [XmlElement("subscriptions")]
-        public Subscriptions Subscriptions { get; }
+        //[XmlElement("subscriptions")]
+        //public Subscriptions Subscriptions { get; }
 
-        [XmlArrayItem("lobby")]
-        [XmlArray("lobbies")]
-        public List<RaidLobby> Lobbies { get; }
+        //[XmlArrayItem("lobby")]
+        //[XmlArray("lobbies")]
+        //public List<RaidLobby> Lobbies { get; }
+
+        [XmlArrayItem("server")]
+        [XmlArray("servers")]
+        [JsonProperty("servers")]
+        public List<Server> Servers { get; set; }
 
         [XmlIgnore]
         [JsonIgnore]
@@ -48,14 +54,28 @@
             }
         }
 
+        public Server this[ulong guildId]
+        {
+            get
+            {
+                if (ContainsKey(guildId))
+                {
+                    return Servers.Find(x => x.GuildId == guildId);
+                }
+
+                return null;
+            }
+        }
+
         #endregion
 
         #region Constructor
 
         public Database()
         {
-            Lobbies = new List<RaidLobby>();
-            Subscriptions = new Subscriptions();
+            //Lobbies = new List<RaidLobby>();
+            //Subscriptions = new Subscriptions();
+            Servers = new List<Server>();
             Pokemon = new List<Pokemon>
             {
 new Pokemon(001, "Bulbasaur"),
@@ -867,6 +887,11 @@ new Pokemon(802, "Marshadow")
 
         #region Public Methods
 
+        public bool ContainsKey(ulong guildId)
+        {
+            return Servers.Exists(x => x.GuildId == guildId);
+        }
+
         /// <summary>
         /// Saves the configuration file to the default path.
         /// </summary>
@@ -881,7 +906,8 @@ new Pokemon(802, "Marshadow")
         /// <param name="filePath">The full file path.</param>
         public void Save(string filePath)
         {
-            var serializedData = XmlStringSerializer.Serialize(this);
+            //var serializedData = XmlStringSerializer.Serialize(this);
+            var serializedData = JsonStringSerializer.Serialize(this);
             File.WriteAllText(filePath, serializedData);
         }
 
@@ -893,6 +919,11 @@ new Pokemon(802, "Marshadow")
         public string ToXmlString()
         {
             return XmlStringSerializer.Serialize(this);
+        }
+
+        public string ToJsonString()
+        {
+            return JsonStringSerializer.Serialize(this);
         }
 
         #endregion
@@ -920,7 +951,8 @@ new Pokemon(802, "Marshadow")
                 if (File.Exists(filePath))
                 {
                     var data = File.ReadAllText(filePath);
-                    return XmlStringSerializer.Deserialize<Database>(data);
+                    //return XmlStringSerializer.Deserialize<Database>(data);
+                    return JsonStringSerializer.Deserialize<Database>(data);
                 }
             }
             catch (Exception ex)
@@ -932,5 +964,58 @@ new Pokemon(802, "Marshadow")
         }
 
         #endregion
+    }
+
+    [XmlRoot("server")]
+    [JsonObject("server")]
+    public class Server
+    {
+        [XmlElement("guildId")]
+        [JsonProperty("guildId")]
+        public ulong GuildId { get; set; }
+
+        [XmlArrayItem("lobby")]
+        [XmlArray("lobbies")]
+        [JsonProperty("lobbies")]
+        public List<RaidLobby> Lobbies { get; set; }
+
+        [XmlElement("subscriptions")]
+        [JsonProperty("subscriptions")]
+        public List<Subscription> Subscriptions { get; set; }
+
+        [XmlIgnore]
+        [JsonIgnore]
+        public Subscription this[ulong userId]
+        {
+            get { return Subscriptions.Find(x => x.UserId == userId); }
+        }
+
+        public Server()
+        {
+            Lobbies = new List<RaidLobby>();
+            Subscriptions = new List<Subscription>();
+        }
+
+        public Server(ulong guildId, List<RaidLobby> lobbies, List<Subscription> subscriptions)
+        {
+            GuildId = guildId;
+            Lobbies = lobbies;
+            Subscriptions = subscriptions;
+        }
+
+        public bool ContainsKey(ulong userId)
+        {
+            return this[userId] != null;
+        }
+
+        public bool Remove(ulong userId)
+        {
+            if (ContainsKey(userId))
+            {
+                return Subscriptions.Remove(this[userId]);
+            }
+
+            return false;
+        }
     }
 }

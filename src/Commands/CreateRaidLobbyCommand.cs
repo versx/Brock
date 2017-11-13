@@ -1,4 +1,4 @@
-﻿namespace PokeFilterBot.Commands
+﻿namespace BrockBot.Commands
 {
     using System;
     using System.Threading.Tasks;
@@ -6,12 +6,12 @@
     using DSharpPlus;
     using DSharpPlus.Entities;
 
-    using PokeFilterBot.Data;
-    using PokeFilterBot.Data.Models;
-    using PokeFilterBot.Extensions;
-    using PokeFilterBot.Utilities;
+    using BrockBot.Data;
+    using BrockBot.Data.Models;
+    using BrockBot.Extensions;
+    using BrockBot.Utilities;
 
-    //TODO: Create raid lobbies with user wait time, amount of users in lobby, when the raid starts/ends, the name and description, raid info etc.
+    //TODO: Create raid lobbies with user wait time, amount of users in lobby.
     /*
      * .lobby test 39848234234
      * .join lobby test
@@ -22,6 +22,9 @@
      * keep track of the amount of time users have been checked in and count down how long eta users are expected.
      */
 
+    /**Example Usage:
+     * .lobby TyranitarWestFontana 2389498237482374
+     */
     public class CreateRaidLobbyCommand : ICustomCommand
     {
         private const string ActiveRaidLobbies = "ACTIVE RAID LOBBIES";
@@ -95,16 +98,18 @@ Charge Move: Fire Blast (DPS: 33.33, Damage: 140)
                     StartTime = expireTime - TimeSpan.FromMinutes(45),
                 };
 
-                await _client.SendLobbyStatus(lobby, raidMessage.Embeds[0], true);
+                if (message.Channel == null) return;
+                var server = _db[message.Channel.GuildId];
+                if (server == null) return;
 
-                if (!_db.Lobbies.Contains(lobby))
+                if (!server.Lobbies.Contains(lobby))
                 {
-                    _db.Lobbies.Add(lobby);
+                    server.Lobbies.Add(lobby);
                 }
 
                 await message.RespondAsync($"Raid lobby {lobbyName} was created successfully.");
 
-                //TODO: Listen to commands in active raid lobby channels for .checkin and .ontheway
+                await _client.SendLobbyStatus(lobby, raidMessage.Embeds[0], true);
             }
         }
     }

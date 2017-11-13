@@ -1,10 +1,10 @@
-﻿namespace PokeFilterBot.Commands
+﻿namespace BrockBot.Commands
 {
     using System.Threading.Tasks;
 
     using DSharpPlus.Entities;
 
-    using PokeFilterBot.Utilities;
+    using BrockBot.Utilities;
 
     public class VersionCommand : ICustomCommand
     {

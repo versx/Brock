@@ -1,9 +1,10 @@
-﻿namespace PokeFilterBot
+﻿namespace BrockBot
 {
     using System.Collections.Generic;
 
     using DSharpPlus.Entities;
 
+    //TODO: Fix config to support dictionary of Team Name and Team Color.
     public static class Roles
     {
         public static Dictionary<string, DiscordColor> Teams = new Dictionary<string, DiscordColor>

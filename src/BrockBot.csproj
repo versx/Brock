@@ -5,8 +5,8 @@
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
     <ProjectGuid>{D929463D-79C1-40D3-B636-9A4FDAC1AE4F}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>PokeFilterBot</RootNamespace>
-    <AssemblyName>PokeFilterBot</AssemblyName>
+    <RootNamespace>BrockBot</RootNamespace>
+    <AssemblyName>BrockBot</AssemblyName>
     <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <TargetFrameworkProfile />
   </PropertyGroup>
@@ -48,14 +48,17 @@
     <Compile Include="Commands\DemoCommand.cs" />
     <Compile Include="Commands\EnableDisableCommand.cs" />
     <Compile Include="Commands\HelpCommand.cs" />
-    <Compile Include="Commands\IamCommand.cs" />
+    <Compile Include="Commands\RaidLobbyListUsersCommand.cs" />
+    <Compile Include="Commands\SetupCommand.cs" />
+    <Compile Include="Commands\TeamCommand.cs" />
     <Compile Include="Commands\ICustomCommand.cs" />
     <Compile Include="Commands\InfoCommand.cs" />
+    <Compile Include="Commands\RaidLobbyCancelCommand.cs" />
     <Compile Include="Commands\RaidLobbyCheckInCommand.cs" />
     <Compile Include="Commands\RaidLobbyOnTheWayCommand.cs" />
     <Compile Include="Commands\RemoveCommand.cs" />
     <Compile Include="Commands\RestartCommand.cs" />
-    <Compile Include="Commands\SetupCommand.cs" />
+    <Compile Include="Commands\AddCommand.cs" />
     <Compile Include="Commands\ShutdownCommand.cs" />
     <Compile Include="Commands\SubscribeCommand.cs" />
     <Compile Include="Commands\UnsubscribeCommand.cs" />
@@ -69,11 +72,11 @@
     <Compile Include="Data\Models\RaidLobby.cs" />
     <Compile Include="Data\Models\RaidLobbyUser.cs" />
     <Compile Include="Data\Models\Subscription.cs" />
-    <Compile Include="Data\Models\Subscriptions.cs" />
     <Compile Include="Extensions\DiscordExtensions.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Core\Command.cs" />
+    <Compile Include="Serialization\JsonStringSerializer.cs" />
     <Compile Include="Serialization\XmlStringSerializer.cs" />
     <Compile Include="Utilities\AssemblyUtils.cs" />
     <Compile Include="Utilities\Utils.cs" />

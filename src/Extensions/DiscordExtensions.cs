@@ -1,4 +1,4 @@
-﻿namespace PokeFilterBot.Extensions
+﻿namespace BrockBot.Extensions
 {
     using System;
     using System.Threading.Tasks;
@@ -6,8 +6,8 @@
     using DSharpPlus;
     using DSharpPlus.Entities;
 
-    using PokeFilterBot.Data.Models;
-    using PokeFilterBot.Utilities;
+    using BrockBot.Data.Models;
+    using BrockBot.Utilities;
 
     public static class DiscordExtensions
     {
@@ -160,7 +160,7 @@
         private static async Task<string> CreateLobbyStatus(DiscordClient client, RaidLobby lobby)
         {
             return $"**{lobby.LobbyName} RAID LOBBY** ({DateTime.Now.ToLongDateString()})\r\n" +
-                   $"**{(uint)(lobby.ExpireTime - DateTime.Now).TotalMinutes} Minutes Left!**\r\n" +
+                   $"**{Convert.ToUInt32(lobby.MinutesLeft)} Minutes Left!**\r\n" + //TODO: Fix minutes left.
                    $"Raid Boss: **{lobby.PokemonName}**\r\n" +
                    $"Start Time: {lobby.StartTime.ToLongTimeString()}\r\n" +
                    $"Expire Time: {lobby.ExpireTime.ToLongTimeString()}\r\n" +

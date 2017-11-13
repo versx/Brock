@@ -1,4 +1,4 @@
-﻿namespace PokeFilterBot.Commands
+﻿namespace BrockBot.Commands
 {
     using System;
     using System.Threading.Tasks;

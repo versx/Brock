@@ -1,4 +1,4 @@
-﻿namespace PokeFilterBot
+﻿namespace BrockBot
 {
     using System;
     using System.Collections.Generic;
@@ -9,15 +9,18 @@
     using DSharpPlus.Entities;
     using DSharpPlus.EventArgs;
 
-    using PokeFilterBot.Commands;
-    using PokeFilterBot.Configuration;
-    using PokeFilterBot.Data;
-    using PokeFilterBot.Extensions;
-    using PokeFilterBot.Utilities;
+    using BrockBot.Commands;
+    using BrockBot.Configuration;
+    using BrockBot.Data;
+    using BrockBot.Extensions;
+    using BrockBot.Utilities;
 
     //TODO: Notify via SMS or Twilio or w/e.
-    //TODO: Pokemon lookup.
+    //TODO: Pokemon info lookup.
     //TODO: Testing
+    //TODO: Possibly change .checkin to .here or .ready?
+    //TODO: Added a .interested command or something similar.
+    //TODO: Raid channel specific commands, !list coming etc.
 
     public class FilterBot
     {
@@ -60,6 +63,122 @@
 
         #endregion
 
+        #region Discord Events
+
+        private async Task Client_Ready(ReadyEventArgs e)
+        {
+            await DisplaySettings();
+
+            if (_config.SendStartupMessage)
+            {
+                var randomWelcomeMessage = _wakeupMessages[_rand.Next(0, _wakeupMessages.Length - 1)];
+                await SendMessage(_config.StartupMessageWebHook, randomWelcomeMessage);
+            }
+
+            foreach (var user in _client.Presences)
+            {
+                Console.WriteLine($"User: {user.Key}: {user.Value.User.Username}");
+            }
+        }
+
+        private async Task Client_MessageCreated(MessageCreateEventArgs e)
+        {
+            //Console.WriteLine($"Message recieved from server {e.Guild.Name} #{e.Message.Channel.Name}: {e.Message.Author.Username} (IsBot: {e.Message.Author.IsBot}) {e.Message.Content}");
+
+            if (e.Message.Author.Id == _client.CurrentUser.Id) return;
+
+            //if (e.Message.Channel == null) return;
+            //var server = _db.Servers[e.Message.Channel.GuildId];
+            //if (server == null) return;
+
+            if (e.Message.Author.IsBot)
+            {
+                await CheckSponsorRaids(e.Message);
+                await CheckSubscriptions(e.Message);
+            }
+            else if (e.Message.Channel.Name == _config.CommandsChannel)
+            {
+                await ParseCommand(e.Message);
+            }
+            else if (_db.Servers.Exists(server => server.Lobbies.Exists(x => string.Compare(x.LobbyName, e.Message.Channel.Name, true) == 0)))
+            {
+                await ParseCommand(e.Message);
+                //TODO: Implement RaidLobby specific commands, .list, etc..
+            }
+        }
+
+        private async Task Client_DmChannelCreated(DmChannelCreateEventArgs e)
+        {
+            var msg = await e.Channel.GetMessageAsync(e.Channel.LastMessageId);
+            if (msg == null)
+            {
+                Utils.LogError(new Exception($"Failed to find last direct message from id {e.Channel.LastMessageId}."));
+                return;
+            }
+
+            await ParseCommand(msg);
+        }
+
+        private async Task Client_GuildBanAdded(GuildBanAddEventArgs e)
+        {
+            var channel = _client.GetChannelByName(_config.CommandsChannel);
+            if (channel == null)
+            {
+                Utils.LogError(new Exception($"Failed to find channel {_config.CommandsChannel}."));
+                return;
+            }
+
+            await channel.SendMessageAsync($"OH SNAP! The ban hammer was just dropped on {e.Member.Mention}, cya!");
+        }
+
+        private async Task Client_GuildBanRemoved(GuildBanRemoveEventArgs e)
+        {
+            var channel = _client.GetChannelByName(_config.CommandsChannel);
+            if (channel == null)
+            {
+                Utils.LogError(new Exception($"Failed to find channel {_config.CommandsChannel}."));
+                return;
+            }
+
+            await channel.SendMessageAsync($"Zeus was feeling nice today and unbanned {e.Member.Mention}, welcome back! Hopefully you'll learn to behave this time around.");
+        }
+
+        private async Task Client_GuildMemberAdded(GuildMemberAddEventArgs e)
+        {
+            if (_config.NotifyNewMemberJoined)
+            {
+                var channel = _client.GetChannelByName(_config.CommandsChannel);
+                if (channel == null)
+                {
+                    Utils.LogError(new Exception($"Failed to find channel {_config.CommandsChannel}."));
+                    return;
+                }
+
+                await channel.SendMessageAsync($"Everyone let's welcome {e.Member.Mention} to the server! We've been waiting for you!");
+            }
+
+            if (_config.SendWelcomeMessage)
+            {
+                await SendBotIntroMessage(e.Member);
+            }
+        }
+
+        private async Task Client_GuildMemberRemoved(GuildMemberRemoveEventArgs e)
+        {
+            if (_config.NotifyMemberLeft)
+            {
+                var channel = _client.GetChannelByName(_config.CommandsChannel);
+                if (channel == null)
+                {
+                    Utils.LogError(new Exception($"Failed to find channel {_config.CommandsChannel}."));
+                    return;
+                }
+                await channel.SendMessageAsync($"Sorry to see you go {e.Member.Mention}, hope to see you back soon!");
+            }
+        }
+
+        #endregion
+
         #region Public Methods
 
         public async Task Start()
@@ -95,18 +214,21 @@
                     { "help", new HelpCommand() },
                     { "info", new InfoCommand(_client, _db) },
                     { "version", new VersionCommand() },
-                    { "setup", new SetupCommand(_client, _db) },
+                    { "setup", new AddCommand(_client, _db) },
+                    { "add", new AddCommand(_client, _db) },
                     { "remove", new RemoveCommand(_client, _db) },
                     { "sub", new SubscribeCommand(_db) },
                     { "unsub", new UnsubscribeCommand(_db) },
                     { "enable", new EnableDisableCommand(_db, true) },
                     { "disable", new EnableDisableCommand(_db, false) },
-                    { "iam", new IamCommand(_client, _config) },
+                    { "team", new TeamCommand(_client, _config) },
                     { "create_roles", new CreateRolesCommand(_client) },
                     { "delete_roles", new DeleteRolesCommand(_client) },
                     { "lobby", new CreateRaidLobbyCommand(_client, _db) },
                     { "checkin", new RaidLobbyCheckInCommand(_client, _db) },
                     { "ontheway", new RaidLobbyOnTheWayCommand(_client, _db) },
+                    { "cancel", new RaidLobbyCancelCommand(_client, _db) },
+                    { "list", new RaidLobbyListUsersCommand(_client, _db) },
                     { "restart", new RestartCommand() },
                     { "shutdown", new ShutdownCommand() }
                 };
@@ -122,22 +244,25 @@
                     if (_client == null) return;
                     try
                     {
-                        foreach (var lobby in _db.Lobbies)
+                        foreach (var server in _db.Servers)
                         {
-                            if (lobby.IsExpired)
+                            foreach (var lobby in server.Lobbies)
                             {
-                                var channel = await _client.GetChannel(lobby.ChannelId);
-                                if (channel == null)
+                                if (lobby.IsExpired)
                                 {
-                                    Utils.LogError(new Exception($"Failed to delete expired raid lobby channel because channel {lobby.LobbyName} ({lobby.ChannelId}) does not exist."));
-                                    continue;
+                                    var channel = await _client.GetChannel(lobby.ChannelId);
+                                    if (channel == null)
+                                    {
+                                        Utils.LogError(new Exception($"Failed to delete expired raid lobby channel because channel {lobby.LobbyName} ({lobby.ChannelId}) does not exist."));
+                                        continue;
+                                    }
+                                    //await channel.DeleteAsync($"Raid lobby {lobby.LobbyName} ({lobby.ChannelId}) no longer needed.");
                                 }
-                                //await channel.DeleteAsync($"Raid lobby {lobby.LobbyName} ({lobby.ChannelId}) no longer needed.");
+                                await _client.UpdateLobbyStatus(lobby);
                             }
-                            await _client.UpdateLobbyStatus(lobby);
                         }
 
-                        _db.Lobbies.RemoveAll(x => x.IsExpired);
+                        _db.Servers.ForEach(server => server.Lobbies.RemoveAll(lobby => lobby.IsExpired));
                     }
 #pragma warning disable RECS0022
                     catch { }
@@ -168,80 +293,11 @@
 
         #endregion
 
-        #region Discord Events
-
-        private async Task Client_Ready(ReadyEventArgs e)
-        {
-            await DisplaySettings();
-
-            var randomWelcomeMessage = _wakeupMessages[_rand.Next(0, _wakeupMessages.Length - 1)];
-            await SendMessage(_config.WebHookUrl, randomWelcomeMessage);
-
-            foreach (var user in _client.Presences)
-            {
-                Console.WriteLine($"User: {user.Key}: {user.Value.User.Username}");
-            }
-        }
-
-        private async Task Client_MessageCreated(MessageCreateEventArgs e)
-        {
-            //Console.WriteLine($"Message recieved from server {e.Guild.Name} #{e.Message.Channel.Name}: {e.Message.Author.Username} (IsBot: {e.Message.Author.IsBot}) {e.Message.Content}");
-
-            if (e.Message.Author.Id == _client.CurrentUser.Id) return;
-
-            if (e.Message.Author.IsBot)
-            {
-                await CheckSponsorRaids(e.Message);
-                await CheckSubscriptions(e.Message);
-            }
-            else if (e.Message.Channel.Name == _config.CommandsChannel)
-            {
-                await ParseCommand(e.Message);
-            }
-        }
-
-        private async Task Client_DmChannelCreated(DmChannelCreateEventArgs e)
-        {
-            var msg = await e.Channel.GetMessageAsync(e.Channel.LastMessageId);
-            if (msg != null)
-            {
-                await ParseCommand(msg);
-            }
-        }
-
-        private async Task Client_GuildBanAdded(GuildBanAddEventArgs e)
-        {
-            var channel = _client.GetChannelByName(_config.CommandsChannel);
-            await channel.SendMessageAsync($"OH SNAP! The ban hammer was just dropped on {e.Member.Mention}, cya!");
-        }
-
-        private async Task Client_GuildBanRemoved(GuildBanRemoveEventArgs e)
-        {
-            var channel = _client.GetChannelByName(_config.CommandsChannel);
-            await channel.SendMessageAsync($"Zeus was feeling nice today and unbanned {e.Member.Mention}, welcome back! Hopefully you'll learn to behave this time around.");
-        }
-
-        private async Task Client_GuildMemberAdded(GuildMemberAddEventArgs e)
-        {
-            await SendBotIntroMessage(e.Member);
-
-            var channel = _client.GetChannelByName(_config.CommandsChannel);
-            await channel.SendMessageAsync($"Everyone let's welcome {e.Member.Mention} to the server! We've been waiting for you!");
-        }
-
-        private async Task Client_GuildMemberRemoved(GuildMemberRemoveEventArgs e)
-        {
-            var channel = _client.GetChannelByName(_config.CommandsChannel);
-            await channel.SendMessageAsync($"Sorry to see you go {e.Member.Mention}, hope to see you back soon!");
-        }
-
-        #endregion
-
         #region Private Methods
 
         public async Task ParseCommand(DiscordMessage message)
         {
-            var command = new Command(message.Content);
+            var command = new Command(_config.CommandsPrefix, message.Content);
             if (!command.ValidCommand && !message.Author.IsBot) return;
 
             if (Commands.ContainsKey(command.Name))
@@ -262,41 +318,59 @@
 
         private async Task CheckSponsorRaids(DiscordMessage message)
         {
-            switch (message.Channel.Id)
+            if (_config.SponsorRaidChannelPool.Contains(message.Channel.Id))
             {
-                case 375047782827950092: //Legendary_Raids
-                case 366049816188420096: //Upland_Raids
-                case 374809552928899082: //Upland_Legendary_Raids
-                case 366359725857832973: //Ontario_Raids
-                case 374817863690747905: //Ontario_Legendary_Raids
-                case 366049617642520596: //Pomona_Raids
-                case 374817900273336321: //Pomona_Legendary_Raids
-                case 366049983725830145: //EastLA_Raids
-                case 374819488174178304: //EastLA_Legendary_Raids
-                    foreach (DiscordEmbed embed in message.Embeds)
+                foreach (DiscordEmbed embed in message.Embeds)
+                {
+                    foreach (var keyword in _config.SponsorRaidKeywords)
                     {
-                        if (embed.Description.Contains("Starbucks") ||
-                            embed.Description.Contains("Sprint"))
+                        if (embed.Description.Contains(keyword))
                         {
-                            var webHook = "https://discordapp.com/api/webhooks/374830905547816960/qjSyb2EPRSdmKXOK2N_82nna8fZGAWHmUoLjBrxI5518Ua2OOcOGRpzKCltZqOA45wOh";
-                            await SendMessage(webHook, string.Empty, embed);
+                            await SendMessage(_config.SponsorRaidsWebHook, string.Empty, embed);
+                            break;
                         }
                     }
-                    break;
+                }
             }
+            //switch (message.Channel.Id)
+            //{
+            //    case 375047782827950092: //Legendary_Raids
+            //    case 366049816188420096: //Upland_Raids
+            //    case 374809552928899082: //Upland_Legendary_Raids
+            //    case 366359725857832973: //Ontario_Raids
+            //    case 374817863690747905: //Ontario_Legendary_Raids
+            //    case 366049617642520596: //Pomona_Raids
+            //    case 374817900273336321: //Pomona_Legendary_Raids
+            //    case 366049983725830145: //EastLA_Raids
+            //    case 374819488174178304: //EastLA_Legendary_Raids
+            //        foreach (DiscordEmbed embed in message.Embeds)
+            //        {
+            //            if (embed.Description.Contains("Starbucks") ||
+            //                embed.Description.Contains("Sprint"))
+            //            {
+            //                var webHook = "https://discordapp.com/api/webhooks/374830905547816960/qjSyb2EPRSdmKXOK2N_82nna8fZGAWHmUoLjBrxI5518Ua2OOcOGRpzKCltZqOA45wOh";
+            //                await SendMessage(webHook, string.Empty, embed);
+            //            }
+            //        }
+            //        break;
+            //}
         }
 
         private async Task CheckSubscriptions(DiscordMessage message)
         {
+            if (message.Channel == null) return;
+            var server = _db[message.Channel.GuildId];
+            if (server == null) return;
+
             DiscordUser discordUser;
-            foreach (var user in _db.Subscriptions)
+            foreach (var user in server.Subscriptions)
             {
                 if (!user.Enabled) continue;
 
                 discordUser = await _client.GetUserAsync(user.UserId);
                 if (discordUser == null) continue;
 
-                if (!user.Channels.Contains(message.Channel.Id)) continue;
+                if (!user.ChannelIds.Contains(message.Channel.Id)) continue;
 
                 foreach (var pokeId in user.PokemonIds)
                 {
@@ -332,7 +406,7 @@
             var guildId = Convert.ToUInt64(Convert.ToString(data["guild_id"]));
             var channelId = Convert.ToUInt64(Convert.ToString(data["channel_id"]));
 
-            DiscordGuild guild = await _client.GetGuildAsync(guildId);
+            var guild = await _client.GetGuildAsync(guildId);
             if (guild == null)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -340,8 +414,8 @@
                 Console.ResetColor();
                 return;
             }
-            //DiscordChannel channel = guild.GetChannel(channelId);
-            DiscordChannel channel = await _client.GetChannelAsync(channelId);
+            //var channel = guild.GetChannel(channelId);
+            var channel = await _client.GetChannelAsync(channelId);
             if (channel == null)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -358,44 +432,93 @@
             await DirectMessage
             (
                 user,
-                $"Hello {user.Username}, and welcome to versx's discord server!\r\n" +
-                "I am here to help you with certain things if you require them such as notifications of Pokemon that have spawned as well as setting up Raid Lobbies.\r\n\r\n" +
-                "To see a full list of my available commands please send me a direct message containing `.help`.",
+                _config.WelcomeMessage.Replace("{username}", user.Username),
+                //$"Hello {user.Username}, and welcome to versx's discord server!\r\n" +
+                //"I am here to help you with certain things if you require them such as notifications of Pokemon that have spawned as well as setting up Raid Lobbies.\r\n\r\n" +
+                //"To see a full list of my available commands please send me a direct message containing `.help`.",
                 null
             );
         }
 
         private async Task DisplaySettings()
         {
+            Console.WriteLine($"********** Current Settings **********");
             var owner = await _client.GetUserAsync(_config.OwnerId);
             Console.WriteLine($"Owner: {owner?.Username} ({_config.OwnerId})");
             Console.WriteLine($"Authentication Token: {_config.AuthToken}");
             Console.WriteLine($"Commands Channel: {_config.CommandsChannel}");
-            Console.WriteLine($"Startup WebHook: {_config.WebHookUrl}");
+            Console.WriteLine($"Commands Prefix: {_config.CommandsPrefix}");
+            Console.WriteLine($"Allow Team Assignment: {(_config.AllowTeamAssignment ? "Yes" : "No")}");
+            Console.WriteLine($"Available Team Roles: {(string.Join(", ", _config.AvailableTeamRoles))}");
+            Console.WriteLine($"Notify New Member Joined: {(_config.NotifyNewMemberJoined ? "Yes" : "No")}");
+            Console.WriteLine($"Notify Member Left: {(_config.NotifyMemberLeft ? "Yes" : "No")}");
+            Console.WriteLine($"Notify Member Banned: {(_config.NotifyMemberBanned ? "Yes" : "No")}");
+            Console.WriteLine($"Notify Member Unbanned: {(_config.NotifyMemberUnbanned ? "Yes" : "No")}");
+            Console.WriteLine($"Send Startup Message: {(_config.SendStartupMessage ? "Yes" : "No")}");
+            Console.WriteLine($"Startup Message WebHook: {_config.StartupMessageWebHook}");
+            Console.WriteLine($"Send Welcome Message: {_config.SendWelcomeMessage}");
+            Console.WriteLine($"Welcome Message: {_config.WelcomeMessage}");
+            Console.WriteLine($"Sponsor Raid Channel Pool: {string.Join(", ", _config.SponsorRaidChannelPool)}");
+            Console.WriteLine($"Sponsor Raid Keywords: {string.Join(", ", _config.SponsorRaidKeywords)}");
+            Console.WriteLine($"Sponsor Raids WebHook: {_config.SponsorRaidsWebHook}");
             Console.WriteLine();
-            Console.WriteLine("Current Subscriptions:");
-            Console.WriteLine();
-            foreach (var sub in _db.Subscriptions)
+            foreach (var server in _db.Servers)
             {
-                var user = await _client.GetUserAsync(sub.UserId);
-                if (user != null)
+                Console.WriteLine($"Guild Id: {server.GuildId}");
+                Console.WriteLine("Subscriptions:");
+                Console.WriteLine();
+                foreach (var sub in server.Subscriptions)
                 {
-                    Console.WriteLine($"Enabled: {(sub.Enabled ? "Yes" : "No")}");
-                    Console.WriteLine($"Username: {user.Username}");
-                    Console.WriteLine($"Pokemon Notifications:");
-                    foreach (var pokeId in sub.PokemonIds)
+                    var user = await _client.GetUserAsync(sub.UserId);
+                    if (user != null)
                     {
-                        Console.WriteLine(_db.Pokemon.Find(x => x.Index == pokeId).Name + $" ({pokeId})");
+                        Console.WriteLine($"Enabled: {(sub.Enabled ? "Yes" : "No")}");
+                        Console.WriteLine($"Username: {user.Username}");
+                        Console.WriteLine($"Pokemon Notifications:");
+                        foreach (var pokeId in sub.PokemonIds)
+                        {
+                            Console.WriteLine(_db.Pokemon.Find(x => x.Index == pokeId).Name + $" ({pokeId})");
+                        }
+                        Console.WriteLine($"Channel Subscriptions: {string.Join(", ", sub.ChannelIds)}");
+                        Console.WriteLine();
+                        Console.WriteLine();
                     }
-                    Console.WriteLine($"Channel Subscriptions:");
-                    foreach (var channel in sub.Channels)
+                }
+                Console.WriteLine();
+                Console.WriteLine("Raid Lobbies:");
+                Console.WriteLine();
+                foreach (var lobby in server.Lobbies)
+                {
+                    Console.WriteLine($"Lobby Name: {lobby.LobbyName}");
+                    Console.WriteLine($"Raid Boss: {lobby.PokemonName}");
+                    Console.WriteLine($"Gym Name: {lobby.GymName}");
+                    Console.WriteLine($"Address: {lobby.Address}");
+                    Console.WriteLine($"Start Time: {lobby.StartTime}");
+                    Console.WriteLine($"Expire Time: {lobby.ExpireTime}");
+                    Console.WriteLine($"Minutes Left: {lobby.MinutesLeft}");
+                    Console.WriteLine($"Is Expired: {lobby.IsExpired}");
+                    Console.WriteLine($"# Users Checked-In: {lobby.NumUsersCheckedIn}");
+                    Console.WriteLine($"# Users On The Way: {lobby.NumUsersOnTheWay}");
+                    Console.WriteLine($"Original Raid Message Id: {lobby.OriginalRaidMessageId}");
+                    Console.WriteLine($"Pinned Raid Message Id{lobby.PinnedRaidMessageId}");
+                    Console.WriteLine($"Channel Id: {lobby.ChannelId}");
+                    Console.WriteLine($"Raid Lobby User List:");
+                    foreach (var lobbyUser in lobby.UserCheckInList)
                     {
-                        Console.WriteLine("#" + channel);
+                        Console.WriteLine($"User Id: {lobbyUser.UserId}");
+                        Console.WriteLine($"Is OnTheWay: {lobbyUser.IsOnTheWay}");
+                        Console.WriteLine($"OnTheWay Time: {lobbyUser.OnTheWayTime}");
+                        Console.WriteLine($"Is Checked-In: {lobbyUser.IsCheckedIn}");
+                        Console.WriteLine($"Check-In Time: {lobbyUser.CheckInTime}");
+                        Console.WriteLine($"User Count: {lobbyUser.UserCount}");
+                        Console.WriteLine($"ETA: {lobbyUser.ETA}");
                     }
-                    Console.WriteLine();
                     Console.WriteLine();
                 }
+                Console.WriteLine();
+                Console.WriteLine();
             }
+            Console.WriteLine($"**************************************");
         }
 
         private void Notify(DiscordUser user, string message, Pokemon pokemon, DiscordEmbed embed)

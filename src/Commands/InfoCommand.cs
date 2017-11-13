@@ -1,4 +1,4 @@
-﻿namespace PokeFilterBot.Commands
+﻿namespace BrockBot.Commands
 {
     using System;
     using System.Collections.Generic;
@@ -7,8 +7,8 @@
     using DSharpPlus;
     using DSharpPlus.Entities;
 
-    using PokeFilterBot.Data;
-    using PokeFilterBot.Extensions;
+    using BrockBot.Data;
+    using BrockBot.Extensions;
 
     public class InfoCommand : ICustomCommand
     {
@@ -25,25 +25,29 @@
 
         public async Task Execute(DiscordMessage message, Command command)
         {
+            if (message.Channel == null) return;
+            var server = _db[message.Channel.GuildId];
+            if (server == null) return;
+
             var author = message.Author.Id;
-            var isSubbed = _db.Subscriptions.ContainsKey(author);
-            var hasPokemon = isSubbed && _db.Subscriptions[author].PokemonIds.Count > 0;
-            var hasChannels = isSubbed && _db.Subscriptions[author].Channels.Count > 0;
+            var isSubbed = server.ContainsKey(author);
+            var hasPokemon = isSubbed && server[author].PokemonIds.Count > 0;
+            var hasChannels = isSubbed && server[author].ChannelIds.Count > 0;
             var msg = string.Empty;
 
             if (isSubbed)
             {
                 if (hasPokemon && hasChannels)
                 {
-                    msg = $"You are currently subscribed to {string.Join(", ", GetSubscriptionNames(author))} notifications from channels #{string.Join(", #", await GetChannelNames(author))}.";
+                    msg = $"You are currently subscribed to {string.Join(", ", GetSubscriptionNames(server, author))} notifications from channels #{string.Join(", #", await GetChannelNames(server, author))}.";
                 }
                 else if (hasPokemon && !hasChannels)
                 {
-                    msg = $"You are currently subscribed to {string.Join(", ", GetSubscriptionNames(author))} notifications from zero channels.";
+                    msg = $"You are currently subscribed to {string.Join(", ", GetSubscriptionNames(server, author))} notifications from zero channels.";
                 }
                 else if (!hasPokemon && hasChannels)
                 {
-                    msg = $"You are not currently subscribed to any Pokemon notifications from channels #{string.Join(", #", await GetChannelNames(author))}.";
+                    msg = $"You are not currently subscribed to any Pokemon notifications from channels #{string.Join(", #", await GetChannelNames(server, author))}.";
                 }
                 else if (!hasPokemon && !hasChannels)
                 {
@@ -58,12 +62,12 @@
             await message.RespondAsync(msg);
         }
 
-        private List<string> GetSubscriptionNames(ulong userId)
+        private List<string> GetSubscriptionNames(Server server, ulong userId)
         {
             var list = new List<string>();
-            if (_db.Subscriptions.ContainsKey(userId))
+            if (server.ContainsKey(userId))
             {
-                var pokeIds = _db.Subscriptions[userId].PokemonIds;
+                var pokeIds = server[userId].PokemonIds;
                 pokeIds.Sort();
 
                 foreach (uint id in pokeIds)
@@ -77,12 +81,12 @@
             return list;
         }
 
-        private async Task<List<string>> GetChannelNames(ulong userId)
+        private async Task<List<string>> GetChannelNames(Server server, ulong userId)
         {
             var list = new List<string>();
-            if (_db.Subscriptions.ContainsKey(userId))
+            if (server.ContainsKey(userId))
             {
-                foreach (var channelId in _db.Subscriptions[userId].Channels)
+                foreach (var channelId in server[userId].ChannelIds)
                 {
                     var channel = await _client.GetChannel(channelId);
                     if (channel != null)

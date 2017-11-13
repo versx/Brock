@@ -1,11 +1,11 @@
-﻿namespace PokeFilterBot
+﻿namespace BrockBot
 {
 	using System;
 	using System.Collections.Generic;
 
 	public class Command
 	{
-        public const char Prefix = '.';
+        //public const char Prefix = '.';
 
         #region Properties
 
@@ -13,6 +13,11 @@
         /// Gets the full command line received.
         /// </summary>
         public string FullCommand { get; private set; }
+
+        /// <summary>
+        /// Gets the command prefix.
+        /// </summary>
+        public char Prefix { get; private set; }
 
         /// <summary>
         /// Gets the name of the command. e.g. help
@@ -38,8 +43,9 @@
 
         #region Constructor
 
-        public Command(string command)
+        public Command(char prefix, string command)
         {
+            Prefix = prefix;
             ParseCommand(command);
         }
 

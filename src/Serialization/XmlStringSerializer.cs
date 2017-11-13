@@ -1,4 +1,4 @@
-﻿namespace PokeFilterBot.Serialization
+﻿namespace BrockBot.Serialization
 {
     using System;
     using System.IO;

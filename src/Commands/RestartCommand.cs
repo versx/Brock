@@ -1,4 +1,4 @@
-﻿namespace PokeFilterBot.Commands
+﻿namespace BrockBot.Commands
 {
     using System;
     using System.Diagnostics;
@@ -6,7 +6,7 @@
 
     using DSharpPlus.Entities;
 
-    using PokeFilterBot.Utilities;
+    using BrockBot.Utilities;
 
     public class RestartCommand : ICustomCommand
     {

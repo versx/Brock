@@ -1,4 +1,4 @@
-﻿namespace PokeFilterBot.Commands
+﻿namespace BrockBot.Commands
 {
     using System;
     using System.Threading.Tasks;
@@ -6,7 +6,7 @@
     using DSharpPlus;
     using DSharpPlus.Entities;
 
-    using PokeFilterBot.Utilities;
+    using BrockBot.Utilities;
 
     public class DeleteRolesCommand : ICustomCommand
     {

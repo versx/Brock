@@ -1,11 +1,11 @@
-﻿namespace PokeFilterBot.Commands
+﻿namespace BrockBot.Commands
 {
     using System;
     using System.Threading.Tasks;
 
     using DSharpPlus.Entities;
 
-    using PokeFilterBot.Utilities;
+    using BrockBot.Utilities;
 
     public class HelpCommand : ICustomCommand
     {
@@ -15,7 +15,7 @@
         {
             await message.RespondAsync
             (
-                "**.iam** - Assign yourself to a team role, available teams to join are the following: Valor, Mystic, or Instinct. You can only join one team at a time, type `.iam None` to leave a team.\r\n" +
+                "**.team** - Assign yourself to a team role, available teams to join are the following: Valor, Mystic, or Instinct. You can only join one team at a time, type `.team None` to leave a team.\r\n" +
                     "\tExample: `.iam Valor`\r\n" +
                     "\tExample: `.iam None`\r\n\r\n" +
                 $"**.info** - Shows the your current Pokemon subscriptions and which channels to listen to.\r\n\r\n" +

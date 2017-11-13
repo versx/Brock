@@ -1,4 +1,4 @@
-﻿namespace PokeFilterBot.Commands
+﻿namespace BrockBot.Commands
 {
     using System;
     using System.Threading.Tasks;
@@ -6,8 +6,8 @@
     using DSharpPlus;
     using DSharpPlus.Entities;
 
-    using PokeFilterBot.Extensions;
-    using PokeFilterBot.Utilities;
+    using BrockBot.Extensions;
+    using BrockBot.Utilities;
 
     public class CreateRolesCommand : ICustomCommand
     {

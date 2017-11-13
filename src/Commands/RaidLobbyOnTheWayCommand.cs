@@ -1,4 +1,4 @@
-﻿namespace PokeFilterBot.Commands
+﻿namespace BrockBot.Commands
 {
     using System;
     using System.Threading.Tasks;
@@ -6,10 +6,10 @@
     using DSharpPlus;
     using DSharpPlus.Entities;
 
-    using PokeFilterBot.Data;
-    using PokeFilterBot.Data.Models;
-    using PokeFilterBot.Extensions;
-    using PokeFilterBot.Utilities;
+    using BrockBot.Data;
+    using BrockBot.Data.Models;
+    using BrockBot.Extensions;
+    using BrockBot.Utilities;
 
     public class RaidLobbyOnTheWayCommand : ICustomCommand
     {
@@ -71,7 +71,11 @@
                 numPeople = value;
             }
 
-            var lobby = _db.Lobbies.Find(x => string.Compare(x.LobbyName, lobbyName, true) == 0);
+            if (message.Channel == null) return;
+            var server = _db[message.Channel.GuildId];
+            if (server == null) return;
+
+            var lobby = server.Lobbies.Find(x => string.Compare(x.LobbyName, lobbyName, true) == 0);
             if (lobby == null)
             {
                 await message.RespondAsync($"Lobby {lobbyName} does not exist.");

@@ -1,4 +1,4 @@
-﻿namespace PokeFilterBot.Utilities
+﻿namespace BrockBot.Utilities
 {
     using System;
     using System.Diagnostics;

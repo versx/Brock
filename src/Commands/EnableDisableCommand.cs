@@ -1,11 +1,11 @@
-﻿namespace PokeFilterBot.Commands
+﻿namespace BrockBot.Commands
 {
     using System;
     using System.Threading.Tasks;
 
     using DSharpPlus.Entities;
 
-    using PokeFilterBot.Data;
+    using BrockBot.Data;
 
     public class EnableDisableCommand : ICustomCommand
     {
@@ -22,12 +22,19 @@
 
         public async Task Execute(DiscordMessage message, Command command)
         {
+            if (message.Channel == null) return;
+            var server = _db[message.Channel.GuildId];
+            if (server == null) return;
+
             var author = message.Author.Id;
-            if (_db.Subscriptions.ContainsKey(author))
+            if (!server.ContainsKey(author))
             {
-                _db.Subscriptions[author].Enabled = _enable;
-                await message.RespondAsync($"You have {(_enable ? "" : "de-")}activated Pokemon notifications.");
+                await message.RespondAsync("You currently do not have any Pokemon subscriptions.");
+                return;
             }
+
+            server[author].Enabled = _enable;
+            await message.RespondAsync($"You have {(_enable ? "" : "de-")}activated Pokemon notifications.");
         }
     }
 }

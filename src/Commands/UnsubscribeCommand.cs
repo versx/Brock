@@ -1,11 +1,11 @@
-﻿namespace PokeFilterBot.Commands
+﻿namespace BrockBot.Commands
 {
     using System;
     using System.Threading.Tasks;
 
     using DSharpPlus.Entities;
 
-    using PokeFilterBot.Data;
+    using BrockBot.Data;
 
     public class UnsubscribeCommand : ICustomCommand
     {
@@ -20,9 +20,13 @@
 
         public async Task Execute(DiscordMessage message, Command command)
         {
+            if (message.Channel == null) return;
+            var server = _db[message.Channel.GuildId];
+            if (server == null) return;
+
             var author = message.Author.Id;
 
-            if (_db.Subscriptions.ContainsKey(author))
+            if (server.ContainsKey(author))
             {
                 if (command.HasArgs && command.Args.Count == 1)
                 {
@@ -36,9 +40,9 @@
                             continue;
                         }
 
-                        if (_db.Subscriptions[author].PokemonIds.Contains(index))
+                        if (server[author].PokemonIds.Contains(index))
                         {
-                            if (_db.Subscriptions[author].PokemonIds.Remove(index))
+                            if (server[author].PokemonIds.Remove(index))
                             {
                                 await message.RespondAsync($"You have successfully unsubscribed from {pokemon.Name} notifications!");
                             }
@@ -51,7 +55,7 @@
                 }
                 else
                 {
-                    _db.Subscriptions.Remove(author);
+                    server.Remove(author);
                     await message.RespondAsync($"You have successfully unsubscribed from all notifications!");
                 }
             }

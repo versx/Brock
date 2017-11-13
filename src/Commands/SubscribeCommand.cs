@@ -1,4 +1,4 @@
-﻿namespace PokeFilterBot.Commands
+﻿namespace BrockBot.Commands
 {
     using System;
     using System.Collections.Generic;
@@ -6,8 +6,8 @@
 
     using DSharpPlus.Entities;
 
-    using PokeFilterBot.Data;
-    using PokeFilterBot.Data.Models;
+    using BrockBot.Data;
+    using BrockBot.Data.Models;
 
     public class SubscribeCommand : ICustomCommand
     {
@@ -22,37 +22,41 @@
 
         public async Task Execute(DiscordMessage message, Command command)
         {
+            if (!command.HasArgs) return;
+            if (command.Args.Count != 1) return;
+
+            if (message.Channel == null) return;
+            var server = _db[message.Channel.GuildId];
+            if (server == null) return;
+
             //notify <pkmn> <min_cp> <min_iv>
             var author = message.Author.Id;
-            if (command.HasArgs && command.Args.Count == 1)
+            foreach (var arg in command.Args[0].Split(','))
             {
-                foreach (var arg in command.Args[0].Split(','))
+                var index = Convert.ToUInt32(arg);
+                var pokemon = _db.Pokemon.Find(x => x.Index == index);
+                if (pokemon == null)
                 {
-                    var index = Convert.ToUInt32(arg);
-                    var pokemon = _db.Pokemon.Find(x => x.Index == index);
-                    if (pokemon == null)
-                    {
-                        await message.RespondAsync($"Pokedex number {index} is not a valid Pokemon id.");
-                        continue;
-                    }
+                    await message.RespondAsync($"Pokedex number {index} is not a valid Pokemon id.");
+                    continue;
+                }
 
-                    if (!_db.Subscriptions.ContainsKey(author))
+                if (!server.ContainsKey(author))
+                {
+                    server.Subscriptions.Add(new Subscription(author, new List<uint> { index }, new List<ulong>()));
+                    await message.RespondAsync($"You have successfully subscribed to {pokemon.Name} notifications!");
+                }
+                else
+                {
+                    //User has already subscribed before, check if their new requested sub already exists.
+                    if (!server[author].PokemonIds.Contains(index))
                     {
-                        _db.Subscriptions.Add(new Subscription(author, new List<uint> { index }, new List<ulong>()));
+                        server[author].PokemonIds.Add(index);
                         await message.RespondAsync($"You have successfully subscribed to {pokemon.Name} notifications!");
                     }
                     else
                     {
-                        //User has already subscribed before, check if their new requested sub already exists.
-                        if (!_db.Subscriptions[author].PokemonIds.Contains(index))
-                        {
-                            _db.Subscriptions[author].PokemonIds.Add(index);
-                            await message.RespondAsync($"You have successfully subscribed to {pokemon.Name} notifications!");
-                        }
-                        else
-                        {
-                            await message.RespondAsync($"You are already subscribed to {pokemon.Name} notifications.");
-                        }
+                        await message.RespondAsync($"You are already subscribed to {pokemon.Name} notifications.");
                     }
                 }
             }

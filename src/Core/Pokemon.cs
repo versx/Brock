@@ -1,4 +1,4 @@
-﻿namespace PokeFilterBot
+﻿namespace BrockBot
 {
     using System;
     using System.Xml.Serialization;

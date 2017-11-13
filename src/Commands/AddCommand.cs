@@ -1,22 +1,28 @@
 ﻿namespace BrockBot.Commands
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
 
     using DSharpPlus;
     using DSharpPlus.Entities;
 
     using BrockBot.Data;
+    using BrockBot.Data.Models;
     using BrockBot.Extensions;
 
-    public class RemoveCommand : ICustomCommand
+    /**Example Usage:
+     * .add upland_rares,ontario_rares
+     * .add upland_100iv
+     */
+    public class AddCommand : ICustomCommand
     {
         private readonly DiscordClient _client;
         private readonly Database _db;
 
         public bool AdminCommand => false;
 
-        public RemoveCommand(DiscordClient client, Database db)
+        public AddCommand(DiscordClient client, Database db)
         {
             _client = client;
             _db = db;
@@ -26,9 +32,6 @@
         {
             if (!command.HasArgs) return;
             if (command.Args.Count != 1) return;
-
-            if (message.Channel == null) return;
-            var server = _db[message.Channel.GuildId];
 
             var author = message.Author.Id;
             foreach (var chlName in command.Args[0].Split(','))
@@ -43,23 +46,26 @@
                     continue;
                 }
 
+                if (message.Channel == null) return;
+                var server = _db[message.Channel.GuildId];
+                if (server == null) return;
+
                 if (!server.ContainsKey(author))
                 {
-                    await message.RespondAsync($"You are not currently subscribed to any Pokemon notifications from any channels.");
+                    server.Subscriptions.Add(new Subscription(author, new List<uint>(), new List<ulong> { channel.Id }));
+                    await message.RespondAsync($"You have successfully subscribed to #{channel.Name} notifications!");
                 }
                 else
                 {
                     //User has already subscribed before, check if their new requested sub already exists.
-                    if (server[author].ChannelIds.Contains(channel.Id))
+                    if (!server[author].ChannelIds.Contains(channel.Id))
                     {
-                        if (server[author].ChannelIds.Remove(channel.Id))
-                        {
-                            await message.RespondAsync($"You have successfully unsubscribed from #{channel.Name} Pokemon notifications.");
-                        }
+                        server[author].ChannelIds.Add(channel.Id);
+                        await message.RespondAsync($"You have successfully subscribed to #{channel.Name} notifications!");
                     }
                     else
                     {
-                        await message.RespondAsync($"You are not currently subscribed to any #{channel.Name} Pokemon notifications.");
+                        await message.RespondAsync($"You are already subscribed to #{channel.Name} notifications.");
                     }
                 }
             }
