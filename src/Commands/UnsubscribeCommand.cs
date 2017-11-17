@@ -33,16 +33,17 @@
                     foreach (var arg in command.Args[0].Split(','))
                     {
                         var index = Convert.ToUInt32(arg);
-                        var pokemon = _db.Pokemon.Find(x => x.Index == index);
+                        var pokemon = _db.Pokemon.Find(x => x.Id == index);
                         if (pokemon == null)
                         {
                             await message.RespondAsync($"Pokedex number {index} is not a valid Pokemon id.");
                             continue;
                         }
 
-                        if (server[author].PokemonIds.Contains(index))
+                        var unsubscribePokemon = server[author].Pokemon.Find(x => x.PokemonId == index);
+                        if (unsubscribePokemon != null)
                         {
-                            if (server[author].PokemonIds.Remove(index))
+                            if (server[author].Pokemon.Remove(unsubscribePokemon))
                             {
                                 await message.RespondAsync($"You have successfully unsubscribed from {pokemon.Name} notifications!");
                             }

@@ -12,15 +12,16 @@
     using BrockBot.Commands;
     using BrockBot.Configuration;
     using BrockBot.Data;
+    using BrockBot.Data.Models;
+    using BrockBot.Diagnostics;
     using BrockBot.Extensions;
     using BrockBot.Utilities;
 
+    //TODO: .uptime command - Been up for: 6 days, 7 hours, 42 minutes, and 52 seconds (since 2017-11-10 21:12:13 UTC)
+    //TODO: .invite Generate a link that you can use to add BrockBot to your own server.
+    //TODO: Redo bot messages as embed messages.
     //TODO: Notify via SMS or Twilio or w/e.
-    //TODO: Pokemon info lookup.
-    //TODO: Testing
-    //TODO: Possibly change .checkin to .here or .ready?
-    //TODO: Added a .interested command or something similar.
-    //TODO: Raid channel specific commands, !list coming etc.
+    //TODO: Add .interested command or something similar.
 
     public class FilterBot
     {
@@ -32,7 +33,7 @@
         private readonly Random _rand;
         private Timer _timer;
 
-        private readonly string[] _wakeupMessages =
+        private readonly string[] _startupMessages =
         {
             "Whoa, whoa...alright I'm awake.",
             "No need to push, I'm going...",
@@ -48,7 +49,9 @@
 
         #region Properties
 
-        public Dictionary<string, ICustomCommand> Commands { get; private set; }
+        public EventLogger Logger { get; set; }
+
+        public CommandList Commands { get; private set; }
 
         #endregion
 
@@ -56,6 +59,10 @@
 
         public FilterBot()
         {
+            Logger = new EventLogger();
+            //Logger.Trace($"FilterBot::FilterBot");
+            //Logger.Info($"Logging started for {AssemblyUtils.AssemblyName} v{AssemblyUtils.AssemblyVersion} by {AssemblyUtils.CompanyName}...");
+
             _db = Database.Load();
             _config = Config.Load();
             _rand = new Random();
@@ -67,11 +74,21 @@
 
         private async Task Client_Ready(ReadyEventArgs e)
         {
+            Logger.Trace($"FilterBot::Client_Ready [{e.Client.CurrentUser.Username}]");
+
+            foreach (var guild in e.Client.Guilds)
+            {
+                if (!_db.ContainsKey(guild.Key))
+                {
+                    _db.Servers.Add(new Server(guild.Key, new List<RaidLobby>(), new List<Subscription>()));
+                }
+            }
+
             await DisplaySettings();
 
             if (_config.SendStartupMessage)
             {
-                var randomWelcomeMessage = _wakeupMessages[_rand.Next(0, _wakeupMessages.Length - 1)];
+                var randomWelcomeMessage = _startupMessages[_rand.Next(0, _startupMessages.Length - 1)];
                 await SendMessage(_config.StartupMessageWebHook, randomWelcomeMessage);
             }
 
@@ -83,6 +100,8 @@
 
         private async Task Client_MessageCreated(MessageCreateEventArgs e)
         {
+            Logger.Trace($"FilterBot::Client_MessageCreated [Username={e.Message.Author.Username} Message={e.Message.Content}]");
+
             //Console.WriteLine($"Message recieved from server {e.Guild.Name} #{e.Message.Channel.Name}: {e.Message.Author.Username} (IsBot: {e.Message.Author.IsBot}) {e.Message.Content}");
 
             if (e.Message.Author.Id == _client.CurrentUser.Id) return;
@@ -109,6 +128,8 @@
 
         private async Task Client_DmChannelCreated(DmChannelCreateEventArgs e)
         {
+            Logger.Trace($"FilterBot::Client_DmChannelCreated [{e.Channel.Name}]");
+
             var msg = await e.Channel.GetMessageAsync(e.Channel.LastMessageId);
             if (msg == null)
             {
@@ -121,6 +142,8 @@
 
         private async Task Client_GuildBanAdded(GuildBanAddEventArgs e)
         {
+            Logger.Trace($"FilterBot::Client_GuildBanAdded [Guild={e.Guild.Name}, Username={e.Member.Username}]");
+
             var channel = _client.GetChannelByName(_config.CommandsChannel);
             if (channel == null)
             {
@@ -133,6 +156,8 @@
 
         private async Task Client_GuildBanRemoved(GuildBanRemoveEventArgs e)
         {
+            Logger.Trace($"FilterBot::Client_GuildBanRemoved [Guild={e.Guild.Name}, Username={e.Member.Username}]");
+
             var channel = _client.GetChannelByName(_config.CommandsChannel);
             if (channel == null)
             {
@@ -145,6 +170,8 @@
 
         private async Task Client_GuildMemberAdded(GuildMemberAddEventArgs e)
         {
+            Logger.Trace($"FilterBot::Client_GuildMemberAdded [Guild={e.Guild.Name}, Username={e.Member.Username}]");
+
             if (_config.NotifyNewMemberJoined)
             {
                 var channel = _client.GetChannelByName(_config.CommandsChannel);
@@ -165,6 +192,8 @@
 
         private async Task Client_GuildMemberRemoved(GuildMemberRemoveEventArgs e)
         {
+            Logger.Trace($"FilterBot::Client_GuildMemberRemoved [Guild={e.Guild.Name}, Username={e.Member.Username}]");
+
             if (_config.NotifyMemberLeft)
             {
                 var channel = _client.GetChannelByName(_config.CommandsChannel);
@@ -183,9 +212,11 @@
 
         public async Task Start()
         {
+            Logger.Trace($"FilterBot::Start");
+
             if (_client != null)
             {
-                Console.WriteLine($"{AssemblyUtils.AssemblyName} already started, no need to start again.");
+                Console.WriteLine($"{AssemblyUtils.AssemblyName} is already started, no need to start again.");
                 return;
             }
 
@@ -208,29 +239,32 @@
 
             if (Commands == null)
             {
-                Commands = new Dictionary<string, ICustomCommand>()
+                Commands = new CommandList
                 {
-                    { "demo", new DemoCommand() },
-                    { "help", new HelpCommand() },
-                    { "info", new InfoCommand(_client, _db) },
-                    { "version", new VersionCommand() },
-                    { "setup", new AddCommand(_client, _db) },
-                    { "add", new AddCommand(_client, _db) },
-                    { "remove", new RemoveCommand(_client, _db) },
-                    { "sub", new SubscribeCommand(_db) },
-                    { "unsub", new UnsubscribeCommand(_db) },
-                    { "enable", new EnableDisableCommand(_db, true) },
-                    { "disable", new EnableDisableCommand(_db, false) },
-                    { "team", new TeamCommand(_client, _config) },
-                    { "create_roles", new CreateRolesCommand(_client) },
-                    { "delete_roles", new DeleteRolesCommand(_client) },
-                    { "lobby", new CreateRaidLobbyCommand(_client, _db) },
-                    { "checkin", new RaidLobbyCheckInCommand(_client, _db) },
-                    { "ontheway", new RaidLobbyOnTheWayCommand(_client, _db) },
-                    { "cancel", new RaidLobbyCancelCommand(_client, _db) },
-                    { "list", new RaidLobbyListUsersCommand(_client, _db) },
-                    { "restart", new RestartCommand() },
-                    { "shutdown", new ShutdownCommand() }
+                    { new [] { "demo" }, new DemoCommand() },
+                    { new [] { "help", "commands", "?" }, new HelpCommand() },
+                    { new [] { "info" }, new InfoCommand(_client, _db) },
+                    { new [] { "version", "ver", "v" }, new VersionCommand() },
+                    { new [] { "setup" }, new AddCommand(_client, _db) },
+                    { new [] { "add" }, new AddCommand(_client, _db) },
+                    { new [] { "remove" }, new RemoveCommand(_client, _db) },
+                    { new [] { "sub" }, new SubscribeCommand(_db) },
+                    { new [] { "unsub" }, new UnsubscribeCommand(_db) },
+                    { new [] { "enable" }, new EnableDisableCommand(_db, true) },
+                    { new [] { "disable" }, new EnableDisableCommand(_db, false) },
+                    { new [] { "team" }, new TeamCommand(_client, _config) },
+                    { new [] { "create_roles" }, new CreateRolesCommand(_client) },
+                    { new [] { "delete_roles" }, new DeleteRolesCommand(_client) },
+                    { new [] { "lobby" }, new CreateRaidLobbyCommand(_client, _db) },
+                    { new [] { "checkin", "here" }, new RaidLobbyCheckInCommand(_client, _db) },
+                    { new [] { "ontheway", "otw", "onmyway", "omw" }, new RaidLobbyOnTheWayCommand(_client, _db) },
+                    { new [] { "cancel" }, new RaidLobbyCancelCommand(_client, _db) },
+                    { new [] { "list" }, new RaidLobbyListUsersCommand(_client, _db) },
+                    { new [] { "restart" }, new RestartCommand() },
+                    { new [] { "shutdown" }, new ShutdownCommand() },
+                    { new [] { "poke" }, new PokemonLookupCommand(_client, _db) },
+                    { new [] { "map", "maps" }, new MapCommand() },
+                    { new [] { "uptime" }, new UptimeCommand() }
                 };
             }
 
@@ -278,6 +312,8 @@
 
         public async Task Stop()
         {
+            Logger.Trace($"FilterBot::Stop");
+
             if (_client == null)
             {
                 Console.WriteLine($"{AssemblyUtils.AssemblyName} has not been started, therefore it cannot be stopped.");
@@ -297,6 +333,8 @@
 
         public async Task ParseCommand(DiscordMessage message)
         {
+            Logger.Trace($"FilterBot::ParseCommand [Message={message.Content}]");
+
             var command = new Command(_config.CommandsPrefix, message.Content);
             if (!command.ValidCommand && !message.Author.IsBot) return;
 
@@ -372,24 +410,24 @@
 
                 if (!user.ChannelIds.Contains(message.Channel.Id)) continue;
 
-                foreach (var pokeId in user.PokemonIds)
+                foreach (var poke in user.Pokemon)
                 {
-                    var pokemon = _db.Pokemon.Find(x => x.Index == pokeId);
+                    var pokemon = _db.Pokemon.Find(x => x.Id == poke.PokemonId);
                     if (pokemon == null) continue;
 
-                    if (message.Author.Username.ToLower().Contains(pokemon.Name.ToLower()))
-                    {
-                        var msg = $"A wild {pokemon.Name} has appeared!\r\n\r\n" + message.Content;
+                    if (!message.Author.Username.ToLower().Contains(pokemon.Name.ToLower())) continue;
 
-                        Console.WriteLine($"Notifying user {discordUser.Username} that a {pokemon.Name} has appeared...");
-                        Notify(discordUser, msg, pokemon, message.Embeds[0]);
-                        await DirectMessage(discordUser, msg, message.Embeds.Count == 0 ? null : message.Embeds[0]);
-                    }
+                    Console.WriteLine($"Notifying user {discordUser.Username} that a {pokemon.Name} has appeared in channel #{message.Channel.Name}...");
+
+                    var msg = $"A wild {pokemon.Name} has appeared in channel {message.Channel.Mention}!\r\n\r\n" + message.Content;
+                    Notify(discordUser, msg, poke, message.Embeds[0]);
+
+                    await SendDirectMessage(discordUser, msg, message.Embeds.Count == 0 ? null : message.Embeds[0]);
                 }
             }
         }
 
-        private async Task DirectMessage(DiscordUser user, string message, DiscordEmbed embed)
+        private async Task SendDirectMessage(DiscordUser user, string message, DiscordEmbed embed)
         {
             var dm = await _client.CreateDmAsync(user);
             if (dm != null)
@@ -429,10 +467,13 @@
 
         private async Task SendBotIntroMessage(DiscordUser user)
         {
-            await DirectMessage
+            Logger.Trace($"FilterBot::SendBotIntroMessage [Username={user.Username}]");
+
+            await SendDirectMessage
             (
                 user,
-                _config.WelcomeMessage.Replace("{username}", user.Username),
+                _config.WelcomeMessage
+                    .Replace("{username}", user.Username),
                 //$"Hello {user.Username}, and welcome to versx's discord server!\r\n" +
                 //"I am here to help you with certain things if you require them such as notifications of Pokemon that have spawned as well as setting up Raid Lobbies.\r\n\r\n" +
                 //"To see a full list of my available commands please send me a direct message containing `.help`.",
@@ -442,6 +483,8 @@
 
         private async Task DisplaySettings()
         {
+            Logger.Trace($"FilterBot::DisplaySettings");
+
             Console.WriteLine($"********** Current Settings **********");
             var owner = await _client.GetUserAsync(_config.OwnerId);
             Console.WriteLine($"Owner: {owner?.Username} ({_config.OwnerId})");
@@ -475,9 +518,9 @@
                         Console.WriteLine($"Enabled: {(sub.Enabled ? "Yes" : "No")}");
                         Console.WriteLine($"Username: {user.Username}");
                         Console.WriteLine($"Pokemon Notifications:");
-                        foreach (var pokeId in sub.PokemonIds)
+                        foreach (var poke in sub.Pokemon)
                         {
-                            Console.WriteLine(_db.Pokemon.Find(x => x.Index == pokeId).Name + $" ({pokeId})");
+                            Console.WriteLine(_db.Pokemon.Find(x => x.Id == poke.PokemonId).Name + $" ({poke})");
                         }
                         Console.WriteLine($"Channel Subscriptions: {string.Join(", ", sub.ChannelIds)}");
                         Console.WriteLine();
@@ -526,7 +569,7 @@
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine();
             Console.WriteLine("***********************************");
-            Console.WriteLine($"********** {pokemon.Name} FOUND **********");
+            Console.WriteLine($"********** {pokemon.PokemonName} FOUND **********");
             Console.WriteLine("***********************************");
             Console.WriteLine(DateTime.Now.ToString());
             //Console.WriteLine("Title: \t\t{0}", embed.Title); //DIRECTIONS

@@ -14,10 +14,11 @@
         [JsonProperty("userId")]
         public ulong UserId { get; set; }
 
-        [XmlArrayItem("pokemonId")]
-        [XmlArray("pokemonIds")]
-        [JsonProperty("pokemonIds")]
-        public List<uint> PokemonIds { get; set; }
+        [XmlArrayItem("pokemon")]
+        [XmlArray("pokemonSubscriptions")]
+        [JsonProperty("pokemon")]
+        //public List<Tuple<uint, int, int>> PokemonIds { get; set; }
+        public List<Pokemon> Pokemon { get; set; }
 
         [XmlArrayItem("channelId")]
         [XmlArray("channelIds")]
@@ -30,15 +31,16 @@
 
         public Subscription()
         {
-            PokemonIds = new List<uint>();
+            //PokemonIds = new List<Tuple<uint, int, int>>();// List<uint>();
+            Pokemon = new List<Pokemon>();
             ChannelIds = new List<ulong>();
             Enabled = true;
         }
 
-        public Subscription(ulong userId, List<uint> pokemonIds, List<ulong> channels)
+        public Subscription(ulong userId, List<Pokemon> /*List<Tuple<uint, int, int>>List<uint>*/ pokemonIds, List<ulong> channels)
         {
             UserId = userId;
-            PokemonIds = pokemonIds;
+            Pokemon = pokemonIds;
             ChannelIds = channels;
         }
     }

@@ -28,13 +28,14 @@
             if (message.Channel == null) return;
             var server = _db[message.Channel.GuildId];
             if (server == null) return;
+            //TODO: If command was from a DM, look through all servers.
 
             //notify <pkmn> <min_cp> <min_iv>
             var author = message.Author.Id;
             foreach (var arg in command.Args[0].Split(','))
             {
                 var index = Convert.ToUInt32(arg);
-                var pokemon = _db.Pokemon.Find(x => x.Index == index);
+                var pokemon = _db.Pokemon.Find(x => x.Id == index);
                 if (pokemon == null)
                 {
                     await message.RespondAsync($"Pokedex number {index} is not a valid Pokemon id.");
@@ -43,15 +44,15 @@
 
                 if (!server.ContainsKey(author))
                 {
-                    server.Subscriptions.Add(new Subscription(author, new List<uint> { index }, new List<ulong>()));
+                    server.Subscriptions.Add(new Subscription(author, new List<Pokemon> { new Pokemon() { PokemonId = index } }, new List<ulong>()));
                     await message.RespondAsync($"You have successfully subscribed to {pokemon.Name} notifications!");
                 }
                 else
                 {
                     //User has already subscribed before, check if their new requested sub already exists.
-                    if (!server[author].PokemonIds.Contains(index))
+                    if (!server[author].Pokemon.Exists(x => x.PokemonId == index))
                     {
-                        server[author].PokemonIds.Add(index);
+                        server[author].Pokemon.Add(new Pokemon() { PokemonId = index /*TODO: Add minimum iv and cp.*/ });
                         await message.RespondAsync($"You have successfully subscribed to {pokemon.Name} notifications!");
                     }
                     else

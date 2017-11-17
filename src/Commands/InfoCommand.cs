@@ -8,6 +8,7 @@
     using DSharpPlus.Entities;
 
     using BrockBot.Data;
+    using BrockBot.Data.Models;
     using BrockBot.Extensions;
 
     public class InfoCommand : ICustomCommand
@@ -31,7 +32,7 @@
 
             var author = message.Author.Id;
             var isSubbed = server.ContainsKey(author);
-            var hasPokemon = isSubbed && server[author].PokemonIds.Count > 0;
+            var hasPokemon = isSubbed && server[author].Pokemon.Count > 0;
             var hasChannels = isSubbed && server[author].ChannelIds.Count > 0;
             var msg = string.Empty;
 
@@ -67,12 +68,12 @@
             var list = new List<string>();
             if (server.ContainsKey(userId))
             {
-                var pokeIds = server[userId].PokemonIds;
-                pokeIds.Sort();
+                var subscribedPokemon = server[userId].Pokemon;
+                subscribedPokemon.Sort();
 
-                foreach (uint id in pokeIds)
+                foreach (var poke in subscribedPokemon)
                 {
-                    var pokemon = _db.Pokemon.Find(x => x.Index == id);
+                    var pokemon = _db.Pokemon.Find(x => x.Id == poke.PokemonId);
                     if (pokemon == null) continue;
 
                     list.Add(pokemon.Name);

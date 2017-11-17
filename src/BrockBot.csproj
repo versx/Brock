@@ -38,7 +38,6 @@
       <HintPath>..\..\..\..\.nuget\packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System" />
-    <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
@@ -48,6 +47,8 @@
     <Compile Include="Commands\DemoCommand.cs" />
     <Compile Include="Commands\EnableDisableCommand.cs" />
     <Compile Include="Commands\HelpCommand.cs" />
+    <Compile Include="Commands\MapCommand.cs" />
+    <Compile Include="Commands\PokemonLookupCommand.cs" />
     <Compile Include="Commands\RaidLobbyListUsersCommand.cs" />
     <Compile Include="Commands\SetupCommand.cs" />
     <Compile Include="Commands\TeamCommand.cs" />
@@ -62,16 +63,22 @@
     <Compile Include="Commands\ShutdownCommand.cs" />
     <Compile Include="Commands\SubscribeCommand.cs" />
     <Compile Include="Commands\UnsubscribeCommand.cs" />
+    <Compile Include="Commands\UptimeCommand.cs" />
     <Compile Include="Commands\VersionCommand.cs" />
     <Compile Include="Configuration\Config.cs" />
+    <Compile Include="Core\CommandList.cs" />
     <Compile Include="Core\FilterBot.cs" />
     <Compile Include="Core\Pokemon.cs" />
     <Compile Include="Core\Roles.cs" />
     <Compile Include="Data\Database.cs" />
     <Compile Include="Data\Models\CheckInList.cs" />
+    <Compile Include="Data\Models\PokeBaseStats.cs" />
     <Compile Include="Data\Models\RaidLobby.cs" />
     <Compile Include="Data\Models\RaidLobbyUser.cs" />
+    <Compile Include="Data\Models\Server.cs" />
     <Compile Include="Data\Models\Subscription.cs" />
+    <Compile Include="Diagnostics\EventLogger.cs" />
+    <Compile Include="Diagnostics\LogType.cs" />
     <Compile Include="Extensions\DiscordExtensions.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

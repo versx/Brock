@@ -3,23 +3,26 @@
     using System;
     using System.Xml.Serialization;
 
+    using Newtonsoft.Json;
+
     [XmlRoot("pokemon")]
+    [JsonObject("pokemon")]
     public class Pokemon
     {
-        [XmlAttribute("index")]
-        public uint Index { get; set; }
+        [XmlAttribute("pokemonId")]
+        [JsonProperty("pokemonId")]
+        public uint PokemonId { get; set; }
 
-        [XmlAttribute("name")]
-        public string Name { get; set; }
+        [XmlAttribute("pokemonName")]
+        [JsonProperty("pokemonName")]
+        public string PokemonName { get; set; }
 
-        public Pokemon()
-        {
-        }
+        [XmlAttribute("minimumCP")]
+        [JsonProperty("minimumCP")]
+        public int MinimumCP { get; set; }
 
-        public Pokemon(uint index, string name)
-        {
-            Index = index;
-            Name = name;
-        }
+        [XmlAttribute("minimumIV")]
+        [JsonProperty("minimumIV")]
+        public int MinimumIV { get; set; }
     }
 }

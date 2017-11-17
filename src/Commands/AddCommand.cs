@@ -52,8 +52,8 @@
 
                 if (!server.ContainsKey(author))
                 {
-                    server.Subscriptions.Add(new Subscription(author, new List<uint>(), new List<ulong> { channel.Id }));
-                    await message.RespondAsync($"You have successfully subscribed to #{channel.Name} notifications!");
+                    server.Subscriptions.Add(new Subscription(author, new List<Pokemon>(), new List<ulong> { channel.Id }));
+                    await message.RespondAsync($"You have successfully subscribed to {channel.Mention} notifications!");
                 }
                 else
                 {
@@ -61,11 +61,11 @@
                     if (!server[author].ChannelIds.Contains(channel.Id))
                     {
                         server[author].ChannelIds.Add(channel.Id);
-                        await message.RespondAsync($"You have successfully subscribed to #{channel.Name} notifications!");
+                        await message.RespondAsync($"You have successfully subscribed to {channel.Mention} notifications!");
                     }
                     else
                     {
-                        await message.RespondAsync($"You are already subscribed to #{channel.Name} notifications.");
+                        await message.RespondAsync($"You are already subscribed to {channel.Mention} notifications.");
                     }
                 }
             }
