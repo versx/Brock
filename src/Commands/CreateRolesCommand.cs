@@ -6,19 +6,32 @@
     using DSharpPlus;
     using DSharpPlus.Entities;
 
+    using BrockBot.Data;
     using BrockBot.Extensions;
     using BrockBot.Utilities;
 
+    [Command("create_roles")]
     public class CreateRolesCommand : ICustomCommand
     {
-        private readonly DiscordClient _client;
+        #region Properties
 
-        public bool AdminCommand => true;
+        public bool AdminCommand => false;
 
-        public CreateRolesCommand(DiscordClient client)
+        public DiscordClient Client { get; }
+
+        public IDatabase Db { get; }
+
+        #endregion
+
+        #region Constructor
+
+        public CreateRolesCommand(DiscordClient client, IDatabase db)
         {
-            _client = client;
+            Client = client;
+            Db = db;
         }
+
+        #endregion
 
         public async Task Execute(DiscordMessage message, Command command)
         {
@@ -26,7 +39,7 @@
             {
                 try
                 {
-                    if (_client.GetRoleFromName(team.Key) == null)
+                    if (Client.GetRoleFromName(team.Key) == null)
                     {
                         if (message.Channel.Guild != null)
                         {

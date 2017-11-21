@@ -6,18 +6,31 @@
     using DSharpPlus;
     using DSharpPlus.Entities;
 
+    using BrockBot.Data;
     using BrockBot.Utilities;
 
+    [Command("delete_roles")]
     public class DeleteRolesCommand : ICustomCommand
     {
-        private readonly DiscordClient _client;
+        #region Properties
 
         public bool AdminCommand => true;
 
-        public DeleteRolesCommand(DiscordClient client)
+        public DiscordClient Client { get; }
+
+        public IDatabase Db { get; }
+
+        #endregion
+
+        #region Constructor
+
+        public DeleteRolesCommand(DiscordClient client, IDatabase db)
         {
-            _client = client;
+            Client = client;
+            Db = db;
         }
+
+        #endregion
 
         public async Task Execute(DiscordMessage message, Command command)
         {

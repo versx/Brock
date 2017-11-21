@@ -4,13 +4,34 @@
     using System.Diagnostics;
     using System.Threading.Tasks;
 
+    using DSharpPlus;
     using DSharpPlus.Entities;
 
+    using BrockBot.Data;
     using BrockBot.Utilities;
 
+    [Command("restart")]
     public class RestartCommand : ICustomCommand
     {
-        public bool AdminCommand => true;
+        #region Properties
+
+        public bool AdminCommand => false;
+
+        public DiscordClient Client { get; }
+
+        public IDatabase Db { get; }
+
+        #endregion
+
+        #region Constructor
+
+        public RestartCommand(DiscordClient client, IDatabase db)
+        {
+            Client = client;
+            Db = db;
+        }
+
+        #endregion
 
         public async Task Execute(DiscordMessage message, Command command)
         {

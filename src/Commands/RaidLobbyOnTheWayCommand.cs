@@ -9,20 +9,29 @@
     using BrockBot.Data;
     using BrockBot.Data.Models;
     using BrockBot.Extensions;
-    using BrockBot.Utilities;
 
+    [Command("ontheway", "otw", "onmyway", "omw")]
     public class RaidLobbyOnTheWayCommand : ICustomCommand
     {
-        private readonly DiscordClient _client;
-        private readonly Database _db;
+        #region Properties
 
         public bool AdminCommand => false;
 
-        public RaidLobbyOnTheWayCommand(DiscordClient client, Database db)
+        public DiscordClient Client { get; }
+
+        public IDatabase Db { get; }
+
+        #endregion
+
+        #region Constructor
+
+        public RaidLobbyOnTheWayCommand(DiscordClient client, IDatabase db)
         {
-            _client = client;
-            _db = db;
+            Client = client;
+            Db = db;
         }
+
+        #endregion
 
         public async Task Execute(DiscordMessage message, Command command)
         {
@@ -72,7 +81,7 @@
             }
 
             if (message.Channel == null) return;
-            var server = _db[message.Channel.GuildId];
+            var server = Db[message.Channel.GuildId];
             if (server == null) return;
 
             var lobby = server.Lobbies.Find(x => string.Compare(x.LobbyName, lobbyName, true) == 0);
@@ -82,7 +91,7 @@
                 return;
             }
 
-            var lobbyChannel = await _client.GetChannel(lobby.ChannelId);
+            var lobbyChannel = await Client.GetChannel(lobby.ChannelId);
             if (lobbyChannel == null)
             {
                 await message.RespondAsync("Unrecognized lobby name.");
@@ -111,7 +120,7 @@
             await message.RespondAsync($"{message.Author.Mention} is on the way to raid lobby {lobbyChannel.Name} with {lobby.UserCheckInList[message.Author.Id].UserCount} people and an ETA of {eta}.");
             await lobbyChannel.SendMessageAsync($"{message.Author.Mention} is on the way to raid lobby **{lobbyChannel.Name}** with **{lobby.UserCheckInList[message.Author.Id].UserCount}** people and an **ETA of {eta}**.");
 
-            await _client.UpdateLobbyStatus(lobby);
+            await Client.UpdateLobbyStatus(lobby);
         }
     }
 }

@@ -74,6 +74,11 @@
         [JsonProperty("sendStartupMessage")]
         public bool SendStartupMessage { get; set; }
 
+        [XmlArray("startupMessages")]
+        [XmlArrayItem("startupMessage")]
+        [JsonProperty("startupMessages")]
+        public List<string> StartupMessages { get; set; }
+
         [XmlElement("startupMessageWebHook")]
         [JsonProperty("startupMessageWebHook")]
         public string StartupMessageWebHook { get; set; }
@@ -95,11 +100,11 @@
         public bool NotifyMemberLeft { get; set; }
 
         [XmlElement("notifyMemberBanned")]
-        [XmlElement("notifyMemberBanned")]
+        [JsonProperty("notifyMemberBanned")]
         public bool NotifyMemberBanned { get; set; }
 
         [XmlElement("notifyMemberUnbanned")]
-        [XmlElement("notifyMemberUnbanned")]
+        [JsonProperty("notifyMemberUnbanned")]
         public bool NotifyMemberUnbanned { get; set; }
 
         /// <summary>
@@ -142,6 +147,17 @@
             //SendStartupMessage = true;
             //StartupMessageWebHook = "";
             SendWelcomeMessage = true;
+            StartupMessages = new List<string>
+            {
+                "Whoa, whoa...alright I'm awake.",
+                "No need to push, I'm going...",
+                "That was a weird dream, wait a minute...",
+                //"Circuit overload, malfunktshun."
+                "Circuits fully charged, let's do this!",
+                "What is this place? How did I get here?",
+                "Looks like we're not in Kansas anymore...",
+                "Hey...watch where you put those mittens!"
+            };
             WelcomeMessage = DefaultWelcomeMessage;
             SponsorRaidChannelPool = new List<ulong>();
             SponsorRaidKeywords = new List<string>();

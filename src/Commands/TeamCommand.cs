@@ -7,21 +7,35 @@
     using DSharpPlus.Entities;
 
     using BrockBot.Configuration;
+    using BrockBot.Data;
     using BrockBot.Extensions;
     using BrockBot.Utilities;
 
+    [Command("team")]
     public class TeamCommand : ICustomCommand
     {
-        private readonly DiscordClient _client;
         private readonly Config _config;
+
+        #region Properties
 
         public bool AdminCommand => false;
 
-        public TeamCommand(DiscordClient client, Config config)
+        public DiscordClient Client { get; }
+
+        public IDatabase Db { get; }
+
+        #endregion
+
+        #region Constructor
+
+        public TeamCommand(DiscordClient client, IDatabase db, Config config)
         {
-            _client = client;
+            Client = client;
+            Db = db;
             _config = config;
         }
+
+        #endregion
 
         public async Task Execute(DiscordMessage message, Command command)
         {
@@ -33,8 +47,8 @@
             {
                 try
                 {
-                    var member = await _client.GetMemberFromUserId(message.Author.Id);
-                    var teamRole = _client.GetRoleFromName(team);
+                    var member = await Client.GetMemberFromUserId(message.Author.Id);
+                    var teamRole = Client.GetRoleFromName(team);
                     var reason = $"User initiated team assignment via {AssemblyUtils.AssemblyName}.";
                     //TODO: Only retrieve the current guild.
                     if (message.Channel.Guild == null)

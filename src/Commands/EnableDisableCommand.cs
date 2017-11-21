@@ -3,27 +3,41 @@
     using System;
     using System.Threading.Tasks;
 
+    using DSharpPlus;
     using DSharpPlus.Entities;
 
     using BrockBot.Data;
 
+    [Command("enable", "disable")]
     public class EnableDisableCommand : ICustomCommand
     {
-        private readonly Database _db;
         private readonly bool _enable;
+
+        #region Properties
 
         public bool AdminCommand => false;
 
-        public EnableDisableCommand(Database db, bool enable)
+        public DiscordClient Client { get; }
+
+        public IDatabase Db { get; }
+
+        #endregion
+
+        #region Constructor
+
+        public EnableDisableCommand(DiscordClient client, IDatabase db, bool enable)
         {
-            _db = db;
+            Client = client;
+            Db = db;
             _enable = enable;
         }
+
+        #endregion
 
         public async Task Execute(DiscordMessage message, Command command)
         {
             if (message.Channel == null) return;
-            var server = _db[message.Channel.GuildId];
+            var server = Db[message.Channel.GuildId];
             if (server == null) return;
 
             var author = message.Author.Id;

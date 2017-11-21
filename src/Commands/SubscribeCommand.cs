@@ -4,21 +4,34 @@
     using System.Collections.Generic;
     using System.Threading.Tasks;
 
+    using DSharpPlus;
     using DSharpPlus.Entities;
 
     using BrockBot.Data;
     using BrockBot.Data.Models;
 
+    [Command("sub")]
     public class SubscribeCommand : ICustomCommand
     {
-        private readonly Database _db;
+        #region Properties
 
         public bool AdminCommand => false;
 
-        public SubscribeCommand(Database db)
+        public DiscordClient Client { get; }
+
+        public IDatabase Db { get; }
+
+        #endregion
+
+        #region Constructor
+
+        public SubscribeCommand(DiscordClient client, IDatabase db)
         {
-            _db = db;
+            Client = client;
+            Db = db;
         }
+
+        #endregion
 
         public async Task Execute(DiscordMessage message, Command command)
         {
@@ -26,7 +39,7 @@
             if (command.Args.Count != 1) return;
 
             if (message.Channel == null) return;
-            var server = _db[message.Channel.GuildId];
+            var server = Db[message.Channel.GuildId];
             if (server == null) return;
             //TODO: If command was from a DM, look through all servers.
 
@@ -35,13 +48,13 @@
             foreach (var arg in command.Args[0].Split(','))
             {
                 var index = Convert.ToUInt32(arg);
-                var pokemon = _db.Pokemon.Find(x => x.Id == index);
-                if (pokemon == null)
+                if (!Db.Pokemon.ContainsKey(index.ToString()))
                 {
                     await message.RespondAsync($"Pokedex number {index} is not a valid Pokemon id.");
                     continue;
                 }
 
+                var pokemon = Db.Pokemon[index.ToString()];
                 if (!server.ContainsKey(author))
                 {
                     server.Subscriptions.Add(new Subscription(author, new List<Pokemon> { new Pokemon() { PokemonId = index } }, new List<ulong>()));

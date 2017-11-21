@@ -15,18 +15,28 @@
      * .add upland_rares,ontario_rares
      * .add upland_100iv
      */
+    [Command("add")]
     public class AddCommand : ICustomCommand
     {
-        private readonly DiscordClient _client;
-        private readonly Database _db;
+        #region Properties
 
         public bool AdminCommand => false;
 
-        public AddCommand(DiscordClient client, Database db)
+        public DiscordClient Client { get; }
+
+        public IDatabase Db { get; }
+
+        #endregion
+
+        #region Constructor
+
+        public AddCommand(DiscordClient client, IDatabase db)
         {
-            _client = client;
-            _db = db;
+            Client = client;
+            Db = db;
         }
+
+        #endregion
 
         public async Task Execute(DiscordMessage message, Command command)
         {
@@ -39,7 +49,7 @@
                 var channelName = chlName;
                 if (channelName[0] == '#') channelName = channelName.Remove(0, 1);
 
-                var channel = _client.GetChannelByName(channelName);
+                var channel = Client.GetChannelByName(channelName);
                 if (channel == null)
                 {
                     await message.RespondAsync($"Channel name {channelName} is not a valid channel.");
@@ -47,7 +57,7 @@
                 }
 
                 if (message.Channel == null) return;
-                var server = _db[message.Channel.GuildId];
+                var server = Db[message.Channel.GuildId];
                 if (server == null) return;
 
                 if (!server.ContainsKey(author))

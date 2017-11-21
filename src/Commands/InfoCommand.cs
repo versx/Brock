@@ -11,23 +11,25 @@
     using BrockBot.Data.Models;
     using BrockBot.Extensions;
 
+    [Command("info")]
     public class InfoCommand : ICustomCommand
     {
-        private readonly DiscordClient _client;
-        private readonly Database _db;
-
         public bool AdminCommand => false;
 
-        public InfoCommand(DiscordClient client, Database db)
+        public DiscordClient Client { get; }
+
+        public IDatabase Db { get; }
+
+        public InfoCommand(DiscordClient client, IDatabase db)
         {
-            _client = client;
-            _db = db;
+            Client = client;
+            Db = db;
         }
 
         public async Task Execute(DiscordMessage message, Command command)
         {
             if (message.Channel == null) return;
-            var server = _db[message.Channel.GuildId];
+            var server = Db[message.Channel.GuildId];
             if (server == null) return;
 
             var author = message.Author.Id;
@@ -73,7 +75,8 @@
 
                 foreach (var poke in subscribedPokemon)
                 {
-                    var pokemon = _db.Pokemon.Find(x => x.Id == poke.PokemonId);
+                    if (!Db.Pokemon.ContainsKey(poke.PokemonId.ToString())) continue;
+                    var pokemon = Db.Pokemon[poke.PokemonId.ToString()];
                     if (pokemon == null) continue;
 
                     list.Add(pokemon.Name);
@@ -89,7 +92,7 @@
             {
                 foreach (var channelId in server[userId].ChannelIds)
                 {
-                    var channel = await _client.GetChannel(channelId);
+                    var channel = await Client.GetChannel(channelId);
                     if (channel != null)
                     {
                         list.Add(channel.Name);

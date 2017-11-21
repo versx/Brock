@@ -25,20 +25,30 @@
     /**Example Usage:
      * .lobby TyranitarWestFontana 2389498237482374
      */
+    [Command("lobby")]
     public class CreateRaidLobbyCommand : ICustomCommand
     {
         private const string ActiveRaidLobbies = "ACTIVE RAID LOBBIES";
 
-        private readonly DiscordClient _client;
-        private readonly Database _db;
+        #region Properties
 
         public bool AdminCommand => false;
 
-        public CreateRaidLobbyCommand(DiscordClient client, Database db)
+        public DiscordClient Client { get; }
+
+        public IDatabase Db { get; }
+
+        #endregion
+
+        #region Constructor
+
+        public CreateRaidLobbyCommand(DiscordClient client, IDatabase db)
         {
-            _client = client;
-            _db = db;
+            Client = client;
+            Db = db;
         }
+
+        #endregion
 
         public async Task Execute(DiscordMessage message, Command command)
         {
@@ -47,14 +57,14 @@
                 var lobbyName = command.Args[0];
                 var raidMessageId = Convert.ToUInt64(command.Args[1]);
 
-                var raidMessage = await _client.GetMessageById(message.Channel.GuildId, raidMessageId);
+                var raidMessage = await Client.GetMessageById(message.Channel.GuildId, raidMessageId);
                 if (raidMessage == null)
                 {
                     await message.RespondAsync($"Failed to find a message matching the provided message id '{raidMessageId}.");
                     return;
                 }
 
-                var category = _client.GetChannelByName(ActiveRaidLobbies);
+                var category = Client.GetChannelByName(ActiveRaidLobbies);
                 if (category == null)
                 {
                     category = await message.Channel.Guild.CreateChannelAsync(ActiveRaidLobbies, ChannelType.Category);
@@ -71,7 +81,7 @@ Charge Move: Fire Blast (DPS: 33.33, Damage: 140)
 34.036126,-118.201974
                  */
 
-                var lobbyChannel = _client.GetChannelByName(lobbyName);
+                var lobbyChannel = Client.GetChannelByName(lobbyName);
                 if (lobbyChannel == null)
                 {
                     lobbyChannel = await message.Channel.Guild.CreateChannelAsync(lobbyName, ChannelType.Text, category);
@@ -99,7 +109,7 @@ Charge Move: Fire Blast (DPS: 33.33, Damage: 140)
                 };
 
                 if (message.Channel == null) return;
-                var server = _db[message.Channel.GuildId];
+                var server = Db[message.Channel.GuildId];
                 if (server == null) return;
 
                 if (!server.Lobbies.Contains(lobby))
@@ -109,7 +119,7 @@ Charge Move: Fire Blast (DPS: 33.33, Damage: 140)
 
                 await message.RespondAsync($"Raid lobby {lobbyName} was created successfully.");
 
-                await _client.SendLobbyStatus(lobby, raidMessage.Embeds[0], true);
+                await Client.SendLobbyStatus(lobby, raidMessage.Embeds[0], true);
             }
         }
     }

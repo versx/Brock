@@ -12,12 +12,14 @@
 
     [XmlRoot("database")]
     [JsonObject("database")]
-    public class Database
+    public class Database : IDatabase
     {
         /// <summary>
         /// The default config file name with extension.
         /// </summary>
         public const string DefaultDatabaseFileName = "database.json";
+
+        public const string PokemonDatabaseFileName = "pokemon.json";
 
         #region Properties
 
@@ -28,7 +30,7 @@
 
         [XmlIgnore]
         [JsonIgnore]
-        public List<PokedexItem> Pokemon { get; }
+        public Dictionary<string, PokemonInfo> Pokemon { get; }
 
         /// <summary>
         /// Gets the config full config file path.
@@ -68,12 +70,12 @@
         {
             Servers = new List<Server>();
 
-            if (File.Exists("pokemon_stats.json"))
+            if (File.Exists(PokemonDatabaseFileName))
             {
-                var pokeDb = File.ReadAllText("pokemon_stats.json");
+                var pokeDb = File.ReadAllText(PokemonDatabaseFileName);
                 if (!string.IsNullOrEmpty(pokeDb))
                 {
-                    Pokemon = JsonStringSerializer.Deserialize<List<PokedexItem>>(pokeDb);
+                    Pokemon = JsonStringSerializer.Deserialize<Dictionary<string, PokemonInfo>>(pokeDb);
                 }
             }
         }
@@ -159,28 +161,5 @@
         }
 
         #endregion
-    }
-
-    [JsonObject("pokemon")]
-    public class PokedexItem
-    {
-        [JsonProperty("id")]
-        public uint Id { get; set; }
-
-        [JsonProperty("name")]
-        public string Name { get; set; }
-
-        [JsonProperty("stats")]
-        public PokeBaseStats Stats { get; set; }
-
-        public PokedexItem()
-        {
-        }
-
-        public PokedexItem(uint id, string name)
-        {
-            Id = id;
-            Name = name;
-        }
     }
 }

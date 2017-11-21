@@ -3,25 +3,38 @@
     using System;
     using System.Threading.Tasks;
 
+    using DSharpPlus;
     using DSharpPlus.Entities;
 
     using BrockBot.Data;
 
+    [Command("unsub")]
     public class UnsubscribeCommand : ICustomCommand
     {
-        private readonly Database _db;
+        #region Properties
 
         public bool AdminCommand => false;
 
-        public UnsubscribeCommand(Database db)
+        public DiscordClient Client { get; }
+
+        public IDatabase Db { get; }
+
+        #endregion
+
+        #region Constructor
+
+        public UnsubscribeCommand(DiscordClient client, IDatabase db)
         {
-            _db = db;
+            Client = client;
+            Db = db;
         }
+
+        #endregion
 
         public async Task Execute(DiscordMessage message, Command command)
         {
             if (message.Channel == null) return;
-            var server = _db[message.Channel.GuildId];
+            var server = Db[message.Channel.GuildId];
             if (server == null) return;
 
             var author = message.Author.Id;
@@ -33,13 +46,13 @@
                     foreach (var arg in command.Args[0].Split(','))
                     {
                         var index = Convert.ToUInt32(arg);
-                        var pokemon = _db.Pokemon.Find(x => x.Id == index);
-                        if (pokemon == null)
+                        if (!Db.Pokemon.ContainsKey(index.ToString()))
                         {
                             await message.RespondAsync($"Pokedex number {index} is not a valid Pokemon id.");
                             continue;
                         }
 
+                        var pokemon = Db.Pokemon[index.ToString()];
                         var unsubscribePokemon = server[author].Pokemon.Find(x => x.PokemonId == index);
                         if (unsubscribePokemon != null)
                         {

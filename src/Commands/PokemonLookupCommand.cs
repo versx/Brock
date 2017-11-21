@@ -8,18 +8,28 @@
 
     using BrockBot.Data;
 
+    [Command("poke")]
     public class PokemonLookupCommand : ICustomCommand
     {
-        private readonly DiscordClient _client;
-        private readonly Database _db;
+        #region Properties
 
         public bool AdminCommand => false;
 
-        public PokemonLookupCommand(DiscordClient client, Database db)
+        public DiscordClient Client { get; }
+
+        public IDatabase Db { get; }
+
+        #endregion
+
+        #region Constructor
+
+        public PokemonLookupCommand(DiscordClient client, IDatabase db)
         {
-            _client = client;
-            _db = db;
+            Client = client;
+            Db = db;
         }
+
+        #endregion
 
         public async Task Execute(DiscordMessage message, Command command)
         {
@@ -27,18 +37,20 @@
             if (command.Args.Count != 1) return;
 
             var pokeId = Convert.ToInt32(command.Args[0]);
-            var pokemon = _db.Pokemon.Find(x => x.Id == pokeId);
-            if (pokemon == null)
+            if (!Db.Pokemon.ContainsKey(pokeId.ToString()))
             {
                 await message.RespondAsync($"Failed to lookup Pokemon with id {pokeId}.");
-                return;
             }
+
+            var pokemon = Db.Pokemon[pokeId.ToString()];
+
+            var types = pokemon.Types.Count > 1 ? pokemon.Types[0].Type + "/" + pokemon.Types[1].Type : pokemon.Types[0].Type;
 
             await message.RespondAsync
             (
-                $"{pokemon.Name} (ID: {pokeId}, Gen: {pokemon.Stats.Generation}{(pokemon.Stats.Legendary ? " Legendary" : "")})\r\n" +
-                $"Stamina: {pokemon.Stats.Stamina}, Attack: {pokemon.Stats.Attack}, Defense: {pokemon.Stats.Defense}\r\n" +
-                $"Type: " + (string.IsNullOrEmpty(pokemon.Stats.Type2) ? pokemon.Stats.Type1 : $"{pokemon.Stats.Type1}/{pokemon.Stats.Type2}")
+                $"{pokemon.Name} (ID: {pokeId}, Gen: {pokemon.BaseStats.Generation}{(pokemon.BaseStats.Legendary ? " Legendary" : "")})\r\n" +
+                $"Stamina: {pokemon.BaseStats.Stamina}, Attack: {pokemon.BaseStats.Attack}, Defense: {pokemon.BaseStats.Defense}\r\n" +
+                $"Type: {types}"
             );
         }
     }

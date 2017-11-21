@@ -9,23 +9,33 @@
     using BrockBot.Data;
     using BrockBot.Extensions;
 
+    [Command("list")]
     public class RaidLobbyListUsersCommand : ICustomCommand
     {
-        private readonly DiscordClient _client;
-        private readonly Database _db;
+        #region Properties
 
         public bool AdminCommand => false;
 
-        public RaidLobbyListUsersCommand(DiscordClient client, Database db)
+        public DiscordClient Client { get; }
+
+        public IDatabase Db { get; }
+
+        #endregion
+
+        #region Constructor
+
+        public RaidLobbyListUsersCommand(DiscordClient client, IDatabase db)
         {
-            _client = client;
-            _db = db;
+            Client = client;
+            Db = db;
         }
+
+        #endregion
 
         public async Task Execute(DiscordMessage message, Command command)
         {
             if (message.Channel == null) return;
-            var server = _db[message.Channel.GuildId];
+            var server = Db[message.Channel.GuildId];
             if (server == null) return;
 
             var lobby = server.Lobbies.Find(x => x.ChannelId == message.Channel.Id);
@@ -35,7 +45,7 @@
                 return;
             }
 
-            var lobbyUserStatus = await _client.RaidLobbyUserStatus(lobby);
+            var lobbyUserStatus = await Client.RaidLobbyUserStatus(lobby);
             await message.RespondAsync(lobbyUserStatus);
         }
     }

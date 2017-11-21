@@ -7,6 +7,8 @@
     using DSharpPlus.Entities;
 
     using BrockBot.Data.Models;
+    using BrockBot.Extensions;
+    using BrockBot.Net;
     using BrockBot.Utilities;
 
     public static class DiscordExtensions
@@ -31,7 +33,7 @@
         {
             try
             {
-                return await client.GetChannelAsync(channelId);
+                return await client.GetChannel(channelId);
             }
             catch (Exception)
             {
@@ -43,7 +45,7 @@
         {
             foreach (var guild in client.Guilds)
             {
-                foreach (var role in guild.Value.Roles)
+                foreach (var role in ((DiscordGuild)guild.Value).Roles)
                 {
                     if (string.Compare(role.Name, roleName, true) == 0)
                     {
@@ -74,7 +76,7 @@
             var guild = await client.GetGuildAsync(guildId);
             if (guild == null) return null;
 
-            foreach (var channel in guild.Channels)
+            foreach (var channel in ((DiscordGuild)guild).Channels)
             {
                 try
                 {

@@ -2,10 +2,11 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Threading.Tasks;
     using Timer = System.Timers.Timer;
 
-    using DSharpPlus;
+    //using DSharpPlus;
     using DSharpPlus.Entities;
     using DSharpPlus.EventArgs;
 
@@ -17,6 +18,9 @@
     using BrockBot.Extensions;
     using BrockBot.Utilities;
 
+    using DSharpPlus;
+
+    //TODO: Add command and create new instance even if no parameters given for the constructor.
     //TODO: .uptime command - Been up for: 6 days, 7 hours, 42 minutes, and 52 seconds (since 2017-11-10 21:12:13 UTC)
     //TODO: .invite Generate a link that you can use to add BrockBot to your own server.
     //TODO: Redo bot messages as embed messages.
@@ -32,18 +36,6 @@
         private readonly Config _config;
         private readonly Random _rand;
         private Timer _timer;
-
-        private readonly string[] _startupMessages =
-        {
-            "Whoa, whoa...alright I'm awake.",
-            "No need to push, I'm going...",
-            "That was a weird dream, wait a minute...",
-            //"Circuit overload, malfunktshun."
-            "Circuits fully charged, let's do this!",
-            "What is this place? How did I get here?",
-            "Looks like we're not in Kansas anymore...",
-            "Hey...watch where you put those mittens!"
-        };
 
         #endregion
 
@@ -62,6 +54,7 @@
             Logger = new EventLogger();
             //Logger.Trace($"FilterBot::FilterBot");
             //Logger.Info($"Logging started for {AssemblyUtils.AssemblyName} v{AssemblyUtils.AssemblyVersion} by {AssemblyUtils.CompanyName}...");
+            Commands = new CommandList();
 
             _db = Database.Load();
             _config = Config.Load();
@@ -88,7 +81,7 @@
 
             if (_config.SendStartupMessage)
             {
-                var randomWelcomeMessage = _startupMessages[_rand.Next(0, _startupMessages.Length - 1)];
+                var randomWelcomeMessage = _config.StartupMessages[_rand.Next(0, _config.StartupMessages.Count - 1)];
                 await SendMessage(_config.StartupMessageWebHook, randomWelcomeMessage);
             }
 
@@ -216,7 +209,7 @@
 
             if (_client != null)
             {
-                Console.WriteLine($"{AssemblyUtils.AssemblyName} is already started, no need to start again.");
+                Logger.Warn($"{AssemblyUtils.AssemblyName} is already started, no need to start again.");
                 return;
             }
 
@@ -236,37 +229,6 @@
             _client.GuildMemberRemoved += Client_GuildMemberRemoved;
             _client.GuildBanAdded += Client_GuildBanAdded;
             _client.GuildBanRemoved += Client_GuildBanRemoved;
-
-            if (Commands == null)
-            {
-                Commands = new CommandList
-                {
-                    { new [] { "demo" }, new DemoCommand() },
-                    { new [] { "help", "commands", "?" }, new HelpCommand() },
-                    { new [] { "info" }, new InfoCommand(_client, _db) },
-                    { new [] { "version", "ver", "v" }, new VersionCommand() },
-                    { new [] { "setup" }, new AddCommand(_client, _db) },
-                    { new [] { "add" }, new AddCommand(_client, _db) },
-                    { new [] { "remove" }, new RemoveCommand(_client, _db) },
-                    { new [] { "sub" }, new SubscribeCommand(_db) },
-                    { new [] { "unsub" }, new UnsubscribeCommand(_db) },
-                    { new [] { "enable" }, new EnableDisableCommand(_db, true) },
-                    { new [] { "disable" }, new EnableDisableCommand(_db, false) },
-                    { new [] { "team" }, new TeamCommand(_client, _config) },
-                    { new [] { "create_roles" }, new CreateRolesCommand(_client) },
-                    { new [] { "delete_roles" }, new DeleteRolesCommand(_client) },
-                    { new [] { "lobby" }, new CreateRaidLobbyCommand(_client, _db) },
-                    { new [] { "checkin", "here" }, new RaidLobbyCheckInCommand(_client, _db) },
-                    { new [] { "ontheway", "otw", "onmyway", "omw" }, new RaidLobbyOnTheWayCommand(_client, _db) },
-                    { new [] { "cancel" }, new RaidLobbyCancelCommand(_client, _db) },
-                    { new [] { "list" }, new RaidLobbyListUsersCommand(_client, _db) },
-                    { new [] { "restart" }, new RestartCommand() },
-                    { new [] { "shutdown" }, new ShutdownCommand() },
-                    { new [] { "poke" }, new PokemonLookupCommand(_client, _db) },
-                    { new [] { "map", "maps" }, new MapCommand() },
-                    { new [] { "uptime" }, new UptimeCommand() }
-                };
-            }
 
             if (_timer == null)
             {
@@ -305,7 +267,7 @@
                 _timer.Start();
             }
 
-            Console.WriteLine("Connecting to discord server...");
+            Logger.Info("Connecting to discord server...");
             await _client.ConnectAsync();
             await Task.Delay(-1);
         }
@@ -316,15 +278,89 @@
 
             if (_client == null)
             {
-                Console.WriteLine($"{AssemblyUtils.AssemblyName} has not been started, therefore it cannot be stopped.");
+                Logger.Warn($"{AssemblyUtils.AssemblyName} has not been started, therefore it cannot be stopped.");
                 return;
             }
 
-            Console.WriteLine($"Shutting down {AssemblyUtils.AssemblyName}...");
+            Logger.Info($"Shutting down {AssemblyUtils.AssemblyName}...");
 
             await _client.DisconnectAsync();
             _client.Dispose();
             _client = null;
+        }
+
+        public bool RegisterCommand<T>(params object[] optionalParameters)
+        {
+            try
+            {
+                var type = typeof(T);
+                var args = new List<object>();
+                var constructorInfo = type.GetConstructors()[0];
+                var parameters = constructorInfo.GetParameters();
+
+                foreach (var pi in parameters)
+                {
+                    if (typeof(DiscordClient) == pi.ParameterType)
+                        args.Add(_client);
+                    else if (typeof(IDatabase) == pi.ParameterType)
+                        args.Add(_db);
+                    else if (typeof(Config) == pi.ParameterType)
+                        args.Add(_config);
+                    else
+                    {
+                        foreach (var obj in optionalParameters)
+                        {
+                            if (obj.GetType() == pi.ParameterType)
+                            {
+                                args.Add(obj);
+                            }
+                        }
+                    }
+                }
+
+                var attributes = type.GetCustomAttributes(typeof(CommandAttribute), false);
+                CommandAttribute attr = new CommandAttribute();
+                if (attributes.Length > 0)
+                {
+                    attr = attributes[0] as CommandAttribute;
+                }
+
+                var command = (ICustomCommand)Activator.CreateInstance(type, args.ToArray());
+                //foreach (Type t in type.GetInterfaces())
+                //{
+                //    if (typeof(IApp) == t)
+                //        data.ClientHandlers.App = (IApp)objectValue;
+                //    else if (typeof(IUI) == t)
+                //        data.ClientHandlers.UI = (IUI)objectValue;
+                //}
+
+                var cmds = attr.CommandNames.ToArray();
+
+                if (!Commands.ContainsKey(cmds) && !Commands.ContainsValue(command))
+                {
+                    Commands.Add(cmds, command);
+                    return true;
+                }
+
+                Logger.Error($"Failed to register command(s) {string.Join(", ", cmds)}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+
+            return false;
+        }
+
+        public void UnregisterCommand(string[] cmdNames)
+        {
+            if (!Commands.ContainsKey(cmdNames))
+            {
+                Commands.Remove(cmdNames);
+                return;
+            }
+
+            Logger.Error($"Failed to unregister command {string.Join(", ", cmdNames)}");
         }
 
         #endregion
@@ -356,42 +392,19 @@
 
         private async Task CheckSponsorRaids(DiscordMessage message)
         {
-            if (_config.SponsorRaidChannelPool.Contains(message.Channel.Id))
+            if (!_config.SponsorRaidChannelPool.Contains(message.Channel.Id)) return;
+
+            foreach (DiscordEmbed embed in message.Embeds)
             {
-                foreach (DiscordEmbed embed in message.Embeds)
+                foreach (var keyword in _config.SponsorRaidKeywords)
                 {
-                    foreach (var keyword in _config.SponsorRaidKeywords)
+                    if (embed.Description.Contains(keyword))
                     {
-                        if (embed.Description.Contains(keyword))
-                        {
-                            await SendMessage(_config.SponsorRaidsWebHook, string.Empty, embed);
-                            break;
-                        }
+                        await SendMessage(_config.SponsorRaidsWebHook, string.Empty, embed);
+                        break;
                     }
                 }
             }
-            //switch (message.Channel.Id)
-            //{
-            //    case 375047782827950092: //Legendary_Raids
-            //    case 366049816188420096: //Upland_Raids
-            //    case 374809552928899082: //Upland_Legendary_Raids
-            //    case 366359725857832973: //Ontario_Raids
-            //    case 374817863690747905: //Ontario_Legendary_Raids
-            //    case 366049617642520596: //Pomona_Raids
-            //    case 374817900273336321: //Pomona_Legendary_Raids
-            //    case 366049983725830145: //EastLA_Raids
-            //    case 374819488174178304: //EastLA_Legendary_Raids
-            //        foreach (DiscordEmbed embed in message.Embeds)
-            //        {
-            //            if (embed.Description.Contains("Starbucks") ||
-            //                embed.Description.Contains("Sprint"))
-            //            {
-            //                var webHook = "https://discordapp.com/api/webhooks/374830905547816960/qjSyb2EPRSdmKXOK2N_82nna8fZGAWHmUoLjBrxI5518Ua2OOcOGRpzKCltZqOA45wOh";
-            //                await SendMessage(webHook, string.Empty, embed);
-            //            }
-            //        }
-            //        break;
-            //}
         }
 
         private async Task CheckSubscriptions(DiscordMessage message)
@@ -412,8 +425,8 @@
 
                 foreach (var poke in user.Pokemon)
                 {
-                    var pokemon = _db.Pokemon.Find(x => x.Id == poke.PokemonId);
-                    if (pokemon == null) continue;
+                    if (!_db.Pokemon.ContainsKey(poke.PokemonId.ToString())) continue;
+                    var pokemon = _db.Pokemon[poke.PokemonId.ToString()];
 
                     if (!message.Author.Username.ToLower().Contains(pokemon.Name.ToLower())) continue;
 
@@ -498,6 +511,7 @@
             Console.WriteLine($"Notify Member Banned: {(_config.NotifyMemberBanned ? "Yes" : "No")}");
             Console.WriteLine($"Notify Member Unbanned: {(_config.NotifyMemberUnbanned ? "Yes" : "No")}");
             Console.WriteLine($"Send Startup Message: {(_config.SendStartupMessage ? "Yes" : "No")}");
+            Console.WriteLine($"Startup Messages: {string.Join(", ", _config.StartupMessages)}");
             Console.WriteLine($"Startup Message WebHook: {_config.StartupMessageWebHook}");
             Console.WriteLine($"Send Welcome Message: {_config.SendWelcomeMessage}");
             Console.WriteLine($"Welcome Message: {_config.WelcomeMessage}");
@@ -520,7 +534,8 @@
                         Console.WriteLine($"Pokemon Notifications:");
                         foreach (var poke in sub.Pokemon)
                         {
-                            Console.WriteLine(_db.Pokemon.Find(x => x.Id == poke.PokemonId).Name + $" ({poke})");
+                            if (!_db.Pokemon.ContainsKey(poke.PokemonId.ToString())) continue;
+                            Console.WriteLine(_db.Pokemon[poke.PokemonId.ToString()].Name + $" ({poke})");
                         }
                         Console.WriteLine($"Channel Subscriptions: {string.Join(", ", sub.ChannelIds)}");
                         Console.WriteLine();
