@@ -12,6 +12,8 @@
     [Command("help", "commands", "?")]
     public class HelpCommand : ICustomCommand
     {
+        private const string BotName = "Brock";
+
         #region Properties
 
         public bool AdminCommand => false;
@@ -34,6 +36,17 @@
 
         public async Task Execute(DiscordMessage message, Command command)
         {
+            //TODO: Send basic help command list then allow sub help commands per grouping or by command.
+            if (command.HasArgs && command.Args[0].Length == 1)
+            {
+                //TODO: Parse through provided argument
+            }
+            else
+            {
+                //TODO: Send basic help template of other sub help commands.
+            }
+
+
             await message.RespondAsync
             (
                 $"__General Commands__\r\n" +
@@ -42,9 +55,9 @@
                     "\tExample: `.iam None` (Leave Team)\r\n\r\n" +
                 "**.poke** - Simple Pokemon stats lookup.\r\n\r\n" +
                 "**.map**/**.maps** - Displays the links to the maps.\r\n\r\n" +
-                $"**.setup** - Setup {AssemblyUtils.AssemblyName}.\r\n\r\n" +
-                $"**.demo** - Display a demo of the {AssemblyUtils.AssemblyName}.\r\n\r\n" +
-                $"**.version** - Display the current {AssemblyUtils.AssemblyName} version.\r\n\r\n" +
+                $"**.setup** - Setup {BotName} (Not Implemented Yet).\r\n\r\n" +
+                $"**.demo** - Demos how to use and setup {BotName}.\r\n\r\n" +
+                $"**.version** - Display {BotName}'s current version.\r\n\r\n" +
                 "**.help** - Shows this help message.\r\n\r\n\r\n" +
 
                 $"__Pokemon Subscriptions__\r\n" +
@@ -69,17 +82,17 @@
                 "**.lobby** - Creates a new raid lobby channel.\r\n" +
                     "\tExample: `.lobby Magikarp_4th 34234234234234`\r\n\r\n" +
                 "**.otw** - Notifies users of a specific lobby that you are on the way with x amount of people and ETA.\r\n" +
-                    "\tExample: `.otw MKarp_4th 5mins 3` (Registers that you have 3 people including yourself on the way.\r\n" +
-                    "\tExample: `.otw MKarp_4th 5mins` (Registers that you are by yourself on the way.\r\n\r\n" +
+                    "\tExample: `.otw Magikarp_4th 5mins 3` (Registers that you have 3 people including yourself on the way.)\r\n" +
+                    "\tExample: `.otw Magikarp_4th 5mins` (Registers that you are by yourself on the way.)\r\n\r\n" +
                 "**.here** - Checks you into the specified raid lobby informing you are now at the raid.\r\n" +
-                    "\tExample: `.here MKarp_4th`\r\n\r\n" +
+                    "\tExample: `.here Magikarp_4th`\r\n\r\n" +
                 "**.cancel** - Cancel your .otw/.here command.\r\n"
                 //$"__Owner Commands__\r\n" +
                 //$"**.setup** - \r\n" +
                 //"**.create_roles** - Creates the required team roles to be assigned when users type the `.team <team>` commmand.\r\n" +
-                //$"**.delete_roles** - Deletes all team roles that the {AssemblyUtils.AssemblyName} created.\r\n"
-                //$"**.restart** - Restarts {AssemblyUtils.AssemblyName}.\r\n" +
-                //$"**.shutdown** - Shuts down {AssemblyUtils.AssemblyName}\r\n.
+                //$"**.delete_roles** - Deletes all team roles that the {BotName} created.\r\n"
+                //$"**.restart** - Restarts {BotName}.\r\n" +
+                //$"**.shutdown** - Shuts down {BotName}\r\n.
             );
         }
     }

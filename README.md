@@ -1,9 +1,9 @@
-# PokeFilterBot
+# BrockBot
 
 ### Usage
-**.iam** - Assign yourself to a team role, available teams to join are the following: Value, Mystic, or Instinct. You can only join one team at a time, type `.iam None` to leave a team.  
-	Example: `.iam Valor`  
-	Example: `.iam None`  
+**.team** - Assign yourself to a team role, available teams to join are the following: Valor, Mystic, or Instinct. You can only join one team at a time, type `.iam None` to leave a team.  
+	Example: `.team Valor`  
+	Example: `.team None`  
 
 **.info** - Shows the your current Pokemon subscriptions and which channels to listen to.  
 
@@ -27,8 +27,8 @@
 **.enable** - Activates the Pokemon notification subscriptions.  
 **.disable** - Deactivates the Pokemon notification subscriptions.
 
-**.demo** - Display a demo of the PokeFilterBot.  
-**.v**, **.ver**, or **.version** - Display the current PokeFilterBot version.  
+**.demo** - Demos how to use and setup Brock.  
+**.v**, **.ver**, or **.version** - Display the Brock's current version.  
 **.help** - Shows this help message.  
 
 
@@ -37,13 +37,13 @@
 **.lobby** - Creates a new raid lobby channel.  
 	Example: `.lobby Magikarp_4th 34234234234234`  
 	
-**.ontheway** - Notifies people in the specified lobby that you are on the way with x amount of people and ETA.  
-	Example: `.ontheway Magikarp_4th 5mins 3` (Registers that you have 3 people including yourself on the way.  
-	Example: `.ontheway Magikarp_4th 5mins` (Registers that you are by yourself on the way.  
+**.ontheway**, **.otw**, **.onmyway**, or **.omw** - Notifies people in the specified lobby that you are on the way with x amount of people and ETA.  
+	Example: `.onmyway Magikarp_4th 5mins 3` (Registers that you have 3 people including yourself on the way.)  
+	Example: `.otw Magikarp_4th 5mins` (Registers that you are by yourself on the way.)  
 	
-**.checkin** - Checks you into the specified raid lobby notifying everyone that you have arrived to the raid location.  
+**.checkin** or **.here** - Checks you into the specified raid lobby notifying everyone that you have arrived to the raid location.  
 	Example: `.checkin Magikarp_4th`  
 
 If you are the owner of the bot you can execute the following additional commands:  
-**.create\_roles** - Creates the required team roles to be assigned when users type the `.iam <team>` commmand.  
-**.delete\_roles** - Deletes all team roles that the PokeFilterBot created.
+**.create\_roles** - Creates the required team roles to be assigned when users type the `.team <team>` commmand.  
+**.delete\_roles** - Deletes all team roles that Brock created.

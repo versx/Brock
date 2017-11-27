@@ -59,9 +59,46 @@
             _db = Database.Load();
             _config = Config.Load();
             _rand = new Random();
+
+            /*
+            var pokemon = Serialization.JsonStringSerializer.Deserialize<Dictionary<string, dynamic>>(File.ReadAllText("test.json"));
+            foreach (var pokeInfo in pokemon)
+            {
+                var genderRatio = pokeInfo.Value.genderRatio == null ? new PokemonGenderRatioOld() : Serialization.JsonStringSerializer.Deserialize<PokemonGenderRatioOld>(Convert.ToString(pokeInfo.Value.genderRatio));
+                var color = Convert.ToString(pokeInfo.Value.color);
+                var id = Convert.ToString(pokeInfo.Value.num);
+                List<string> newEvoList = null;
+                if (pokeInfo.Value.evos != null)
+                {
+                    var evos = Serialization.JsonStringSerializer.Deserialize<List<string>>(Convert.ToString(pokeInfo.Value.evos));
+                    newEvoList = new List<string>();
+                    for (int i = 0; i < evos.Count; i++)
+                    {
+                        newEvoList.Add(UppercaseFirstLetter(evos[i]));
+                    }
+                }
+                if (_db.Pokemon.ContainsKey(id))
+                {
+                    _db.Pokemon[id].Evolutions = newEvoList;
+                    _db.Pokemon[id].Color = Convert.ToString(color);
+                    _db.Pokemon[id].GenderRatio = new PokemonGenderRatio { Male = genderRatio.Male, Female = genderRatio.Female }; // genderRatio;
+                }
+            }
+
+            File.WriteAllText("test2.json", Serialization.JsonStringSerializer.Serialize(_db.Pokemon));
+
+            Environment.Exit(0);
+            */
         }
 
         #endregion
+
+        private string UppercaseFirstLetter(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return string.Empty;
+
+            return char.ToUpper(s[0]) + s.Substring(1);
+        }
 
         #region Discord Events
 
@@ -203,7 +240,7 @@
 
         #region Public Methods
 
-        public async Task Start()
+        public async Task StartAsync()
         {
             Logger.Trace($"FilterBot::Start");
 
@@ -272,7 +309,7 @@
             await Task.Delay(-1);
         }
 
-        public async Task Stop()
+        public async Task StopAsync()
         {
             Logger.Trace($"FilterBot::Stop");
 
@@ -339,6 +376,8 @@
                 if (!Commands.ContainsKey(cmds) && !Commands.ContainsValue(command))
                 {
                     Commands.Add(cmds, command);
+                    Logger.Info($"Command(s) {string.Join(", ", cmds)} was successfully registered.");
+
                     return true;
                 }
 
@@ -346,7 +385,7 @@
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
+                Utils.LogError(ex);
             }
 
             return false;
@@ -356,11 +395,12 @@
         {
             if (!Commands.ContainsKey(cmdNames))
             {
-                Commands.Remove(cmdNames);
-                return;
+                if (!Commands.Remove(cmdNames))
+                {
+                    Logger.Error($"Failed to unregister command {string.Join(", ", cmdNames)}");
+                    return;
+                }
             }
-
-            Logger.Error($"Failed to unregister command {string.Join(", ", cmdNames)}");
         }
 
         #endregion

@@ -15,10 +15,27 @@
         [JsonProperty("spawn_rate")]
         public string SpawnRate { get; set; }
 
+        [JsonProperty("color")]
+        public string Color { get; set; }
+
+        [JsonProperty("gender_ratio")]
+        public PokemonGenderRatio GenderRatio { get; set; }
+
         [JsonProperty("types")]
         public List<PokemonType> Types { get; set; }
 
         [JsonProperty("base_stats")]
         public PokemonBaseStats BaseStats { get; set; }
+
+        [JsonProperty("evolutions")]
+        public List<string> Evolutions { get; set; }
+
+        public PokemonInfo()
+        {
+            GenderRatio = new PokemonGenderRatio();
+            Types = new List<PokemonType>();
+            BaseStats = new PokemonBaseStats();
+            Evolutions = new List<string>();
+        }
     }
 }

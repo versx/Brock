@@ -76,6 +76,7 @@
     <Compile Include="Data\IDatabase.cs" />
     <Compile Include="Data\Models\CheckInList.cs" />
     <Compile Include="Data\Models\PokemonBaseStats.cs" />
+    <Compile Include="Data\Models\PokemonGenderRatio.cs" />
     <Compile Include="Data\Models\PokemonInfo.cs" />
     <Compile Include="Data\Models\PokemonType.cs" />
     <Compile Include="Data\Models\RaidLobby.cs" />

@@ -1,6 +1,7 @@
 ﻿namespace BrockBot
 {
     using System;
+    using System.IO;
     using System.Threading.Tasks;
 
     using BrockBot.Commands;
@@ -25,7 +26,7 @@
                 Logger = new EventLogger((logType, message)=>
                 {
                     Console.WriteLine($"{logType.ToString().ToUpper()} >> {message}");
-                    System.IO.File.AppendAllText(DateTime.Now.ToString("yyyy-MM-dd") + ".log", $"{logType.ToString().ToUpper()} >> {message}");
+                    File.AppendAllText(DateTime.Now.ToString("yyyy-MM-dd") + ".log", $"{logType.ToString().ToUpper()} >> {message}");
                 })
             };
             bot.RegisterCommand<DemoCommand>();
@@ -52,10 +53,10 @@
             bot.RegisterCommand<PokemonLookupCommand>();
             bot.RegisterCommand<MapCommand>();
             bot.RegisterCommand<UptimeCommand>();
-            await bot.Start();
+            await bot.StartAsync();
 
             Console.Read();
-            await bot.Stop();
+            await bot.StartAsync();
         }
     }
 }

@@ -7,7 +7,7 @@
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("XYZ Software Solutions")]
-[assembly: AssemblyProduct("BrockBot")]
+[assembly: AssemblyProduct("Brock")]
 [assembly: AssemblyCopyright("Copyright © VERSX 2017")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
