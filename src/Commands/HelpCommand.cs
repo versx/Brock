@@ -7,7 +7,6 @@
     using DSharpPlus.Entities;
 
     using BrockBot.Data;
-    using BrockBot.Utilities;
 
     [Command("help", "commands", "?")]
     public class HelpCommand : ICustomCommand

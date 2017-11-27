@@ -261,9 +261,9 @@
         {
             Logger.Trace($"FilterBot::Start");
 
-            if (_client != null)
+            if (_client == null)
             {
-                Logger.Warn($"{AssemblyUtils.AssemblyName} is already started, no need to start again.");
+                Logger.Error($"Really don't know how this happened?");
                 return;
             }
 

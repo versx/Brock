@@ -47,7 +47,7 @@
                 "`.remove upland_rares`\r\n\r\n" +
                 "Activating the notification subscriptions.\r\n" +
                 "`.enable`\r\n\r\n" +
-                "Displays our current information.\r\n" +
+                "Displays your current notification information.\r\n" +
                 "`.info`"
             );
         }
