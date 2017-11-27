@@ -89,6 +89,23 @@
 
             Environment.Exit(0);
             */
+
+            _client = new DiscordClient(new DiscordConfiguration
+            {
+                AutoReconnect = true,
+                //DiscordBranch = Branch.Stable,
+                LogLevel = LogLevel.Debug,
+                Token = _config.AuthToken,
+                TokenType = TokenType.Bot
+            });
+
+            _client.MessageCreated += Client_MessageCreated;
+            _client.Ready += Client_Ready;
+            _client.DmChannelCreated += Client_DmChannelCreated;
+            _client.GuildMemberAdded += Client_GuildMemberAdded;
+            _client.GuildMemberRemoved += Client_GuildMemberRemoved;
+            _client.GuildBanAdded += Client_GuildBanAdded;
+            _client.GuildBanRemoved += Client_GuildBanRemoved;
         }
 
         #endregion
@@ -249,23 +266,6 @@
                 Logger.Warn($"{AssemblyUtils.AssemblyName} is already started, no need to start again.");
                 return;
             }
-
-            _client = new DiscordClient(new DiscordConfiguration
-            {
-                AutoReconnect = true,
-                //DiscordBranch = Branch.Stable,
-                LogLevel = LogLevel.Debug,
-                Token = _config.AuthToken,
-                TokenType = TokenType.Bot
-            });
-
-            _client.MessageCreated += Client_MessageCreated;
-            _client.Ready += Client_Ready;
-            _client.DmChannelCreated += Client_DmChannelCreated;
-            _client.GuildMemberAdded += Client_GuildMemberAdded;
-            _client.GuildMemberRemoved += Client_GuildMemberRemoved;
-            _client.GuildBanAdded += Client_GuildBanAdded;
-            _client.GuildBanRemoved += Client_GuildBanRemoved;
 
             if (_timer == null)
             {

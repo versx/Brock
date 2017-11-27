@@ -1,5 +1,8 @@
 # BrockBot
 
+### Setup
+Discord Permissions
+
 ### Usage
 **.team** - Assign yourself to a team role, available teams to join are the following: Valor, Mystic, or Instinct. You can only join one team at a time, type `.iam None` to leave a team.  
 	Example: `.team Valor`  
