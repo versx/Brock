@@ -1,0 +1,34 @@
+{
+  "ownerId": 000000000000000000,
+  "commandsChannel": "bot",
+  "commandsPrefix": ".",
+  "sponsorRaidChannelPool": [
+    375047782821111111,
+    366049816180000000,
+  ],
+  "sponsorRaidKeywords": [
+    "Sprint",
+    "Starbucks",
+    "McDonalds"
+  ],
+  "sponsorRaidsWebHook": "https://discordapp.com/api/webhooks/37483000000000000/jiujlkjljlkjljk",
+  "allowTeamAssignment": true,
+  "authToken": "lkjljlksjdfsfd",
+  "sendStartupMessage": true,
+  "startupMessages": [
+    "Whoa, whoa...alright I'm awake.",
+	"No need to push, I'm going...",
+	"That was a weird dream, wait a minute...",
+	"Circuits fully charged, let's do this!",
+	"What is this place? How did I get here?",
+	"Looks like we're not in Kansas anymore...",
+	"Hey...watch where you put those mittens!"
+  ],
+  "startupMessageWebHook": "https://discordapp.com/api/webhooks/3743000000000/12132djlkjlkdsjlksdj",
+  "sendWelcomeMessage": true,
+  "welcomeMessage": "Hello {username}, welcome to versx's discord server!\r\nI am here to help you with certain things if you require them such as notifications of Pokemon that have spawned as well as setting up Raid Lobbies. To see a full list of my available commands please send me a direct message containing `.help`.",
+  "notifyMemberJoined": true,
+  "notifyMemberLeft": true,
+  "notifyMemberBanned": true,
+  "notifyMemberUnbanned": true,
+}

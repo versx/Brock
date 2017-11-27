@@ -286,5 +286,4 @@ __pycache__/
 *.btm.cs
 *.odx.cs
 *.xsd.cs
-/Discord Bot Info.txt
-/Logic.txt
+/Resources.txt
