@@ -131,12 +131,12 @@
         public Config()
         {
             AllowTeamAssignment = true;
-            AvailableTeamRoles = new List<string>
-            {
-                "Valor",
-                "Mystic",
-                "Instinct"
-            };
+            AvailableTeamRoles = new List<string>();
+            //{
+            //    "Valor",
+            //    "Mystic",
+            //    "Instinct"
+            //};
             CommandsChannel = "general";
             CommandsPrefix = '.';
             NotifyMemberBanned = true;
@@ -147,17 +147,17 @@
             //SendStartupMessage = true;
             //StartupMessageWebHook = "";
             SendWelcomeMessage = true;
-            StartupMessages = new List<string>
-            {
-                "Whoa, whoa...alright I'm awake.",
-                "No need to push, I'm going...",
-                "That was a weird dream, wait a minute...",
-                //"Circuit overload, malfunktshun."
-                "Circuits fully charged, let's do this!",
-                "What is this place? How did I get here?",
-                "Looks like we're not in Kansas anymore...",
-                "Hey...watch where you put those mittens!"
-            };
+            StartupMessages = new List<string>();
+            //{
+            //    "Whoa, whoa...alright I'm awake.",
+            //    "No need to push, I'm going...",
+            //    "That was a weird dream, wait a minute...",
+            //    //"Circuit overload, malfunktshun."
+            //    "Circuits fully charged, let's do this!",
+            //    "What is this place? How did I get here?",
+            //    "Looks like we're not in Kansas anymore...",
+            //    "Hey...watch where you put those mittens!"
+            //};
             WelcomeMessage = DefaultWelcomeMessage;
             SponsorRaidChannelPool = new List<ulong>();
             SponsorRaidKeywords = new List<string>();

@@ -40,43 +40,43 @@
             var start = Process.GetCurrentProcess().StartTime;
             var now = DateTime.Now;
             var uptime = now.Subtract(start);
-            var uptimeMessage = string.Empty;
+            //var uptimeMessage = string.Empty;
 
-            if (uptime.Days > 0)
-            {
-                uptimeMessage += $"{uptime.Days} days";
-            }
-            if (uptime.Hours > 0)
-            {
-                uptimeMessage += $"{uptime.Hours} hours";
-            }
-            if (uptime.Minutes > 0)
-            {
-                uptimeMessage += $"{uptime.Minutes} minutes";
-            }
-            if (uptime.Seconds > 0)
-            {
-                uptimeMessage += $"{uptime.Seconds} seconds";
-            }
+            //if (uptime.Days > 0)
+            //{
+            //    uptimeMessage += $"{uptime.Days} days, ";
+            //}
+            //if (uptime.Hours > 0)
+            //{
+            //    uptimeMessage += $"{uptime.Hours} hours, ";
+            //}
+            //if (uptime.Minutes > 0)
+            //{
+            //    uptimeMessage += $"{uptime.Minutes} minutes, ";
+            //}
+            //if (uptime.Seconds > 0)
+            //{
+            //    uptimeMessage += $"{uptime.Seconds} seconds";
+            //}
 
-            await message.RespondAsync(uptimeMessage, false, CreateEmbed("Test Embed"));
+            await message.RespondAsync(Utils.ToReadableString(uptime), false, CreateEmbed("Test Embed"));
         }
 
         public DiscordEmbed CreateEmbed(string title)
         {
             var eb = new DiscordEmbedBuilder
             {
-                Author = new DiscordEmbedBuilder.EmbedAuthor()
-                {
-                    Name = "versx#8151"
-                },
+                //Author = new DiscordEmbedBuilder.EmbedAuthor()
+                //{
+                //    Name = "versx#8151"
+                //},
                 Title = title
             };
 
             var about = eb.AddField
             (
-                "About PoGo Bot", "PoGo Bot is a simple Discord bot that allows you to automatically set your team by using Discord roles. " +
-                "It has potential to have more functionality to come.",
+                "About Brock Bot", 
+                "Brock Bot is a simple Discord bot that allows you to assign yourself to your Pokemon team, create Raid Lobbies, filter sponsor raids, Pokemon spawn notifier and more. ",
                 true
             );
 
@@ -88,17 +88,17 @@
 
             var git = eb.AddField
             (
-                "Github Repositoy",
-                "https://github.com/versx/PokeFilterBot" + "\n\nTo make a suggestion or report a bug, " +
-                "go to this repository and use the issue tab to create an issue. Or you can mesage me on discord."
+                "GitHub Repository",
+                "https://github.com/versx/Brock\n\nTo make a suggestion or report a bug regarding Brock, " +
+                "go to this repository and use the issue tab to create an issue or mesage me on discord @ versx#8151."
             );
 
             var footer = eb.Footer = new DiscordEmbedBuilder.EmbedFooter
             {
                 Text = "Version " + AssemblyUtils.AssemblyVersion
             };
-            var embed = eb.Build();
-            return embed;
+
+            return eb.Build();
         }
     }
 }

@@ -13,6 +13,8 @@
 
     public static class DiscordExtensions
     {
+        #region Channel Extensions
+
         public static DiscordChannel GetChannelByName(this DiscordClient client, string channelName)
         {
             foreach (var guild in client.Guilds)
@@ -41,6 +43,10 @@
             }
         }
 
+        #endregion
+
+        #region Role Extensions
+
         public static DiscordRole GetRoleFromName(this DiscordClient client, string roleName)
         {
             foreach (var guild in client.Guilds)
@@ -57,6 +63,10 @@
             return null;
         }
 
+        #endregion
+
+        #region User Extensions
+
         public static async Task<DiscordMember> GetMemberFromUserId(this DiscordClient client, ulong userId)
         {
             foreach (var guild in client.Guilds)
@@ -71,28 +81,9 @@
             return null;
         }
 
-        public static async Task<DiscordMessage> GetMessageById(this DiscordClient client, ulong guildId, ulong messageId)
-        {
-            var guild = await client.GetGuildAsync(guildId);
-            if (guild == null) return null;
+        #endregion
 
-            foreach (var channel in ((DiscordGuild)guild).Channels)
-            {
-                try
-                {
-                    var message = await channel.GetMessageAsync(messageId);
-                    if (message != null)
-                    {
-                        return message;
-                    }
-                }
-#pragma warning disable RECS0022
-                catch { }
-#pragma warning restore RECS0022
-            }
-
-            return null;
-        }
+        #region Raid Lobby Extensions
 
         public static async Task<DiscordMessage> GetFirstMessage(this DiscordClient client, string lobbyName)
         {
@@ -159,18 +150,6 @@
             return message;
         }
 
-        private static async Task<string> CreateLobbyStatus(DiscordClient client, RaidLobby lobby)
-        {
-            return $"**{lobby.LobbyName} RAID LOBBY** ({DateTime.Now.ToLongDateString()})\r\n" +
-                   $"**{Convert.ToUInt32(lobby.MinutesLeft)} Minutes Left!**\r\n" + //TODO: Fix minutes left.
-                   $"Raid Boss: **{lobby.PokemonName}**\r\n" +
-                   $"Start Time: {lobby.StartTime.ToLongTimeString()}\r\n" +
-                   $"Expire Time: {lobby.ExpireTime.ToLongTimeString()}\r\n" +
-                   $"Gym Name: {lobby.GymName}\r\n" +
-                   $"Address: {lobby.Address}\r\n\r\n" +
-                   await RaidLobbyUserStatus(client, lobby);
-        }
-
         public static async Task<string> RaidLobbyUserStatus(this DiscordClient client, RaidLobby lobby)
         {
             var lobbyUserStatus = "**Raid Lobby User Status:**\r\n";
@@ -203,5 +182,97 @@
 
             return lobbyUserStatus;
         }
+
+        private static async Task<string> CreateLobbyStatus(DiscordClient client, RaidLobby lobby)
+        {
+            return $"**{lobby.LobbyName} RAID LOBBY** ({DateTime.Now.ToLongDateString()})\r\n" +
+                   $"**{Convert.ToUInt32(lobby.MinutesLeft)} Minutes Left!**\r\n" + //TODO: Fix minutes left.
+                   $"Raid Boss: **{lobby.PokemonName}**\r\n" +
+                   $"Start Time: {lobby.StartTime.ToLongTimeString()}\r\n" +
+                   $"Expire Time: {lobby.ExpireTime.ToLongTimeString()}\r\n" +
+                   $"Gym Name: {lobby.GymName}\r\n" +
+                   $"Address: {lobby.Address}\r\n\r\n" +
+                   await RaidLobbyUserStatus(client, lobby);
+        }
+
+        #endregion
+
+        #region Message Extensions
+
+        public static async Task<DiscordMessage> GetMessageById(this DiscordClient client, ulong guildId, ulong messageId)
+        {
+            var guild = await client.GetGuildAsync(guildId);
+            if (guild == null) return null;
+
+            foreach (var channel in guild.Channels)
+            {
+                try
+                {
+                    var message = await channel.GetMessageAsync(messageId);
+                    if (message != null)
+                    {
+                        return message;
+                    }
+                }
+#pragma warning disable RECS0022
+                catch { }
+#pragma warning restore RECS0022
+            }
+
+            return null;
+        }
+
+        public static async Task SendMessage(this DiscordClient client, string webHookUrl, string message, DiscordEmbed embed = null)
+        {
+            var data = Utils.GetWebHookData(webHookUrl);
+            if (data == null) return;
+
+            var guildId = Convert.ToUInt64(Convert.ToString(data["guild_id"]));
+            var channelId = Convert.ToUInt64(Convert.ToString(data["channel_id"]));
+
+            var guild = await client.GetGuildAsync(guildId);
+            if (guild == null)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Error: Guild does not exist!");
+                Console.ResetColor();
+                return;
+            }
+            //var channel = guild.GetChannel(channelId);
+            var channel = await client.GetChannelAsync(channelId);
+            if (channel == null)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Error: Channel does not exist!");
+                Console.ResetColor();
+                return;
+            }
+
+            await channel.SendMessageAsync(message, false, embed);
+        }
+
+        public static async Task SendDirectMessage(this DiscordClient client, DiscordUser user, string message, DiscordEmbed embed)
+        {
+            var dm = await client.CreateDmAsync(user);
+            if (dm != null)
+            {
+                await dm.SendMessageAsync(message, false, embed);
+            }
+        }
+
+        public static async Task SendWelcomeMessage(this DiscordClient client, DiscordUser user, string welcomeMessage)
+        {
+            await client.SendDirectMessage
+            (
+                user,
+                welcomeMessage.Replace("{username}", user.Username),
+                //$"Hello {user.Username}, and welcome to versx's discord server!\r\n" +
+                //"I am here to help you with certain things if you require them such as notifications of Pokemon that have spawned as well as setting up Raid Lobbies.\r\n\r\n" +
+                //"To see a full list of my available commands please send me a direct message containing `.help`.",
+                null
+            );
+        }
+
+        #endregion
     }
 }

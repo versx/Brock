@@ -43,14 +43,16 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Commands\CreateRaidLobbyCommand.cs" />
-    <Compile Include="Commands\CreateRolesCommand.cs" />
-    <Compile Include="Commands\DeleteRolesCommand.cs" />
+    <Compile Include="Commands\Administrative\CreateRolesCommand.cs" />
+    <Compile Include="Commands\Administrative\DeleteRolesCommand.cs" />
     <Compile Include="Commands\DemoCommand.cs" />
+    <Compile Include="Commands\DonateCommand.cs" />
     <Compile Include="Commands\EnableDisableCommand.cs" />
     <Compile Include="Commands\HelpCommand.cs" />
     <Compile Include="Commands\MapCommand.cs" />
     <Compile Include="Commands\PokemonLookupCommand.cs" />
     <Compile Include="Commands\RaidLobbyListUsersCommand.cs" />
+    <Compile Include="Commands\Administrative\SetCommand.cs" />
     <Compile Include="Commands\SetupCommand.cs" />
     <Compile Include="Commands\TeamCommand.cs" />
     <Compile Include="Commands\ICustomCommand.cs" />
@@ -59,9 +61,9 @@
     <Compile Include="Commands\RaidLobbyCheckInCommand.cs" />
     <Compile Include="Commands\RaidLobbyOnTheWayCommand.cs" />
     <Compile Include="Commands\RemoveCommand.cs" />
-    <Compile Include="Commands\RestartCommand.cs" />
+    <Compile Include="Commands\Administrative\RestartCommand.cs" />
     <Compile Include="Commands\AddCommand.cs" />
-    <Compile Include="Commands\ShutdownCommand.cs" />
+    <Compile Include="Commands\Administrative\ShutdownCommand.cs" />
     <Compile Include="Commands\SubscribeCommand.cs" />
     <Compile Include="Commands\UnsubscribeCommand.cs" />
     <Compile Include="Commands\UptimeCommand.cs" />

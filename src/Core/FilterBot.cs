@@ -2,7 +2,6 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.IO;
     using System.Threading.Tasks;
     using Timer = System.Timers.Timer;
 
@@ -20,20 +19,20 @@
 
     using DSharpPlus;
 
-    //TODO: Add command and create new instance even if no parameters given for the constructor.
+    //TODO: Register command and create new instance even if no parameters are given for the constructor.
     //TODO: .uptime command - Been up for: 6 days, 7 hours, 42 minutes, and 52 seconds (since 2017-11-10 21:12:13 UTC)
-    //TODO: .invite Generate a link that you can use to add BrockBot to your own server.
-    //TODO: Redo bot messages as embed messages.
+    //TODO: .invite Generate a link that you can use to add BrockBot to your own server or invite link to invite someone.
     //TODO: Notify via SMS or Twilio or w/e.
-    //TODO: Add .interested command or something similar.
+    //TODO: .interested command or something similar.
+    //TODO: Setup team channels and permissions to hide from everyone except for those team members.
 
     public class FilterBot
     {
         #region Variables
 
         private DiscordClient _client;
-        private readonly Database _db;
         private readonly Config _config;
+        private readonly Database _db;
         private readonly Random _rand;
         private Timer _timer;
 
@@ -59,45 +58,16 @@
             _db = Database.Load();
             _config = Config.Load();
             _rand = new Random();
-
-            /*
-            var pokemon = Serialization.JsonStringSerializer.Deserialize<Dictionary<string, dynamic>>(File.ReadAllText("test.json"));
-            foreach (var pokeInfo in pokemon)
-            {
-                var genderRatio = pokeInfo.Value.genderRatio == null ? new PokemonGenderRatioOld() : Serialization.JsonStringSerializer.Deserialize<PokemonGenderRatioOld>(Convert.ToString(pokeInfo.Value.genderRatio));
-                var color = Convert.ToString(pokeInfo.Value.color);
-                var id = Convert.ToString(pokeInfo.Value.num);
-                List<string> newEvoList = null;
-                if (pokeInfo.Value.evos != null)
+            _client = new DiscordClient
+            (
+                new DiscordConfiguration
                 {
-                    var evos = Serialization.JsonStringSerializer.Deserialize<List<string>>(Convert.ToString(pokeInfo.Value.evos));
-                    newEvoList = new List<string>();
-                    for (int i = 0; i < evos.Count; i++)
-                    {
-                        newEvoList.Add(UppercaseFirstLetter(evos[i]));
-                    }
+                    AutoReconnect = true,
+                    LogLevel = LogLevel.Debug,
+                    Token = _config.AuthToken,
+                    TokenType = TokenType.Bot
                 }
-                if (_db.Pokemon.ContainsKey(id))
-                {
-                    _db.Pokemon[id].Evolutions = newEvoList;
-                    _db.Pokemon[id].Color = Convert.ToString(color);
-                    _db.Pokemon[id].GenderRatio = new PokemonGenderRatio { Male = genderRatio.Male, Female = genderRatio.Female }; // genderRatio;
-                }
-            }
-
-            File.WriteAllText("test2.json", Serialization.JsonStringSerializer.Serialize(_db.Pokemon));
-
-            Environment.Exit(0);
-            */
-
-            _client = new DiscordClient(new DiscordConfiguration
-            {
-                AutoReconnect = true,
-                //DiscordBranch = Branch.Stable,
-                LogLevel = LogLevel.Debug,
-                Token = _config.AuthToken,
-                TokenType = TokenType.Bot
-            });
+            );
 
             _client.MessageCreated += Client_MessageCreated;
             _client.Ready += Client_Ready;
@@ -109,13 +79,6 @@
         }
 
         #endregion
-
-        private string UppercaseFirstLetter(string s)
-        {
-            if (string.IsNullOrEmpty(s)) return string.Empty;
-
-            return char.ToUpper(s[0]) + s.Substring(1);
-        }
 
         #region Discord Events
 
@@ -135,8 +98,7 @@
 
             if (_config.SendStartupMessage)
             {
-                var randomWelcomeMessage = _config.StartupMessages[_rand.Next(0, _config.StartupMessages.Count - 1)];
-                await SendMessage(_config.StartupMessageWebHook, randomWelcomeMessage);
+                await SendStartupMessage();
             }
 
             foreach (var user in _client.Presences)
@@ -233,7 +195,7 @@
 
             if (_config.SendWelcomeMessage)
             {
-                await SendBotIntroMessage(e.Member);
+                await _client.SendWelcomeMessage(e.Member, _config.WelcomeMessage);
             }
         }
 
@@ -328,6 +290,8 @@
 
         public bool RegisterCommand<T>(params object[] optionalParameters)
         {
+            Logger.Trace($"FilterBot::RegisterCommand [Type={typeof(T).FullName}, OptionalParameters={string.Join(", ", optionalParameters)}]");
+
             try
             {
                 var type = typeof(T);
@@ -393,13 +357,18 @@
 
         public void UnregisterCommand(string[] cmdNames)
         {
+            Logger.Trace($"FilterBot::UnregisterCommand [CommandNames={string.Join(", ", cmdNames)}]");
+
             if (!Commands.ContainsKey(cmdNames))
             {
-                if (!Commands.Remove(cmdNames))
-                {
-                    Logger.Error($"Failed to unregister command {string.Join(", ", cmdNames)}");
-                    return;
-                }
+                Logger.Error($"Failed to unregister command {string.Join(", ", cmdNames)} because it is not currently registered.");
+                return;
+            }
+
+            if (!Commands.Remove(cmdNames))
+            {
+                Logger.Error($"Failed to unregister command {string.Join(", ", cmdNames)}");
+                return;
             }
         }
 
@@ -407,7 +376,7 @@
 
         #region Private Methods
 
-        public async Task ParseCommand(DiscordMessage message)
+        private async Task ParseCommand(DiscordMessage message)
         {
             Logger.Trace($"FilterBot::ParseCommand [Message={message.Content}]");
 
@@ -417,14 +386,13 @@
             if (Commands.ContainsKey(command.Name))
             {
                 var isOwner = message.Author.Id == _config.OwnerId;
-                if ((Commands[command.Name].AdminCommand && isOwner) || !Commands[command.Name].AdminCommand)
+                if (Commands[command.Name].AdminCommand && !isOwner)
                 {
-                    await Commands[command.Name].Execute(message, command);
+                    await message.RespondAsync("You are not authorized to execute these type of commands, your unique user id has been logged.");
+                    return;
                 }
-                //else
-                //{
-                //    //TODO: You are not the owner so your commands are not recognized.
-                //}
+
+                await Commands[command.Name].Execute(message, command);
             }
 
             _db.Save();
@@ -440,7 +408,7 @@
                 {
                     if (embed.Description.Contains(keyword))
                     {
-                        await SendMessage(_config.SponsorRaidsWebHook, string.Empty, embed);
+                        await _client.SendMessage(_config.SponsorRaidsWebHook, message.Author.Username, embed);
                         break;
                     }
                 }
@@ -473,65 +441,17 @@
                     Console.WriteLine($"Notifying user {discordUser.Username} that a {pokemon.Name} has appeared in channel #{message.Channel.Name}...");
 
                     var msg = $"A wild {pokemon.Name} has appeared in channel {message.Channel.Mention}!\r\n\r\n" + message.Content;
-                    Notify(discordUser, msg, poke, message.Embeds[0]);
+                    Notify(discordUser.Username, msg, poke, message.Embeds[0]);
 
-                    await SendDirectMessage(discordUser, msg, message.Embeds.Count == 0 ? null : message.Embeds[0]);
+                    await _client.SendDirectMessage(discordUser, msg, message.Embeds.Count == 0 ? null : message.Embeds[0]);
                 }
             }
         }
 
-        private async Task SendDirectMessage(DiscordUser user, string message, DiscordEmbed embed)
+        private async Task SendStartupMessage()
         {
-            var dm = await _client.CreateDmAsync(user);
-            if (dm != null)
-            {
-                await dm.SendMessageAsync(message, false, embed);
-            }
-        }
-
-        private async Task SendMessage(string webHookUrl, string message, DiscordEmbed embed = null)
-        {
-            var data = Utils.GetWebHookData(webHookUrl);
-            if (data == null) return;
-
-            var guildId = Convert.ToUInt64(Convert.ToString(data["guild_id"]));
-            var channelId = Convert.ToUInt64(Convert.ToString(data["channel_id"]));
-
-            var guild = await _client.GetGuildAsync(guildId);
-            if (guild == null)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Error: Guild does not exist!");
-                Console.ResetColor();
-                return;
-            }
-            //var channel = guild.GetChannel(channelId);
-            var channel = await _client.GetChannelAsync(channelId);
-            if (channel == null)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Error: Channel does not exist!");
-                Console.ResetColor();
-                return;
-            }
-
-            await channel.SendMessageAsync(message, false, embed);
-        }
-
-        private async Task SendBotIntroMessage(DiscordUser user)
-        {
-            Logger.Trace($"FilterBot::SendBotIntroMessage [Username={user.Username}]");
-
-            await SendDirectMessage
-            (
-                user,
-                _config.WelcomeMessage
-                    .Replace("{username}", user.Username),
-                //$"Hello {user.Username}, and welcome to versx's discord server!\r\n" +
-                //"I am here to help you with certain things if you require them such as notifications of Pokemon that have spawned as well as setting up Raid Lobbies.\r\n\r\n" +
-                //"To see a full list of my available commands please send me a direct message containing `.help`.",
-                null
-            );
+            var randomWelcomeMessage = _config.StartupMessages[_rand.Next(0, _config.StartupMessages.Count - 1)];
+            await _client.SendMessage(_config.StartupMessageWebHook, randomWelcomeMessage);
         }
 
         private async Task DisplaySettings()
@@ -619,7 +539,7 @@
             Console.WriteLine($"**************************************");
         }
 
-        private void Notify(DiscordUser user, string message, Pokemon pokemon, DiscordEmbed embed)
+        private void Notify(string username, string message, Pokemon pokemon, DiscordEmbed embed)
         {
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine();
@@ -634,7 +554,7 @@
             Console.WriteLine();
             Console.ResetColor();
 
-            Console.WriteLine($"Alerting discord user {user.Username} of {message}");
+            Console.WriteLine($"Alerting discord user {username} of {message}.");
         }
 
         #endregion

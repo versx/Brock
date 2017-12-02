@@ -31,8 +31,7 @@
             foreach (var command in this)
             {
                 var cmdList = new List<string>(command.Key);
-                //var cmdKeysList = new List<String>(keys);
-                if (cmdList.Exists(x => string.Compare(x, key, true) == 0)) //cmdKeysList.Contains(x)))
+                if (cmdList.Exists(x => string.Compare(x, key, true) == 0))
                 {
                     return true;
                 }

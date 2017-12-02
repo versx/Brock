@@ -11,7 +11,7 @@
     using BrockBot.Extensions;
     using BrockBot.Utilities;
 
-    [Command("team")]
+    [Command("team", "iam")]
     public class TeamCommand : ICustomCommand
     {
         private readonly Config _config;

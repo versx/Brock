@@ -53,6 +53,8 @@
             bot.RegisterCommand<PokemonLookupCommand>();
             bot.RegisterCommand<MapCommand>();
             bot.RegisterCommand<UptimeCommand>();
+            bot.RegisterCommand<DonateCommand>();
+            bot.RegisterCommand<SetCommand>();
             await bot.StartAsync();
 
             Console.Read();

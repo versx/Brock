@@ -33,9 +33,11 @@
 
         public async Task Execute(DiscordMessage message, Command command)
         {
-            if (command.HasArgs) return; //REVIEW: Should the command proceed even with unnecessary parameters?
-
-            await message.RespondAsync($"Pokemon map: https://pokemap.ver.sx\r\nGyms & Raids map: https://gymmap.ver.sx");
+            await message.RespondAsync
+            (
+                $"Pokemon map: https://pokemap.ver.sx\r\n" +
+                $"Gyms & Raids map: https://gymmap.ver.sx"
+            );
         }
     }
 }
