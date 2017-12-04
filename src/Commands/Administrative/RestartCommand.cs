@@ -10,12 +10,17 @@
     using BrockBot.Data;
     using BrockBot.Utilities;
 
-    [Command("restart")]
+    [Command(
+        Categories.Administrative,
+        "Restarts " + FilterBot.BotName + ".",
+        null,    
+        "restart"
+    )]
     public class RestartCommand : ICustomCommand
     {
         #region Properties
 
-        public bool AdminCommand => false;
+        public bool AdminCommand => true;
 
         public DiscordClient Client { get; }
 

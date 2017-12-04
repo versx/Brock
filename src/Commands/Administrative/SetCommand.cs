@@ -9,10 +9,22 @@
     using BrockBot.Configuration;
     using BrockBot.Data;
 
-    [Command("set")]
+    [Command(
+        Categories.Administrative,
+        "Sets configuration setting values directly.",
+        "\tExample: .set prefix !\r\n" +
+        "\tExample: .set team_assignment true",
+        "set"
+    )]
     public sealed class SetCommand : ICustomCommand
     {
+        #region Variables
+
         private readonly Config _config;
+
+        #endregion
+
+        #region Properties
 
         public bool AdminCommand => true;
 
@@ -20,10 +32,16 @@
 
         public IDatabase Db { get; }
 
+        #endregion
+
+        #region Constructor
+
         public SetCommand(Config config)
         {
             _config = config;
         }
+
+        #endregion
 
         public async Task Execute(DiscordMessage message, Command command)
         {

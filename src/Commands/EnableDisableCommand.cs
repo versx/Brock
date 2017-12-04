@@ -8,7 +8,12 @@
 
     using BrockBot.Data;
 
-    [Command("enable", "disable")]
+    [Command(
+        Categories.Notifications,
+        "Activates or deactivates all of your Pokemon subscriptions at once.",
+        null,
+        "enable", "disable"
+    )]
     public class EnableDisableCommand : ICustomCommand
     {
         private readonly bool _enable;

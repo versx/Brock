@@ -9,7 +9,12 @@
     using BrockBot.Data;
     using BrockBot.Extensions;
 
-    [Command("cancel")]
+    [Command(
+        Categories.RaidLobby,
+        "Cancels your .otw or .here command.",
+        "\tExample: .cancel ttar_test",
+        "cancel"
+    )]
     public class RaidLobbyCancelCommand : ICustomCommand
     {
         #region Properties

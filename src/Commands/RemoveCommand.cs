@@ -9,7 +9,13 @@
     using BrockBot.Data;
     using BrockBot.Extensions;
 
-    [Command("remove")]
+    [Command(
+        Categories.Notifications,
+        "Removes the selected channels from being notified of Pokemon.",
+        "\tExample: `.remove channel1,channel2`\r\n" +
+        "\tExample: `.remove single_channel1`",
+        "remove"
+    )]
     public class RemoveCommand : ICustomCommand
     {
         #region Properties

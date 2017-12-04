@@ -9,7 +9,12 @@
     using BrockBot.Data;
     using BrockBot.Extensions;
 
-    [Command("list")]
+    [Command(
+        Categories.RaidLobby,
+        "Lists the user status' in the current raid lobby.",
+        null,
+        "list"
+    )]
     public class RaidLobbyListUsersCommand : ICustomCommand
     {
         #region Properties

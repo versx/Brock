@@ -10,7 +10,13 @@
     using BrockBot.Data.Models;
     using BrockBot.Extensions;
 
-    [Command("ontheway", "otw", "onmyway", "omw")]
+    [Command(
+        Categories.RaidLobby,
+        "Notifies users of a specific lobby that you are on the way with x amount of people and ETA.",
+        "\tExample: `.otw Magikarp_4th 5mins 3` (Registers that you have 3 people including yourself on the way.)\r\n" +
+        "\tExample: `.otw Magikarp_4th 5mins` (Registers that you are by yourself on the way.)",
+        "ontheway", "otw", "onmyway", "omw"
+    )]
     public class RaidLobbyOnTheWayCommand : ICustomCommand
     {
         #region Properties

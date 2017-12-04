@@ -11,7 +11,12 @@
     using BrockBot.Extensions;
     using BrockBot.Utilities;
 
-    [Command("team", "iam")]
+    [Command(Categories.General, 
+        "Assign yourself to a team role, available teams to join are **Valor**, **Mystic**, and **Instinct**.",
+        "\tExample: `.team Valor` (Joins Valor)\r\n" +
+        "\tExample: `.iam None` (Leave Team)",
+        "team", "iam"
+    )]
     public class TeamCommand : ICustomCommand
     {
         private readonly Config _config;
@@ -87,7 +92,7 @@
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"ERROR: {ex}");
+                    Utils.LogError(ex);
                 }
             }
             else

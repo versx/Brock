@@ -10,7 +10,13 @@
     using BrockBot.Data.Models;
     using BrockBot.Extensions;
 
-    [Command("checkin", "here")]
+    [Command(
+        Categories.RaidLobby,
+        "Checks you into the specified raid lobby informing you are now at the raid.",
+        "\tExample: `.here Magikarp_4th`\r\n" +
+        "\tExample: `.checkin ttar_test`",
+        "checkin", "here"
+    )]
     public class RaidLobbyCheckInCommand : ICustomCommand
     {
         #region Properties

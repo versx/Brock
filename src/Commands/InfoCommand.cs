@@ -11,7 +11,12 @@
     using BrockBot.Data.Models;
     using BrockBot.Extensions;
 
-    [Command("info")]
+    [Command(
+        Categories.Notifications, 
+        "Shows your current notification subscriptions.",
+        null, 
+        "info"
+    )]
     public class InfoCommand : ICustomCommand
     {
         public bool AdminCommand => false;

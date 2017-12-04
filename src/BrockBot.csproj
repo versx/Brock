@@ -69,6 +69,7 @@
     <Compile Include="Commands\UptimeCommand.cs" />
     <Compile Include="Commands\VersionCommand.cs" />
     <Compile Include="Configuration\Config.cs" />
+    <Compile Include="Core\Categories.cs" />
     <Compile Include="Core\CommandAttribute.cs" />
     <Compile Include="Core\CommandList.cs" />
     <Compile Include="Core\FilterBot.cs" />
@@ -88,6 +89,7 @@
     <Compile Include="Diagnostics\EventLogger.cs" />
     <Compile Include="Diagnostics\LogType.cs" />
     <Compile Include="Extensions\DiscordExtensions.cs" />
+    <Compile Include="Extensions\TypeExtensions.cs" />
     <Compile Include="Net\IDiscordChannel.cs" />
     <Compile Include="Net\IDiscordClient.cs" />
     <Compile Include="Program.cs" />

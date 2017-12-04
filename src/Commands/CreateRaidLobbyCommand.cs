@@ -25,7 +25,12 @@
     /**Example Usage:
      * .lobby TyranitarWestFontana 2389498237482374
      */
-    [Command("lobby")]
+    [Command(
+        Categories.RaidLobby,
+        "Creates a new raid lobby channel based off of the provided message id.",
+        "\tExample: `.lobby Magikarp_4th 34234234234234`",    
+        "lobby"
+    )]
     public class CreateRaidLobbyCommand : ICustomCommand
     {
         private const string ActiveRaidLobbies = "ACTIVE RAID LOBBIES";

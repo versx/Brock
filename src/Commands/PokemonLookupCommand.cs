@@ -8,7 +8,12 @@
 
     using BrockBot.Data;
 
-    [Command("poke")]
+    [Command(
+        Categories.General,
+        "Simple Pokemon stats lookup.",
+        "\tExample: .poke 25",
+        "poke"
+    )]
     public class PokemonLookupCommand : ICustomCommand
     {
         #region Properties
@@ -45,17 +50,33 @@
             var pokemon = Db.Pokemon[pokeId.ToString()];
 
             var types = pokemon.Types.Count > 1 ? pokemon.Types[0].Type + "/" + pokemon.Types[1].Type : pokemon.Types[0].Type;
-            var evolutions = (pokemon.Evolutions == null || pokemon.Evolutions.Count == 0 ? string.Empty : $"Evolutions: {string.Join(", ", pokemon.Evolutions)}\r\n");
-            await message.RespondAsync
-            (
-                $"{pokemon.Name} (ID: {pokeId}, Gen: {pokemon.BaseStats.Generation}{(pokemon.BaseStats.Legendary ? " Legendary" : "")})\r\n" +
-                $"Stamina: {pokemon.BaseStats.Stamina}, Attack: {pokemon.BaseStats.Attack}, Defense: {pokemon.BaseStats.Defense}\r\n" +
-                $"Rarity: {pokemon.Rarity}\r\n" +
-                $"Spawn Rate: {pokemon.SpawnRate}\r\n" +
-                $"Gender Ratio: {pokemon.GenderRatio.Male} Male/{pokemon.GenderRatio.Female}Female\r\n" +
-                evolutions +
-                $"Type: {types}"
-            );
+            var evolutions = (pokemon.Evolutions == null || pokemon.Evolutions.Count == 0 ? string.Empty : string.Join(", ", pokemon.Evolutions));
+
+            var eb = new DiscordEmbedBuilder();
+            eb.AddField(pokemon.Name, $"ID: {pokeId}, Gen: {pokemon.BaseStats.Generation}{(pokemon.BaseStats.Legendary ? " Legendary" : "")}");
+            eb.AddField("IV Statistics:", $"Stamina: {pokemon.BaseStats.Stamina}, Attack: {pokemon.BaseStats.Attack}, Defense: {pokemon.BaseStats.Defense}");
+            eb.AddField("Rarity:", pokemon.Rarity);
+            eb.AddField("Spawn Rate:", pokemon.SpawnRate);
+            eb.AddField("Gender Ratio:", $"{pokemon.GenderRatio.Male}% Male/{pokemon.GenderRatio.Female}% Female");
+            if (!string.IsNullOrEmpty(evolutions))
+            {
+                eb.AddField("Evolutions:", evolutions);
+            }
+            eb.AddField("Type:", types);
+            var embed = eb.Build();
+
+            await message.RespondAsync(string.Empty, false, embed);
+
+            //await message.RespondAsync
+            //(
+            //    $"{pokemon.Name} (ID: {pokeId}, Gen: {pokemon.BaseStats.Generation}{(pokemon.BaseStats.Legendary ? " Legendary" : "")})\r\n" +
+            //    $"Stamina: {pokemon.BaseStats.Stamina}, Attack: {pokemon.BaseStats.Attack}, Defense: {pokemon.BaseStats.Defense}\r\n" +
+            //    $"Rarity: {pokemon.Rarity}\r\n" +
+            //    $"Spawn Rate: {pokemon.SpawnRate}\r\n" +
+            //    $"Gender Ratio: {pokemon.GenderRatio.Male} Male/{pokemon.GenderRatio.Female}Female\r\n" +
+            //    evolutions +
+            //    $"Type: {types}"
+            //);
         }
     }
 }

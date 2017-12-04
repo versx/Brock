@@ -8,7 +8,12 @@
     using BrockBot.Data;
     using BrockBot.Utilities;
 
-    [Command("v", "ver", "version")]
+    [Command(
+        Categories.Info,
+        "Display " + FilterBot.BotName + "'s current version.",
+        null,
+        "v", "ver", "version", "about"
+    )]
     public class VersionCommand : ICustomCommand
     {
         #region Properties
@@ -33,12 +38,44 @@
 
         public async Task Execute(DiscordMessage message, Command command)
         {
-            await message.RespondAsync
+            await message.RespondAsync(string.Empty, false, CreateEmbed());
+        }
+
+        public DiscordEmbed CreateEmbed()
+        {
+            var eb = new DiscordEmbedBuilder
+            {
+                //Title = AssemblyUtils.AssemblyName
+            };
+
+            eb.AddField
             (
-                $"{AssemblyUtils.AssemblyName} Version: {AssemblyUtils.AssemblyVersion}\r\n" +
-                $"Created by: {AssemblyUtils.CompanyName}\r\n" +
-                $"{AssemblyUtils.Copyright}"
+                $"About {FilterBot.BotName} Bot",
+                $"{FilterBot.BotName} Bot is a simple Discord bot that allows you to assign yourself to your Pokemon team, create Raid Lobbies, filter sponsor raids, Pokemon spawn notifier and more."
             );
+
+            eb.AddField
+            (
+                "Developer",
+                "versx#8151"
+            );
+
+            eb.AddField
+            (
+                "Company",
+                AssemblyUtils.CompanyName
+            );
+
+            eb.AddField
+            (
+                "GitHub Repository",
+                "https://github.com/versx/Brock\n\nTo make a suggestion or report a bug regarding Brock, " +
+                "go to the GitHub repository and use the issue tab to create an issue or mesage me on Discord @ versx#8151."
+            );
+
+            eb.WithFooter(AssemblyUtils.Copyright + ", Version " + AssemblyUtils.AssemblyVersion);
+
+            return eb.Build();
         }
     }
 }

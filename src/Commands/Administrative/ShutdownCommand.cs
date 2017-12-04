@@ -8,12 +8,17 @@
 
     using BrockBot.Data;
 
-    [Command("shutdown")]
+    [Command(
+        Categories.Administrative,
+        "Shuts down " + FilterBot.BotName + ".",
+        null,
+        "shutdown"
+    )]
     public class ShutdownCommand : ICustomCommand
     {
         #region Properties
 
-        public bool AdminCommand => false;
+        public bool AdminCommand => true;
 
         public DiscordClient Client { get; }
 

@@ -165,6 +165,36 @@
 
         #endregion
 
+        public static Config CreateDefaultConfig(bool save = false)
+        {
+            var c = new Config
+            {
+                OwnerId = 0,
+                AllowTeamAssignment = true,
+                AuthToken = "",
+                AvailableTeamRoles =
+                {
+                    "Valor",
+                    "Mystic",
+                    "Instinct"
+                },
+                CommandsChannel = "bot",
+                CommandsPrefix = '.',
+                NotifyNewMemberJoined = true,
+                NotifyMemberLeft = true,
+                NotifyMemberBanned = true,
+                NotifyMemberUnbanned = true,
+                SendStartupMessage = true,
+                SendWelcomeMessage = true
+            };
+
+            if (save)
+            {
+                c.Save();
+            }
+            return c;
+        }
+
         #region Public Methods
 
         /// <summary>

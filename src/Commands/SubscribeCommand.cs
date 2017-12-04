@@ -10,7 +10,13 @@
     using BrockBot.Data;
     using BrockBot.Data.Models;
 
-    [Command("sub")]
+    [Command(
+        Categories.Notifications,
+        "Subscribe to Pokemon notifications via pokedex number.",
+        "\tExample: `.sub 147`\r\n" +
+        "\tExample: `.sub 113,242,248`",
+        "sub"
+    )]
     public class SubscribeCommand : ICustomCommand
     {
         #region Properties

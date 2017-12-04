@@ -11,12 +11,17 @@
     using BrockBot.Extensions;
     using BrockBot.Utilities;
 
-    [Command("create_roles")]
+    [Command(
+        Categories.Administrative,
+        "Creates the required team roles to be assigned when users type the team assignment commmand.",
+        null,
+        "create_roles"
+    )]
     public class CreateRolesCommand : ICustomCommand
     {
         #region Properties
 
-        public bool AdminCommand => false;
+        public bool AdminCommand => true;
 
         public DiscordClient Client { get; }
 

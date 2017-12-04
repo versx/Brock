@@ -8,7 +8,14 @@
 
     using BrockBot.Data;
 
-    [Command("unsub")]
+    [Command(
+        Categories.Notifications,
+        "Unsubscribe from a one or more or even all subscribed Pokemon notifications.",
+        "\tExample: `.unsub 149`\r\n" +
+        "\tExample: `.unsub 3,6,9,147,148,149`\r\n" +
+        "\tExample: `.unsub` (Removes all subscribed Pokemon notifications.)",
+        "unsub"
+    )]
     public class UnsubscribeCommand : ICustomCommand
     {
         #region Properties

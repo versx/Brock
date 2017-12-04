@@ -15,7 +15,13 @@
      * .add upland_rares,ontario_rares
      * .add upland_100iv
      */
-    [Command("add")]
+    [Command(
+        Categories.Notifications, 
+        "Include Pokemon from the specified channels to be notified of.", 
+        "\tExample: `.add channel1,channel2`\r\n" +
+        "\tExample: `.add channel1`", 
+        "add"
+    )]
     public class AddCommand : ICustomCommand
     {
         #region Properties

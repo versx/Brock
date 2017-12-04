@@ -8,7 +8,12 @@
 
     using BrockBot.Data;
 
-    [Command("map", "maps")]
+    [Command(
+        Categories.Info,
+        "Displays the Pokemon and Gyms & Raids map links.",
+        null,
+        "map", "maps"
+    )]
     public class MapCommand : ICustomCommand
     {
         #region Properties
@@ -33,11 +38,12 @@
 
         public async Task Execute(DiscordMessage message, Command command)
         {
-            await message.RespondAsync
-            (
-                $"Pokemon map: https://pokemap.ver.sx\r\n" +
-                $"Gyms & Raids map: https://gymmap.ver.sx"
-            );
+            var eb = new DiscordEmbedBuilder();
+            eb.AddField("Pokemon Map Scanner", "https://pokemap.ver.sx");
+            eb.AddField("Gyms & Raids Map Scanner", "https://gymmap.ver.sx");
+            var embed = eb.Build();
+
+            await message.RespondAsync(string.Empty, false, embed);
         }
     }
 }

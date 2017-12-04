@@ -5,16 +5,25 @@
 
     public class CommandAttribute : Attribute
     {
-        public List<string> CommandNames { get; set; }
+        public string Category { get; }
+
+        public List<string> CommandNames { get; }
+
+        public string Description { get; }
+
+        public string Example { get; }
 
         public CommandAttribute()
         {
             CommandNames = new List<string>();
         }
 
-        public CommandAttribute(params string[] args) : this()
+        public CommandAttribute(string category, string description, string example, params string[] commands) : this()
         {
-            CommandNames.AddRange(args);
+            Category = category;
+            Description = description;
+            Example = example;
+            CommandNames.AddRange(commands);
         }
     }
 }

@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Threading.Tasks;
     using Timer = System.Timers.Timer;
 
@@ -28,6 +29,8 @@
 
     public class FilterBot
     {
+        public const string BotName = "Brock";
+
         #region Variables
 
         private DiscordClient _client;
@@ -54,6 +57,11 @@
             //Logger.Trace($"FilterBot::FilterBot");
             //Logger.Info($"Logging started for {AssemblyUtils.AssemblyName} v{AssemblyUtils.AssemblyVersion} by {AssemblyUtils.CompanyName}...");
             Commands = new CommandList();
+
+            if (!File.Exists(Config.ConfigFilePath))
+            {
+                Config.CreateDefaultConfig(true);
+            }
 
             _db = Database.Load();
             _config = Config.Load();
@@ -320,7 +328,7 @@
                 }
 
                 var attributes = type.GetCustomAttributes(typeof(CommandAttribute), false);
-                CommandAttribute attr = new CommandAttribute();
+                var attr = new CommandAttribute();
                 if (attributes.Length > 0)
                 {
                     attr = attributes[0] as CommandAttribute;
@@ -385,6 +393,12 @@
 
             if (Commands.ContainsKey(command.Name))
             {
+                if (command.Name.ToLower() == "help")
+                {
+                    await ParseHelpCommand(message, command);
+                    return;
+                }
+
                 var isOwner = message.Author.Id == _config.OwnerId;
                 if (Commands[command.Name].AdminCommand && !isOwner)
                 {
@@ -393,9 +407,53 @@
                 }
 
                 await Commands[command.Name].Execute(message, command);
+
+                _db.Save();
+            }
+        }
+
+        private async Task ParseHelpCommand(DiscordMessage message, Command command)
+        {
+            var eb = new DiscordEmbedBuilder();
+            eb.WithTitle("Help Command Information");
+
+            var categories = GetCommandsByCategory();
+            if (command.HasArgs && command.Args.Count == 1)
+            {
+                var category = ParseCategory(command.Args[0]);
+                if (string.IsNullOrEmpty(category))
+                {
+                    await message.RespondAsync("You have entered an invalid help command category.");
+                    return;
+                }
+
+                eb.AddField(category, ".");
+                foreach (var cmd in categories[category])
+                {
+                    var isOwner = message.Author.Id == _config.OwnerId;
+                    if (cmd.AdminCommand && !isOwner) continue;
+
+                    //TODO: Sort by index or something.
+                    var attr = cmd.GetType().GetAttribute<CommandAttribute>();
+                    eb.AddField
+                    (
+                        _config.CommandsPrefix + string.Join(", " + _config.CommandsPrefix, attr.CommandNames),
+                        attr.Description + "\r\n" + attr.Example
+                    );
+                }
+            }
+            else
+            {
+                foreach (var category in categories)
+                {
+                    eb.AddField(category.Key, _config.CommandsPrefix + "help " + category.Key.ToLower().Replace(" ", ""));
+                }
             }
 
-            _db.Save();
+            var embed = eb
+                .WithFooter($"Developed by versx\r\nVersion {AssemblyUtils.AssemblyVersion}")
+                .Build();
+            await message.RespondAsync(string.Empty, false, embed);
         }
 
         private async Task CheckSponsorRaids(DiscordMessage message)
@@ -408,7 +466,7 @@
                 {
                     if (embed.Description.Contains(keyword))
                     {
-                        await _client.SendMessage(_config.SponsorRaidsWebHook, message.Author.Username, embed);
+                        await _client.SendMessage(_config.SponsorRaidsWebHook, /*message.Author.Username*/string.Empty, embed);
                         break;
                     }
                 }
@@ -555,6 +613,34 @@
             Console.ResetColor();
 
             Console.WriteLine($"Alerting discord user {username} of {message}.");
+        }
+
+        private Dictionary<string, List<ICustomCommand>> GetCommandsByCategory()
+        {
+            var categories = new Dictionary<string, List<ICustomCommand>>();
+            foreach (var cmd in Commands)
+            {
+                var attr = cmd.Value.GetType().GetAttribute<CommandAttribute>();
+                if (!categories.ContainsKey(attr.Category))
+                {
+                    categories.Add(attr.Category, new List<ICustomCommand>());
+                }
+                categories[attr.Category].Add(cmd.Value);
+            }
+            return categories;
+        }
+
+        private string ParseCategory(string shorthandCategory)
+        {
+            var helpCategory = shorthandCategory.ToLower();
+            foreach (var key in GetCommandsByCategory())
+            {
+                if (key.Key.ToLower().Replace(" ", "") == helpCategory)
+                {
+                    helpCategory = key.Key;
+                }
+            }
+            return helpCategory;
         }
 
         #endregion

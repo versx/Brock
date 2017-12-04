@@ -8,12 +8,17 @@
 
     using BrockBot.Data;
 
-    [Command("setup")]
+    [Command(
+        Categories.Administrative,
+        "Setup " + FilterBot.BotName + " (Not Implemented Yet)",
+        null,
+        "setup"
+    )]
     public class SetupCommand : ICustomCommand
     {
         #region Properties
 
-        public bool AdminCommand => false;
+        public bool AdminCommand => true;
 
         public DiscordClient Client { get; }
 

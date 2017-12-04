@@ -9,7 +9,12 @@
     using BrockBot.Data;
     using BrockBot.Utilities;
 
-    [Command("delete_roles")]
+    [Command(
+        Categories.Administrative,
+        "Deletes all team roles that " + FilterBot.BotName + " has created.",
+        null,
+        "delete_roles"
+    )]
     public class DeleteRolesCommand : ICustomCommand
     {
         #region Properties

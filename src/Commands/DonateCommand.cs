@@ -8,7 +8,12 @@
 
     using BrockBot.Data;
 
-    [Command("donate")]
+    [Command(
+        Categories.Info,
+        "Displays information regarding how to donate.",
+        null,
+        "donate"
+    )]
     public sealed class DonateCommand : ICustomCommand
     {
         public bool AdminCommand => false;
@@ -19,12 +24,14 @@
 
         public async Task Execute(DiscordMessage message, Command command)
         {
-            await message.RespondAsync
-            (
-                "PayPal:\r\nhttps://paypal.me/versx\r\n\r\n" +
-                "Venmo:\r\nhttps://venmo.com/versx\r\n\r\n" +
-                "Bitcoin:\r\n14KgVXUw3yTeb1rRdX5Dp45K2zvDebNo5B"
-            );
+            var eb = new DiscordEmbedBuilder();
+            eb.WithTitle("Donation Information");
+            eb.AddField("PayPal:", "https://paypal.me/versx");
+            eb.AddField("Venmo:", "https://venmo.com/versx");
+            eb.AddField("Bitcoin:", "14KgVXUw3yTeb1rRdX5Dp45K2zvDebNo5B");
+            var embed = eb.Build();
+
+            await message.RespondAsync(string.Empty, false, embed);
         }
     }
 }
