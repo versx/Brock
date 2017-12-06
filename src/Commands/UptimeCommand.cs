@@ -40,7 +40,7 @@
 
         public async Task Execute(DiscordMessage message, Command command)
         {
-            if (command.HasArgs) return; //REVIEW: Should command be processed even with unnecessary parameters.
+            if (command.HasArgs) return;
 
             var start = Process.GetCurrentProcess().StartTime;
             var now = DateTime.Now;

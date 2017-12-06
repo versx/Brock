@@ -52,9 +52,6 @@
             {
                 try
                 {
-                    var member = await Client.GetMemberFromUserId(message.Author.Id);
-                    var teamRole = Client.GetRoleFromName(team);
-                    var reason = $"User initiated team assignment via {AssemblyUtils.AssemblyName}.";
                     //TODO: Only retrieve the current guild.
                     if (message.Channel.Guild == null)
                     {
@@ -67,7 +64,13 @@
                         return;
                     }
 
-                    bool alreadyAssigned = false;
+                    var member = await Client.GetMemberFromUserId(message.Author.Id);
+                    var teamRole = Client.GetRoleFromName(team);
+                    var reason = $"User initiated team assignment via {AssemblyUtils.AssemblyName}.";
+                    var alreadyAssigned = false;
+                    var msg = string.Empty;
+
+
                     foreach (var role in member.Roles)
                     {
                         alreadyAssigned |= role.Name == teamRole.Name;
@@ -75,19 +78,24 @@
                         if ((_config.AvailableTeamRoles.Exists(x => string.Compare(role.Name, x, true) == 0)) && !alreadyAssigned)
                         {
                             await message.Channel.Guild.RevokeRoleAsync(member, role, reason);
-                            await message.RespondAsync($"{message.Author.Username} has left team {role.Name}.");
+                            msg += $"{message.Author.Username} has left team {role.Name}. ";
                         }
                     }
 
                     if (teamRole != null && !alreadyAssigned)
                     {
                         await message.Channel.Guild.GrantRoleAsync(member, teamRole, reason);
-                        await message.RespondAsync($"{message.Author.Username} has joined team {teamRole.Name}.");
+                        msg += $"{message.Author.Username} has joined team {teamRole.Name}.";
                     }
 
                     if (alreadyAssigned)
                     {
-                        await message.RespondAsync($"You are already assigned to team {teamRole.Name}.");
+                        msg = $"You are already assigned to team {teamRole.Name}.";
+                    }
+
+                    if (!string.IsNullOrEmpty(msg))
+                    {
+                        await message.RespondAsync(msg);
                     }
                 }
                 catch (Exception ex)

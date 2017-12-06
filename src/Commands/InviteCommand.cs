@@ -10,11 +10,11 @@
 
     [Command(
         Categories.General,
-        "Shows this help message.",
+        "Returns an invite link to have " + FilterBot.BotName + " join a server you control.",
         null,
-        "help", "commands", "?"
+        "invite"
     )]
-    public class HelpCommand : ICustomCommand
+    public class InviteCommand : ICustomCommand
     {
         #region Properties
 
@@ -28,7 +28,7 @@
 
         #region Constructor
 
-        public HelpCommand(DiscordClient client, IDatabase db)
+        public InviteCommand(DiscordClient client, IDatabase db)
         {
             Client = client;
             Db = db;
@@ -36,6 +36,11 @@
 
         #endregion
 
-        public async Task Execute(DiscordMessage message, Command command) => await Task.CompletedTask;
+        public async Task Execute(DiscordMessage message, Command command)
+        {
+            if (command.HasArgs) return;
+
+            await message.RespondAsync("https://discordapp.com/oauth2/authorize?&client_id=384254044690186255&scope=bot&permissions=0");
+        }
     }
 }

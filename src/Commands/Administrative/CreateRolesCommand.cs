@@ -1,7 +1,6 @@
 ﻿namespace BrockBot.Commands
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading.Tasks;
 
     using DSharpPlus;
@@ -63,16 +62,15 @@
                                 return;
                             }
 
-                            var listOverwrites = new List<DiscordOverwrite>();
-                            //listOverwrites.Add(new DiscordOverwrite().Allow = Permissions.);
-                            //TODO: Permissions for team channel.
-
-                            var newChannel = await message.Channel.Guild.CreateChannelAsync($"team_{team.Key.ToLower()}", ChannelType.Text, parentChannel, null, null, listOverwrites);
+                            var newChannel = await message.Channel.Guild.CreateChannelAsync($"team_{team.Key.ToLower()}", ChannelType.Text, parentChannel);
                             if (newChannel == null)
                             {
                                 Utils.LogError(new Exception($"Failed to create team channel team_{team.Key.ToLower()}"));
-                                //TODO: Failed to create team channel.
+                                return;
                             }
+
+                            await newChannel.GrantPermissions(message.Channel.Guild.EveryoneRole, Permissions.None, Permissions.SendMessages | Permissions.ReadMessageHistory);
+                            await newChannel.GrantPermissions(newRole, Permissions.SendMessages | Permissions.ReadMessageHistory, Permissions.None);
                         }
                     }
                 }

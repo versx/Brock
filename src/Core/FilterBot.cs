@@ -20,12 +20,10 @@
 
     using DSharpPlus;
 
-    //TODO: Register command and create new instance even if no parameters are given for the constructor.
-    //TODO: .uptime command - Been up for: 6 days, 7 hours, 42 minutes, and 52 seconds (since 2017-11-10 21:12:13 UTC)
     //TODO: .invite Generate a link that you can use to add BrockBot to your own server or invite link to invite someone.
+    //https://discordapp.com/oauth2/authorize?&client_id=384254044690186255&scope=bot&permissions=0
     //TODO: Notify via SMS or Twilio or w/e.
     //TODO: .interested command or something similar.
-    //TODO: Setup team channels and permissions to hide from everyone except for those team members.
 
     public class FilterBot
     {
@@ -113,6 +111,8 @@
             {
                 Console.WriteLine($"User: {user.Key}: {user.Value.User.Username}");
             }
+
+            //TODO: Post donation message and team information message once/twice a day.
         }
 
         private async Task Client_MessageCreated(MessageCreateEventArgs e)
@@ -129,17 +129,14 @@
 
             if (e.Message.Author.IsBot)
             {
-                await CheckSponsorRaids(e.Message);
+                await CheckSponsoredRaids(e.Message);
                 await CheckSubscriptions(e.Message);
             }
-            else if (e.Message.Channel.Name == _config.CommandsChannel)
+            else if (string.Compare(e.Message.Channel.Name, _config.CommandsChannel, true) == 0 || 
+                     string.Compare(e.Message.Channel.Name, _config.AdminCommandsChannel, true) == 0 ||
+                     _db.Servers.Exists(server => server.Lobbies.Exists(x => string.Compare(x.LobbyName, e.Message.Channel.Name, true) == 0)))
             {
                 await ParseCommand(e.Message);
-            }
-            else if (_db.Servers.Exists(server => server.Lobbies.Exists(x => string.Compare(x.LobbyName, e.Message.Channel.Name, true) == 0)))
-            {
-                await ParseCommand(e.Message);
-                //TODO: Implement RaidLobby specific commands, .list, etc..
             }
         }
 
@@ -403,12 +400,18 @@
                 if (Commands[command.Name].AdminCommand && !isOwner)
                 {
                     await message.RespondAsync("You are not authorized to execute these type of commands, your unique user id has been logged.");
+                    LogUnauthorizedAccess(message.Author);
                     return;
                 }
 
                 await Commands[command.Name].Execute(message, command);
+                //TODO: If admin only command, check if channel is admin command channel.
 
                 _db.Save();
+            }
+            else if (_config.CustomCommands.ContainsKey(command.Name))
+            {
+                await message.RespondAsync(_config.CustomCommands[command.Name]);
             }
         }
 
@@ -456,7 +459,7 @@
             await message.RespondAsync(string.Empty, false, embed);
         }
 
-        private async Task CheckSponsorRaids(DiscordMessage message)
+        private async Task CheckSponsoredRaids(DiscordMessage message)
         {
             if (!_config.SponsorRaidChannelPool.Contains(message.Channel.Id)) return;
 
@@ -643,6 +646,18 @@
             return helpCategory;
         }
 
+        private void LogUnauthorizedAccess(DiscordUser user)
+        {
+            File.AppendAllText("unauthorized_attempts.txt", $"{user.Username}:{user.Id}\r\n");
+        }
+
         #endregion
+    }
+
+    public enum CommandPermissionLevel
+    {
+        User,
+        Moderator,
+        Admin
     }
 }

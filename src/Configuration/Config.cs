@@ -35,6 +35,10 @@
         [JsonProperty("ownerId")]
         public ulong OwnerId { get; set; }
 
+        [XmlElement("adminCommandsChannel")]
+        [JsonProperty("adminCommandsChannel")]
+        public string AdminCommandsChannel { get; set; }
+
         [XmlElement("commandsChannel")]
         [JsonProperty("commandsChannel")]
         public string CommandsChannel { get; set; }
@@ -107,6 +111,10 @@
         [JsonProperty("notifyMemberUnbanned")]
         public bool NotifyMemberUnbanned { get; set; }
 
+        [XmlElement("customCommands")]
+        [JsonProperty("customCommands")]
+        public Dictionary<string, string> CustomCommands { get; set; }
+
         /// <summary>
         /// Gets the config full config file path.
         /// </summary>
@@ -137,8 +145,10 @@
             //    "Mystic",
             //    "Instinct"
             //};
+            AdminCommandsChannel = "admin";
             CommandsChannel = "general";
             CommandsPrefix = '.';
+            CustomCommands = new Dictionary<string, string>();
             NotifyMemberBanned = true;
             NotifyMemberUnbanned = true;
             NotifyNewMemberJoined = true;

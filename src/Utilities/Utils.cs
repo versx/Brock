@@ -3,6 +3,7 @@
     using System;
     using System.IO;
     using System.Net;
+    using System.Threading.Tasks;
 
     using Newtonsoft.Json;
 
@@ -109,6 +110,16 @@
             Console.WriteLine(ex);
             Console.WriteLine();
             Console.ResetColor();
+        }
+
+        /// <summary>
+        /// Asynchronous delay the specified amount of time in milliseconds. 
+        /// </summary>
+        /// <param name="timeoutMs">Timeout in milliseconds.</param>
+        /// <returns>Returns Task.</returns>
+        public static async Task Wait(int timeoutMs)
+        {
+            await Task.Delay(timeoutMs);
         }
     }
 }

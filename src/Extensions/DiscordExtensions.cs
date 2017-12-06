@@ -63,6 +63,14 @@
             return null;
         }
 
+        public static async Task GrantPermissions(this DiscordChannel channel, DiscordRole role, Permissions allow, Permissions deny)
+        {
+            if (role.CheckPermission(allow) != PermissionLevel.Allowed)
+            {
+                await channel.AddOverwriteAsync(role, allow, deny, $"Setting @{role.Name} role permissions for channel #team_{role.Name}.");
+            }
+        }
+
         #endregion
 
         #region User Extensions
@@ -198,6 +206,17 @@
         #endregion
 
         #region Message Extensions
+
+        public static async Task RespondAsync(this DiscordMessage message, string content, DiscordEmbed embed = null, int deleteAfterMs = 10 * 1000)
+        {
+            var msg = await message.RespondAsync(content, false, embed);
+
+            if (deleteAfterMs > 0)
+            {
+                await Utils.Wait(deleteAfterMs);
+                await msg.DeleteAsync();
+            }
+        }
 
         public static async Task<DiscordMessage> GetMessageById(this DiscordClient client, ulong guildId, ulong messageId)
         {
