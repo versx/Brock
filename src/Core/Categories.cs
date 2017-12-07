@@ -13,5 +13,7 @@
         public const string RaidLobby = "Raid Lobby";
 
         public const string CustomCommands = "Custom Commands";
+
+        public const string Twitter = "Twitter";
     }
 }

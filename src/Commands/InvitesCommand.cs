@@ -7,6 +7,7 @@
     using DSharpPlus.Entities;
 
     using BrockBot.Data;
+    using BrockBot.Utilities;
 
     [Command(
         Categories.General,
@@ -28,21 +29,29 @@
 
             if (message.Channel == null)
             {
-                await message.RespondAsync("DM is not supported yet for this command.");
+                await message.RespondAsync("DM is not supported for this command yet.");
                 return;
             }
 
-            var invites = await message.Channel.Guild.GetInvitesAsync();
-            var msg = string.Empty;
-            foreach (var invite in invites)
+            try
             {
-                msg +=
-                    $"Created at {invite.CreatedAt}\r\nInvite code: {invite.Code}" +
-                    $"Invite for {invite.Guild.Name} ({invite.Guild.Id})" +
-                    $"Inviter {invite.Inviter.Username} ({invite.Inviter.Id})" +
-                    $"{invite.Uses}/{invite.MaxUses} uses total. (Temporary Invite: {(invite.IsTemporary ? "Yes" : "No")}";
+                var invites = await message.Channel.Guild.GetInvitesAsync();
+                var msg = string.Empty;
+                foreach (var invite in invites)
+                {
+                    msg +=
+                        $"Invite code: **{invite.Code}** created at {invite.CreatedAt.ToString("MM/dd/yyyy hh:mm:ss tt")}\r\n" +
+                        $"Invite for {invite.Guild.Name} ({invite.Guild.Id}) channel {invite.Channel.Name} ({invite.Channel.Id})\r\n" +
+                        $"Inviter {invite.Inviter.Username} ({invite.Inviter.Id})\r\n" +
+                        (invite.Uses == invite.MaxUses ? "Unlimited invite uses." : $"{invite.Uses}/{invite.MaxUses} uses total.") + (invite.IsTemporary ? " Temporary invite" : "");
+                }
+                await message.RespondAsync(msg);
             }
-            await message.RespondAsync(msg);
+            catch (Exception ex)
+            {
+                await message.RespondAsync("It appears that I do not have the correct permissions to perform that command.");
+                Utils.LogError(ex);
+            }
         }
     }
 }

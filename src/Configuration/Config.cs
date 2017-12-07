@@ -111,6 +111,10 @@
         [JsonProperty("notifyMemberUnbanned")]
         public bool NotifyMemberUnbanned { get; set; }
 
+        [XmlElement("twitterUpdates")]
+        [JsonProperty("twitterUpdates")]
+        public TwitterUpdatesConfig TwitterUpdates { get; set; }
+
         [XmlElement("customCommands")]
         [JsonProperty("customCommands")]
         public Dictionary<string, string> CustomCommands { get; set; }
@@ -171,6 +175,7 @@
             WelcomeMessage = DefaultWelcomeMessage;
             SponsorRaidChannelPool = new List<ulong>();
             SponsorRaidKeywords = new List<string>();
+            TwitterUpdates = new TwitterUpdatesConfig();
         }
 
         #endregion
@@ -276,5 +281,44 @@
         }
 
         #endregion
+    }
+
+    [XmlRoot("twitterUpdates")]
+    [JsonObject("twitterUpdates")]
+    public class TwitterUpdatesConfig
+    {
+        [XmlElement("consumerKey")]
+        [JsonProperty("consumerKey")]
+        public string ConsumerKey { get; set; }
+
+        [XmlElement("consumerSecret")]
+        [JsonProperty("consumerSecret")]
+        public string ConsumerSecret { get; set; }
+
+        [XmlElement("accessToken")]
+        [JsonProperty("accessToken")]
+        public string AccessToken { get; set; }
+
+        [XmlElement("accessTokenSecret")]
+        [JsonProperty("accessTokenSecret")]
+        public string AccessTokenSecret { get; set; }
+
+        [XmlElement("postTwitterUpdates")]
+        [JsonProperty("postTwitterUpdates")]
+        public bool PostTwitterUpdates { get; set; }
+
+        [XmlElement("twitterUsers")]
+        [JsonProperty("twitterUsers")]
+        public List<ulong> TwitterUsers { get; set; }
+
+        [XmlElement("twitterUpdatesChannelWebHook")]
+        [JsonProperty("twitterUpdatesChannelWebHook")]
+        //public ulong TwitterUpdatesChannelId { get; set; }
+        public string TwitterUpdatesChannelWebHook { get; set; }
+
+        public TwitterUpdatesConfig()
+        {
+            TwitterUsers = new List<ulong>();
+        }
     }
 }

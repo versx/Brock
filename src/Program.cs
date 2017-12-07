@@ -73,6 +73,12 @@
             bot.RegisterCommand<RaidLobbyCancelCommand>();
             bot.RegisterCommand<RaidLobbyListUsersCommand>();
 
+            //Twitter Commands
+            bot.RegisterCommand<ListTwitterCommand>();
+            bot.RegisterCommand<AddTwitterCommand>();
+            bot.RegisterCommand<DeleteTwitterCommand>();
+            bot.RegisterCommand<EnableDisableTwitterCommand>();
+
             //Administrative Commands
             bot.RegisterCommand<CreateRolesCommand>();
             bot.RegisterCommand<DeleteRolesCommand>();

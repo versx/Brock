@@ -20,6 +20,12 @@
 
     using DSharpPlus;
 
+    using Stream = Tweetinvi.Stream;
+    using Tweetinvi;
+    using Tweetinvi.Models;
+    using Tweetinvi.Streaming;
+    using Tweetinvi.Streaming.Parameters;
+
     //TODO: .invite Generate a link that you can use to add BrockBot to your own server or invite link to invite someone.
     //https://discordapp.com/oauth2/authorize?&client_id=384254044690186255&scope=bot&permissions=0
     //TODO: Notify via SMS or Twilio or w/e.
@@ -36,6 +42,7 @@
         private readonly Database _db;
         private readonly Random _rand;
         private Timer _timer;
+        private IFilteredStream _twitterStream;
 
         #endregion
 
@@ -236,11 +243,25 @@
 
             if (_timer == null)
             {
-                _timer = new Timer(15000);
+                _timer = new Timer(60000);//15000);
 #pragma warning disable RECS0165
                 _timer.Elapsed += async (sender, e) =>
 #pragma warning restore RECS0165
                 {
+                    if (_twitterStream != null)
+                    {
+                        foreach (var user in _config.TwitterUpdates.TwitterUsers)
+                        {
+                            if (_twitterStream.ContainsFollow(Convert.ToInt64(user))) continue;
+
+                            _twitterStream.AddFollow(Convert.ToInt64(user), async x => await SendTwitterNotification(x.CreatedBy.Id, x.Url));
+                        }
+                        if (_twitterStream.StreamState != StreamState.Running)
+                        {
+                            await _twitterStream.StartStreamMatchingAllConditionsAsync();
+                        }
+                    }
+
                     if (_client == null) return;
                     try
                     {
@@ -273,6 +294,26 @@
 
             Logger.Info("Connecting to discord server...");
             await _client.ConnectAsync();
+
+            var creds = new TwitterCredentials(_config.TwitterUpdates.ConsumerKey, _config.TwitterUpdates.ConsumerSecret, _config.TwitterUpdates.AccessToken, _config.TwitterUpdates.AccessTokenSecret);
+            Auth.SetCredentials(creds);
+
+            _twitterStream = Stream.CreateFilteredStream(creds);
+            _twitterStream.Credentials = creds;
+            _twitterStream.StallWarnings = true;
+            _twitterStream.FilterLevel = StreamFilterLevel.None;
+            _twitterStream.StreamStarted += (sender, e) => Console.WriteLine("Successfully started.");
+            _twitterStream.StreamStopped += (sender, e) => Console.WriteLine($"Stream stopped.\r\n{e.Exception}\r\n{e.DisconnectMessage}");
+            _twitterStream.DisconnectMessageReceived += (sender, e) => Console.WriteLine($"Disconnected.\r\n{e.DisconnectMessage}");
+            _twitterStream.WarningFallingBehindDetected += (sender, e) => Console.WriteLine($"Warning Falling Behind Detected: {e.WarningMessage}");
+            //stream.AddFollow(2839430431);
+            //stream.AddFollow(358652328);
+            foreach (var user in _config.TwitterUpdates.TwitterUsers)
+            {
+                _twitterStream.AddFollow(Convert.ToInt64(user), async x => await SendTwitterNotification(x.CreatedBy.Id, x.Url));
+            }
+            await _twitterStream.StartStreamMatchingAllConditionsAsync();
+
             await Task.Delay(-1);
         }
 
@@ -390,7 +431,8 @@
 
             if (Commands.ContainsKey(command.Name))
             {
-                if (command.Name.ToLower() == "help")
+                if (command.Name.ToLower() == "help" ||
+                    command.Name.ToLower() == "commands")
                 {
                     await ParseHelpCommand(message, command);
                     return;
@@ -649,6 +691,18 @@
         private void LogUnauthorizedAccess(DiscordUser user)
         {
             File.AppendAllText("unauthorized_attempts.txt", $"{user.Username}:{user.Id}\r\n");
+        }
+
+        private async Task SendTwitterNotification(long ownerId, string url)
+        {
+            if (_config.TwitterUpdates.PostTwitterUpdates)
+            {
+                if (_config.TwitterUpdates.TwitterUsers.Contains(Convert.ToUInt64(ownerId)))
+                {
+                    Console.WriteLine($"Tweet [Owner={ownerId}, Url={url}]");
+                    await _client.SendMessage(_config.TwitterUpdates.TwitterUpdatesChannelWebHook, url);
+                }
+            }
         }
 
         #endregion

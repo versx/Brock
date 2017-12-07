@@ -7,9 +7,10 @@
     using DSharpPlus.Entities;
 
     using BrockBot.Data;
+    using BrockBot.Utilities;
 
     [Command(
-        Categories.Administrative,
+        Categories.General,
         "Shows all current bans for the guild.",
         null,
         "bans"
@@ -30,15 +31,23 @@
                 return;
             }
 
-            var bans = await message.Channel.Guild.GetBansAsync();
-            var msg = "**Bans**\r\n";
-            foreach (var ban in bans)
+            try
             {
-                msg += $"{ban.User.Username} ({ban.User.Id}): {ban.Reason}\r\n";
-            }
-            if (bans.Count == 0) msg += "Noone has been banned...yet!";
+                var bans = await message.Channel.Guild.GetBansAsync();
+                var msg = $"**{message.Channel.Guild.Name}'s Server Bans:**\r\n";
+                foreach (var ban in bans)
+                {
+                    msg += $"{ban.User.Username} ({ban.User.Id}): {ban.Reason}\r\n";
+                }
+                if (bans.Count == 0) msg += "No one has been banned...yet!";
 
-            await message.RespondAsync(msg);
+                await message.RespondAsync(msg);
+            }
+            catch (Exception ex)
+            {
+                await message.RespondAsync("It appears that I do not have the correct permissions to perform that command.");
+                Utils.LogError(ex);
+            }
         }
     }
 }

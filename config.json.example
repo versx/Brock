@@ -31,4 +31,7 @@
   "notifyMemberLeft": true,
   "notifyMemberBanned": true,
   "notifyMemberUnbanned": true,
+  "customCommands": {
+    "lolcat": "https://i.giphy.com/media/PUBxelwT57jsQ/200.gif"
+  }
 }
