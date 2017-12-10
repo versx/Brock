@@ -38,13 +38,34 @@
 
         public async Task Execute(DiscordMessage message, Command command)
         {
-            await Client.Guilds[0].LeaveAsync();
-            var guild = message.Channel.Guild;
-
-            var member = await guild.GetMemberAsync(0);
-
+            //TODO: Prune users.
             //var pruneCount = await guild.GetPruneCountAsync(365);
             //await guild.PruneAsync(365, "Inactive users");
+
+            if (!command.HasArgs) return;
+            if (command.Args.Count == 1 || command.Args.Count == 2) return;
+
+            var userId = command.Args[0];
+            var reason = command.Args.Count == 2 ? command.Args[1] : "Unknown Reason";
+
+            if (message.Channel == null)
+            {
+                await message.RespondAsync("DM is not supported for this command yet.");
+                return;
+            }
+
+            var guild = message.Channel.Guild;
+
+            if (!ulong.TryParse(userId, out ulong result))
+            {
+                await message.RespondAsync($"{userId} is not a valid user id.");
+                return;
+            }
+
+            var user = await guild.GetMemberAsync(result);
+
+            await message.Channel.Guild.RemoveMemberAsync(user, reason);
+            await message.RespondAsync($"User {user.Username} (ID: {user.Id}) was successfully kicked with reason: {reason}");
         }
     }
 }

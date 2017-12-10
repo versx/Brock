@@ -7,8 +7,6 @@
     using DSharpPlus.Entities;
 
     using BrockBot.Data.Models;
-    using BrockBot.Extensions;
-    using BrockBot.Net;
     using BrockBot.Utilities;
 
     public static class DiscordExtensions
@@ -35,7 +33,7 @@
         {
             try
             {
-                return await client.GetChannel(channelId);
+                return await client.GetChannelAsync(channelId);
             }
             catch (Exception)
             {

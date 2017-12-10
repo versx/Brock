@@ -26,14 +26,18 @@
     using Tweetinvi.Streaming;
     using Tweetinvi.Streaming.Parameters;
 
-    //TODO: .invite Generate a link that you can use to add BrockBot to your own server or invite link to invite someone.
-    //https://discordapp.com/oauth2/authorize?&client_id=384254044690186255&scope=bot&permissions=0
+    //TODO: Post donation message and team information message once/twice a day.
+    //TODO: Change .team and .feed commands to .iam and .iamnot?
     //TODO: Notify via SMS or Twilio or w/e.
     //TODO: .interested command or something similar.
 
     public class FilterBot
     {
         public const string BotName = "Brock";
+        public static string DefaultAdvertisementMessage;
+        //":arrows_counterclockwise: Welcome to versx's server, in order to see a city feed you will need to assign yourself to a city role using the .feed command followed by one or more of the available cities separated by a comma (,): {0}, or None.";
+        public const int DefaultAdvertisementMessageDifference = 8;
+        public const int OneMinute = 60 * 1000;
 
         #region Variables
 
@@ -42,6 +46,7 @@
         private readonly Database _db;
         private readonly Random _rand;
         private Timer _timer;
+        private Timer _adTimer;
         private IFilteredStream _twitterStream;
 
         #endregion
@@ -58,37 +63,11 @@
 
         public FilterBot()
         {
-            Logger = new EventLogger();
-            //Logger.Trace($"FilterBot::FilterBot");
-            //Logger.Info($"Logging started for {AssemblyUtils.AssemblyName} v{AssemblyUtils.AssemblyVersion} by {AssemblyUtils.CompanyName}...");
-            Commands = new CommandList();
-
-            if (!File.Exists(Config.ConfigFilePath))
-            {
-                Config.CreateDefaultConfig(true);
-            }
-
             _db = Database.Load();
             _config = Config.Load();
             _rand = new Random();
-            _client = new DiscordClient
-            (
-                new DiscordConfiguration
-                {
-                    AutoReconnect = true,
-                    LogLevel = LogLevel.Debug,
-                    Token = _config.AuthToken,
-                    TokenType = TokenType.Bot
-                }
-            );
 
-            _client.MessageCreated += Client_MessageCreated;
-            _client.Ready += Client_Ready;
-            _client.DmChannelCreated += Client_DmChannelCreated;
-            _client.GuildMemberAdded += Client_GuildMemberAdded;
-            _client.GuildMemberRemoved += Client_GuildMemberRemoved;
-            _client.GuildBanAdded += Client_GuildBanAdded;
-            _client.GuildBanRemoved += Client_GuildBanRemoved;
+            Task.Run(Init);
         }
 
         #endregion
@@ -119,7 +98,12 @@
                 Console.WriteLine($"User: {user.Key}: {user.Value.User.Username}");
             }
 
-            //TODO: Post donation message and team information message once/twice a day.
+            await Utils.Wait(10000);
+
+            _adTimer = new Timer { Interval = _config.Advertisement.PostInterval * OneMinute };
+            _adTimer.Elapsed += AdvertisementTimer_Elapsed;
+            _adTimer.Start();
+            AdvertisementTimer_Elapsed(this, null);
         }
 
         private async Task Client_MessageCreated(MessageCreateEventArgs e)
@@ -139,8 +123,8 @@
                 await CheckSponsoredRaids(e.Message);
                 await CheckSubscriptions(e.Message);
             }
-            else if (string.Compare(e.Message.Channel.Name, _config.CommandsChannel, true) == 0 || 
-                     string.Compare(e.Message.Channel.Name, _config.AdminCommandsChannel, true) == 0 ||
+            else if (e.Message.Channel.Id == _config.CommandsChannelId || 
+                     e.Message.Channel.Id == _config.AdminCommandsChannelId ||
                      _db.Servers.Exists(server => server.Lobbies.Exists(x => string.Compare(x.LobbyName, e.Message.Channel.Name, true) == 0)))
             {
                 await ParseCommand(e.Message);
@@ -165,10 +149,10 @@
         {
             Logger.Trace($"FilterBot::Client_GuildBanAdded [Guild={e.Guild.Name}, Username={e.Member.Username}]");
 
-            var channel = _client.GetChannelByName(_config.CommandsChannel);
+            var channel = await _client.GetChannel(_config.CommandsChannelId);
             if (channel == null)
             {
-                Utils.LogError(new Exception($"Failed to find channel {_config.CommandsChannel}."));
+                Utils.LogError(new Exception($"Failed to find channel with id {_config.CommandsChannelId}."));
                 return;
             }
 
@@ -179,10 +163,10 @@
         {
             Logger.Trace($"FilterBot::Client_GuildBanRemoved [Guild={e.Guild.Name}, Username={e.Member.Username}]");
 
-            var channel = _client.GetChannelByName(_config.CommandsChannel);
+            var channel = await _client.GetChannel(_config.CommandsChannelId);
             if (channel == null)
             {
-                Utils.LogError(new Exception($"Failed to find channel {_config.CommandsChannel}."));
+                Utils.LogError(new Exception($"Failed to find channel {_config.CommandsChannelId}."));
                 return;
             }
 
@@ -195,10 +179,10 @@
 
             if (_config.NotifyNewMemberJoined)
             {
-                var channel = _client.GetChannelByName(_config.CommandsChannel);
+                var channel = await _client.GetChannel(_config.CommandsChannelId);
                 if (channel == null)
                 {
-                    Utils.LogError(new Exception($"Failed to find channel {_config.CommandsChannel}."));
+                    Utils.LogError(new Exception($"Failed to find channel with id {_config.CommandsChannelId}."));
                     return;
                 }
 
@@ -217,10 +201,10 @@
 
             if (_config.NotifyMemberLeft)
             {
-                var channel = _client.GetChannelByName(_config.CommandsChannel);
+                var channel = await _client.GetChannel(_config.CommandsChannelId);
                 if (channel == null)
                 {
-                    Utils.LogError(new Exception($"Failed to find channel {_config.CommandsChannel}."));
+                    Utils.LogError(new Exception($"Failed to find channel with id {_config.CommandsChannelId}."));
                     return;
                 }
                 await channel.SendMessageAsync($"Sorry to see you go {e.Member.Mention}, hope to see you back soon!");
@@ -248,18 +232,19 @@
                 _timer.Elapsed += async (sender, e) =>
 #pragma warning restore RECS0165
                 {
-                    if (_twitterStream != null)
-                    {
-                        foreach (var user in _config.TwitterUpdates.TwitterUsers)
-                        {
-                            if (_twitterStream.ContainsFollow(Convert.ToInt64(user))) continue;
+                    CheckTwitterFollows();
 
-                            _twitterStream.AddFollow(Convert.ToInt64(user), async x => await SendTwitterNotification(x.CreatedBy.Id, x.Url));
-                        }
-                        if (_twitterStream.StreamState != StreamState.Running)
-                        {
+                    if (_twitterStream == null) return;
+                    switch (_twitterStream.StreamState)
+                    {
+                        case StreamState.Running:
+                            break;
+                        case StreamState.Pause:
+                            _twitterStream.ResumeStream();
+                            break;
+                        case StreamState.Stop:
                             await _twitterStream.StartStreamMatchingAllConditionsAsync();
-                        }
+                            break;
                     }
 
                     if (_client == null) return;
@@ -308,10 +293,7 @@
             _twitterStream.WarningFallingBehindDetected += (sender, e) => Console.WriteLine($"Warning Falling Behind Detected: {e.WarningMessage}");
             //stream.AddFollow(2839430431);
             //stream.AddFollow(358652328);
-            foreach (var user in _config.TwitterUpdates.TwitterUsers)
-            {
-                _twitterStream.AddFollow(Convert.ToInt64(user), async x => await SendTwitterNotification(x.CreatedBy.Id, x.Url));
-            }
+            CheckTwitterFollows();
             await _twitterStream.StartStreamMatchingAllConditionsAsync();
 
             await Task.Delay(-1);
@@ -422,6 +404,41 @@
 
         #region Private Methods
 
+        private async Task Init()
+        {
+            var channel = await _client.GetChannel(_config.CommandsChannelId);
+            DefaultAdvertisementMessage = $":arrows_counterclockwise: Welcome to **versx**'s server! Looks empty? You need to assign yourself to a city feed or team, please review the pinned messages in the {channel.Mention} channel or type `.help`.";
+
+            Logger = new EventLogger();
+            //Logger.Trace($"FilterBot::FilterBot");
+            //Logger.Info($"Logging started for {AssemblyUtils.AssemblyName} v{AssemblyUtils.AssemblyVersion} by {AssemblyUtils.CompanyName}...");
+            Commands = new CommandList();
+
+            if (!File.Exists(Config.ConfigFilePath))
+            {
+                Config.CreateDefaultConfig(true);
+            }
+
+            _client = new DiscordClient
+            (
+                new DiscordConfiguration
+                {
+                    AutoReconnect = true,
+                    LogLevel = LogLevel.Debug,
+                    Token = _config.AuthToken,
+                    TokenType = TokenType.Bot
+                }
+            );
+
+            _client.MessageCreated += Client_MessageCreated;
+            _client.Ready += Client_Ready;
+            _client.DmChannelCreated += Client_DmChannelCreated;
+            _client.GuildMemberAdded += Client_GuildMemberAdded;
+            _client.GuildMemberRemoved += Client_GuildMemberRemoved;
+            _client.GuildBanAdded += Client_GuildBanAdded;
+            _client.GuildBanRemoved += Client_GuildBanRemoved;
+        }
+
         private async Task ParseCommand(DiscordMessage message)
         {
             Logger.Trace($"FilterBot::ParseCommand [Message={message.Content}]");
@@ -441,8 +458,8 @@
                 var isOwner = message.Author.Id == _config.OwnerId;
                 if (Commands[command.Name].AdminCommand && !isOwner)
                 {
-                    await message.RespondAsync("You are not authorized to execute these type of commands, your unique user id has been logged.");
                     LogUnauthorizedAccess(message.Author);
+                    await message.RespondAsync("You are not authorized to execute these type of commands, your unique user id has been logged.");
                     return;
                 }
 
@@ -472,7 +489,7 @@
                     return;
                 }
 
-                eb.AddField(category, ".");
+                eb.AddField(category, "|");
                 foreach (var cmd in categories[category])
                 {
                     var isOwner = message.Author.Id == _config.OwnerId;
@@ -503,15 +520,15 @@
 
         private async Task CheckSponsoredRaids(DiscordMessage message)
         {
-            if (!_config.SponsorRaidChannelPool.Contains(message.Channel.Id)) return;
+            if (!_config.SponsoredRaids.ChannelPool.Contains(message.Channel.Id)) return;
 
             foreach (DiscordEmbed embed in message.Embeds)
             {
-                foreach (var keyword in _config.SponsorRaidKeywords)
+                foreach (var keyword in _config.SponsoredRaids.Keywords)
                 {
                     if (embed.Description.Contains(keyword))
                     {
-                        await _client.SendMessage(_config.SponsorRaidsWebHook, /*message.Author.Username*/string.Empty, embed);
+                        await _client.SendMessage(_config.SponsoredRaids.WebHook, /*message.Author.Username*/string.Empty, embed);
                         break;
                     }
                 }
@@ -551,6 +568,26 @@
             }
         }
 
+        private void CheckTwitterFollows()
+        {
+            if (_twitterStream == null) return;
+
+            foreach (var user in _config.TwitterUpdates.TwitterUsers)
+            {
+                var userId = Convert.ToInt64(user);
+                if (_twitterStream.ContainsFollow(userId)) continue;
+
+#pragma warning disable RECS0165
+                _twitterStream.AddFollow(userId, async x =>
+#pragma warning restore RECS0165
+                {
+                    if (userId != x.CreatedBy.Id) return;
+
+                    await SendTwitterNotification(x.CreatedBy.Id, x.Url);
+                });
+            }
+        }
+
         private async Task SendStartupMessage()
         {
             var randomWelcomeMessage = _config.StartupMessages[_rand.Next(0, _config.StartupMessages.Count - 1)];
@@ -565,10 +602,12 @@
             var owner = await _client.GetUserAsync(_config.OwnerId);
             Console.WriteLine($"Owner: {owner?.Username} ({_config.OwnerId})");
             Console.WriteLine($"Authentication Token: {_config.AuthToken}");
-            Console.WriteLine($"Commands Channel: {_config.CommandsChannel}");
+            Console.WriteLine($"Commands Channel Id: {_config.CommandsChannelId}");
             Console.WriteLine($"Commands Prefix: {_config.CommandsPrefix}");
+            Console.WriteLine($"Admin Commands Channel Id: {_config.AdminCommandsChannelId}");
             Console.WriteLine($"Allow Team Assignment: {(_config.AllowTeamAssignment ? "Yes" : "No")}");
-            Console.WriteLine($"Available Team Roles: {(string.Join(", ", _config.AvailableTeamRoles))}");
+            Console.WriteLine($"Team Roles: {string.Join(", ", _config.TeamRoles)}");
+            Console.WriteLine($"City Roles: {string.Join(", ", _config.CityRoles)}");
             Console.WriteLine($"Notify New Member Joined: {(_config.NotifyNewMemberJoined ? "Yes" : "No")}");
             Console.WriteLine($"Notify Member Left: {(_config.NotifyMemberLeft ? "Yes" : "No")}");
             Console.WriteLine($"Notify Member Banned: {(_config.NotifyMemberBanned ? "Yes" : "No")}");
@@ -578,9 +617,24 @@
             Console.WriteLine($"Startup Message WebHook: {_config.StartupMessageWebHook}");
             Console.WriteLine($"Send Welcome Message: {_config.SendWelcomeMessage}");
             Console.WriteLine($"Welcome Message: {_config.WelcomeMessage}");
-            Console.WriteLine($"Sponsor Raid Channel Pool: {string.Join(", ", _config.SponsorRaidChannelPool)}");
-            Console.WriteLine($"Sponsor Raid Keywords: {string.Join(", ", _config.SponsorRaidKeywords)}");
-            Console.WriteLine($"Sponsor Raids WebHook: {_config.SponsorRaidsWebHook}");
+            Console.WriteLine($"Sponsored Raid Channel Pool: {string.Join(", ", _config.SponsoredRaids.ChannelPool)}");
+            Console.WriteLine($"Sponsored Raid Keywords: {string.Join(", ", _config.SponsoredRaids.Keywords)}");
+            Console.WriteLine($"Sponsored Raids WebHook: {_config.SponsoredRaids.WebHook}");
+            Console.WriteLine();
+            Console.WriteLine($"Twitter Notification Settings:");
+            Console.WriteLine($"Post Twitter Updates: {_config.TwitterUpdates.PostTwitterUpdates}");
+            Console.WriteLine($"Consumer Key: {_config.TwitterUpdates.ConsumerKey}");
+            Console.WriteLine($"Consumer Secret: {_config.TwitterUpdates.ConsumerSecret}");
+            Console.WriteLine($"Access Token: {_config.TwitterUpdates.AccessToken}");
+            Console.WriteLine($"Access Token Secret: {_config.TwitterUpdates.AccessTokenSecret}");
+            Console.WriteLine($"Twitter Updates Channel WebHook: {_config.TwitterUpdates.UpdatesChannelWebHook}");
+            Console.WriteLine($"Subscribed Twitter Users: {string.Join(", ", _config.TwitterUpdates.TwitterUsers)}");
+            Console.WriteLine();
+            Console.WriteLine($"Custom User Commands:");
+            foreach (var cmd in _config.CustomCommands)
+            {
+                Console.WriteLine($"{cmd.Key}=>{cmd.Value}");
+            }
             Console.WriteLine();
             foreach (var server in _db.Servers)
             {
@@ -695,12 +749,67 @@
 
         private async Task SendTwitterNotification(long ownerId, string url)
         {
-            if (_config.TwitterUpdates.PostTwitterUpdates)
+            if (!_config.TwitterUpdates.PostTwitterUpdates) return;
+
+            Console.WriteLine($"Tweet [Owner={ownerId}, Url={url}]");
+            await _client.SendMessage(_config.TwitterUpdates.UpdatesChannelWebHook, url);
+        }
+
+        private async void AdvertisementTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            if (!_config.Advertisement.Enabled) return;
+
+            //var channel = _client.GetChannelByName(_config.CommandsChannel);
+            var channel = await _client.GetChannel(_config.Advertisement.ChannelId);
+            if (channel == null)
             {
-                if (_config.TwitterUpdates.TwitterUsers.Contains(Convert.ToUInt64(ownerId)))
+                Console.WriteLine($"Failed to retrieve commands channel with id {_config.CommandsChannelId}.");
+                return;
+            }
+
+            if (_config.Advertisement.LastMessageId == 0)
+            {
+                var msg = string.Format(string.IsNullOrEmpty(_config.Advertisement.Message) ? DefaultAdvertisementMessage : _config.Advertisement.Message, string.Join(", ", _config.CityRoles));
+                var sentMessage = await channel.SendMessageAsync(msg);
+                _config.Advertisement.LastMessageId = sentMessage.Id;
+                _config.Save();
+                return;
+            }
+
+            var messages = await channel.GetMessagesAsync();
+            if (messages != null)
+            {
+                var lastBotMessageIndex = -1;
+                for (int i = 0; i < messages.Count; i++)
                 {
-                    Console.WriteLine($"Tweet [Owner={ownerId}, Url={url}]");
-                    await _client.SendMessage(_config.TwitterUpdates.TwitterUpdatesChannelWebHook, url);
+                    if (messages[i].Id == _config.Advertisement.LastMessageId && messages[i].Author.IsBot)
+                    {
+                        lastBotMessageIndex = i;
+                    }
+                }
+
+                if (lastBotMessageIndex > DefaultAdvertisementMessageDifference)
+                {
+                    var guild = await _client.GetGuildAsync(channel.GuildId);
+                    if (guild == null)
+                    {
+                        Console.WriteLine($"Failed to retrieve guild from channel guild id.");
+                        return;
+                    }
+
+                    var message = await _client.GetMessageById(guild.Id, _config.Advertisement.LastMessageId);
+                    if (message == null)
+                    {
+                        Console.WriteLine($"Failed to retrieve last advertisement message with id {_config.Advertisement.LastMessageId}.");
+                        return;
+                    }
+
+                    await message.DeleteAsync();
+
+                    var msg = string.Format(string.IsNullOrEmpty(_config.Advertisement.Message) ? DefaultAdvertisementMessage : _config.Advertisement.Message, string.Join(", ", _config.CityRoles));
+                    var sentMessage = await channel.SendMessageAsync(msg);
+                    _config.Advertisement.LastMessageId = sentMessage.Id;
+                    _config.Save();
                 }
             }
         }

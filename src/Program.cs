@@ -3,43 +3,36 @@
     using System;
     using System.IO;
     using System.Threading.Tasks;
+    using System.Windows.Forms;
 
     using BrockBot.Commands;
     using BrockBot.Diagnostics;
 
-    /** Usage
-     * .subs - List all current subscriptions.
-     * .sub <pokemon_name> - Subscribes to notifications of messages containing the specified keyword.
-     * .unsub - Unsubscribe from all notifications.
-     * .unsub <pokemon_name> - Unsubscribes from notifications of messages containing the specified keyword.
-     * 
-     */
-
     class MainClass
     {
-        public static void Main(string[] args) => MainAsync(args).ConfigureAwait(false).GetAwaiter().GetResult();
+        static string LogsFolder = Path.Combine(Directory.GetCurrentDirectory(), "Logs");
+
+        static void Main(string[] args) => MainAsync(args).ConfigureAwait(false).GetAwaiter().GetResult();
 
         static async Task MainAsync(string[] args)
         {
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+
             Console.WriteLine($"Arguments: {string.Join(", ", args)}");
 
-            var logsFolder = Path.Combine(Directory.GetCurrentDirectory(), "Logs");
-            if (!Directory.Exists(logsFolder))
+            if (!Directory.Exists(LogsFolder))
             {
-                Directory.CreateDirectory(logsFolder);
+                Directory.CreateDirectory(LogsFolder);
             }
 
-            var bot = new FilterBot
-            {
-                Logger = new EventLogger((logType, message)=>
-                {
-                    Console.WriteLine($"{logType.ToString().ToUpper()} >> {message}");
-                    File.AppendAllText(Path.Combine(logsFolder, DateTime.Now.ToString("yyyy-MM-dd") + ".log"), $"{logType.ToString().ToUpper()} >> {message}\r\n");
-                })
-            };
+            var bot = new FilterBot { Logger = new EventLogger(Log) };
+
             //General Commands
             bot.RegisterCommand<HelpCommand>();
             bot.RegisterCommand<TeamCommand>();
+            bot.RegisterCommand<TeamsCommand>();
+            bot.RegisterCommand<CitiesCommand>();
+            bot.RegisterCommand<FeedCommand>();
             bot.RegisterCommand<InviteCommand>();
             bot.RegisterCommand<InvitesCommand>();
             bot.RegisterCommand<PokemonLookupCommand>();
@@ -96,6 +89,22 @@
 
             Console.Read();
             await bot.StopAsync();
+        }
+
+        static void Log(LogType logType, string message)
+        {
+            Console.WriteLine($"{logType.ToString().ToUpper()} >> {message}");
+            File.AppendAllText(Path.Combine(LogsFolder, DateTime.Now.ToString("yyyy-MM-dd") + ".log"), $"{logType.ToString().ToUpper()} >> {message}\r\n");
+        }
+
+        static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            Log(LogType.Error, $"IsTerminating: {e.IsTerminating}\r\n{((Exception)e.ExceptionObject).ToString()}");
+
+            if (e.IsTerminating)
+            {
+                Application.Restart();
+            }
         }
     }
 }

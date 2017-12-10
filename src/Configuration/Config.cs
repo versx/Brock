@@ -25,7 +25,7 @@
         /// </summary>
         public const string DefaultConfigFileName = /*"Config.xml"; */"config.json";
 
-        private const string DefaultWelcomeMessage = "Hello {username}, welcome to versx's discord server!\r\nI am here to help you with certain things if you require them such as notifications of Pokemon that have spawned as well as setting up Raid Lobbies. To see a full list of my available commands please send me a direct message containing `.help`.";
+        private const string DefaultWelcomeMessage = "Hello {username}, welcome to versx's discord server!\r\nMy name is Brock and I'm here to help you with certain things if you require them such as notifications of Pokemon that have spawned as well as setting up Raid Lobbies or even assigning yourself to a team or city role. To see a full list of my available commands please send me a direct message containing `.help`.";
 
         #endregion
 
@@ -35,40 +35,35 @@
         [JsonProperty("ownerId")]
         public ulong OwnerId { get; set; }
 
-        [XmlElement("adminCommandsChannel")]
-        [JsonProperty("adminCommandsChannel")]
-        public string AdminCommandsChannel { get; set; }
+        [XmlElement("adminCommandsChannelId")]
+        [JsonProperty("adminCommandsChannelId")]
+        public ulong AdminCommandsChannelId { get; set; }
 
-        [XmlElement("commandsChannel")]
-        [JsonProperty("commandsChannel")]
-        public string CommandsChannel { get; set; }
+        [XmlElement("commandsChannelId")]
+        [JsonProperty("commandsChannelId")]
+        public ulong CommandsChannelId { get; set; }
 
         [XmlElement("commandsPrefix")]
         [JsonProperty("commandsPrefix")]
         public char CommandsPrefix { get; set; }
 
-        [XmlArray("sponsorRaidChannelPool")]
-        [XmlArrayItem("sponsorRaidChannel")]
-        [JsonProperty("sponsorRaidChannelPool")]
-        public List<ulong> SponsorRaidChannelPool { get; set; }
-
-        [XmlArray("sponsorRaidKeywords")]
-        [XmlArrayItem("sponsorRaidKeyword")]
-        [JsonProperty("sponsorRaidKeywords")]
-        public List<string> SponsorRaidKeywords { get; set; }
-
-        [XmlElement("sponsorRaidsWebHook")]
-        [JsonProperty("sponsorRaidsWebHook")]
-        public string SponsorRaidsWebHook { get; set; }
+        [XmlElement("sponsoredRaids")]
+        [JsonProperty("sponsoredRaids")]
+        public SponsoredRaidsConfig SponsoredRaids { get; set; }
 
         [XmlElement("allowTeamAssignment")]
         [JsonProperty("allowTeamAssignment")]
         public bool AllowTeamAssignment { get; set; }
 
-        [XmlArray("availableTeamRoles")]
-        [XmlArrayItem("availableTeamRole")]
-        [JsonProperty("availableTeamRoles")]
-        public List<string> AvailableTeamRoles { get; set; }
+        [XmlArray("teamRoles")]
+        [XmlArrayItem("teamRole")]
+        [JsonProperty("teamRoles")]
+        public List<string> TeamRoles { get; set; }
+
+        [XmlArray("cityRoles")]
+        [XmlArrayItem("cityRole")]
+        [JsonProperty("cityRoles")]
+        public List<string> CityRoles { get; set; }
 
         [XmlElement("authToken")]
         [JsonProperty("authToken")]
@@ -115,6 +110,10 @@
         [JsonProperty("twitterUpdates")]
         public TwitterUpdatesConfig TwitterUpdates { get; set; }
 
+        [XmlElement("advertisement")]
+        [JsonProperty("advertisement")]
+        public AdvertisementConfig Advertisement { get; set; }
+
         [XmlElement("customCommands")]
         [JsonProperty("customCommands")]
         public Dictionary<string, string> CustomCommands { get; set; }
@@ -143,14 +142,13 @@
         public Config()
         {
             AllowTeamAssignment = true;
-            AvailableTeamRoles = new List<string>();
+            TeamRoles = new List<string>();
             //{
             //    "Valor",
             //    "Mystic",
             //    "Instinct"
             //};
-            AdminCommandsChannel = "admin";
-            CommandsChannel = "general";
+            CityRoles = new List<string>();
             CommandsPrefix = '.';
             CustomCommands = new Dictionary<string, string>();
             NotifyMemberBanned = true;
@@ -173,42 +171,12 @@
             //    "Hey...watch where you put those mittens!"
             //};
             WelcomeMessage = DefaultWelcomeMessage;
-            SponsorRaidChannelPool = new List<ulong>();
-            SponsorRaidKeywords = new List<string>();
+            SponsoredRaids = new SponsoredRaidsConfig();
             TwitterUpdates = new TwitterUpdatesConfig();
+            Advertisement = new AdvertisementConfig();
         }
 
         #endregion
-
-        public static Config CreateDefaultConfig(bool save = false)
-        {
-            var c = new Config
-            {
-                OwnerId = 0,
-                AllowTeamAssignment = true,
-                AuthToken = "",
-                AvailableTeamRoles =
-                {
-                    "Valor",
-                    "Mystic",
-                    "Instinct"
-                },
-                CommandsChannel = "bot",
-                CommandsPrefix = '.',
-                NotifyNewMemberJoined = true,
-                NotifyMemberLeft = true,
-                NotifyMemberBanned = true,
-                NotifyMemberUnbanned = true,
-                SendStartupMessage = true,
-                SendWelcomeMessage = true
-            };
-
-            if (save)
-            {
-                c.Save();
-            }
-            return c;
-        }
 
         #region Public Methods
 
@@ -280,45 +248,36 @@
             return null;
         }
 
-        #endregion
-    }
-
-    [XmlRoot("twitterUpdates")]
-    [JsonObject("twitterUpdates")]
-    public class TwitterUpdatesConfig
-    {
-        [XmlElement("consumerKey")]
-        [JsonProperty("consumerKey")]
-        public string ConsumerKey { get; set; }
-
-        [XmlElement("consumerSecret")]
-        [JsonProperty("consumerSecret")]
-        public string ConsumerSecret { get; set; }
-
-        [XmlElement("accessToken")]
-        [JsonProperty("accessToken")]
-        public string AccessToken { get; set; }
-
-        [XmlElement("accessTokenSecret")]
-        [JsonProperty("accessTokenSecret")]
-        public string AccessTokenSecret { get; set; }
-
-        [XmlElement("postTwitterUpdates")]
-        [JsonProperty("postTwitterUpdates")]
-        public bool PostTwitterUpdates { get; set; }
-
-        [XmlElement("twitterUsers")]
-        [JsonProperty("twitterUsers")]
-        public List<ulong> TwitterUsers { get; set; }
-
-        [XmlElement("twitterUpdatesChannelWebHook")]
-        [JsonProperty("twitterUpdatesChannelWebHook")]
-        //public ulong TwitterUpdatesChannelId { get; set; }
-        public string TwitterUpdatesChannelWebHook { get; set; }
-
-        public TwitterUpdatesConfig()
+        public static Config CreateDefaultConfig(bool save = false)
         {
-            TwitterUsers = new List<ulong>();
+            var c = new Config
+            {
+                OwnerId = 0,
+                AllowTeamAssignment = true,
+                AuthToken = "",
+                TeamRoles =
+                {
+                    "Valor",
+                    "Mystic",
+                    "Instinct"
+                },
+                CityRoles = new List<string>(),
+                CommandsPrefix = '.',
+                NotifyNewMemberJoined = true,
+                NotifyMemberLeft = true,
+                NotifyMemberBanned = true,
+                NotifyMemberUnbanned = true,
+                SendStartupMessage = true,
+                SendWelcomeMessage = true
+            };
+
+            if (save)
+            {
+                c.Save();
+            }
+            return c;
         }
+
+        #endregion
     }
 }

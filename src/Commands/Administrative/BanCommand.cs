@@ -44,15 +44,17 @@
                 return;
             }
 
+            var guild = message.Channel.Guild;
+
             if (!ulong.TryParse(userId, out ulong result))
             {
                 await message.RespondAsync($"{userId} is not a valid user id.");
                 return;
             }
 
-            var user = await Client.GetMemberFromUserId(result);
+            var user = await guild.GetMemberAsync(result);
 
-            await message.Channel.Guild.BanMemberAsync(result, 365, reason);
+            await message.Channel.Guild.BanMemberAsync(user, 365, reason);
             await message.RespondAsync($"User {user.Username} (ID: {user.Id}) was successfully banned with reason: {reason}");
         }
     }

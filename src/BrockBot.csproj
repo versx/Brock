@@ -83,6 +83,7 @@
     <Reference Include="System.Security.Cryptography.Primitives, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\..\..\..\.nuget\packages\System.Security.Cryptography.Primitives.4.3.0\lib\net46\System.Security.Cryptography.Primitives.dll</HintPath>
     </Reference>
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="Tweetinvi, Version=2.1.0.0, Culture=neutral, processorArchitecture=MSIL">
@@ -142,6 +143,7 @@
     <Compile Include="Commands\RaidLobbyListUsersCommand.cs" />
     <Compile Include="Commands\Administrative\SetCommand.cs" />
     <Compile Include="Commands\SetupCommand.cs" />
+    <Compile Include="Commands\FeedCommand.cs" />
     <Compile Include="Commands\TeamCommand.cs" />
     <Compile Include="Commands\ICustomCommand.cs" />
     <Compile Include="Commands\InfoCommand.cs" />
@@ -156,7 +158,10 @@
     <Compile Include="Commands\UnsubscribeCommand.cs" />
     <Compile Include="Commands\UptimeCommand.cs" />
     <Compile Include="Commands\VersionCommand.cs" />
+    <Compile Include="Configuration\AdvertisementConfig.cs" />
     <Compile Include="Configuration\Config.cs" />
+    <Compile Include="Configuration\SponsoredRaidsConfig.cs" />
+    <Compile Include="Configuration\TwitterUpdatesConfig.cs" />
     <Compile Include="Core\Categories.cs" />
     <Compile Include="Core\CommandAttribute.cs" />
     <Compile Include="Core\CommandList.cs" />

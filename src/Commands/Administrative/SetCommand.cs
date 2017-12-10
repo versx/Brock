@@ -59,7 +59,7 @@
                     break;
                 case "command_channel":
                     //TODO: Check if provided commands channel exists.
-                    _config.CommandsChannel = value;
+                    _config.CommandsChannelId = Convert.ToUInt64(value);
                     break;
                 case "prefix":
                     _config.CommandsPrefix = value[0];
@@ -84,6 +84,12 @@
                     break;
                 case "welcome_msg":
                     _config.WelcomeMessage = value;
+                    break;
+                case "twitter":
+                    _config.TwitterUpdates.PostTwitterUpdates = Convert.ToBoolean(value);
+                    break;
+                case "advertisement":
+                    _config.Advertisement.Enabled = Convert.ToBoolean(value);
                     break;
             }
 
