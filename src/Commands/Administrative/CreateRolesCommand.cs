@@ -46,11 +46,7 @@
 
         public async Task Execute(DiscordMessage message, Command command)
         {
-            if (message.Channel.Guild == null)
-            {
-                await message.RespondAsync("DM is not supported yet for this command.");
-                return;
-            }
+            await message.IsDirectMessageSupported();
 
             foreach (var team in Config.TeamRoles)
             {

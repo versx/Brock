@@ -35,14 +35,10 @@
             if (!command.HasArgs) return;
             if (command.Args.Count == 1 || command.Args.Count == 2) return;
 
+            await message.IsDirectMessageSupported();
+
             var userId = command.Args[0];
             var reason = command.Args.Count == 2 ? command.Args[1] : "Unknown Reason";
-
-            if (message.Channel == null)
-            {
-                await message.RespondAsync("DM is not supported for this command yet.");
-                return;
-            }
 
             if (!ulong.TryParse(userId, out ulong result))
             {

@@ -43,6 +43,8 @@
         {
             if (!command.HasArgs) return;
 
+            await message.IsDirectMessageSupported();
+
             switch (command.Args.Count)
             {
                 case 2:
@@ -86,7 +88,6 @@
                 numPeople = value;
             }
 
-            if (message.Channel == null) return;
             var server = Db[message.Channel.GuildId];
             if (server == null) return;
 

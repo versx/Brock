@@ -7,6 +7,7 @@
     using DSharpPlus.Entities;
 
     using BrockBot.Data;
+    using BrockBot.Extensions;
 
     [Command(
         Categories.Administrative,
@@ -38,22 +39,13 @@
 
         public async Task Execute(DiscordMessage message, Command command)
         {
-            //TODO: Prune users.
-            //var pruneCount = await guild.GetPruneCountAsync(365);
-            //await guild.PruneAsync(365, "Inactive users");
-
             if (!command.HasArgs) return;
             if (command.Args.Count == 1 || command.Args.Count == 2) return;
 
+            await message.IsDirectMessageSupported();
+
             var userId = command.Args[0];
             var reason = command.Args.Count == 2 ? command.Args[1] : "Unknown Reason";
-
-            if (message.Channel == null)
-            {
-                await message.RespondAsync("DM is not supported for this command yet.");
-                return;
-            }
-
             var guild = message.Channel.Guild;
 
             if (!ulong.TryParse(userId, out ulong result))
@@ -63,6 +55,11 @@
             }
 
             var user = await guild.GetMemberAsync(result);
+            if (user == null)
+            {
+                await message.RespondAsync($"Failed to retrieve user with id {userId}.");
+                return;
+            }
 
             await message.Channel.Guild.RemoveMemberAsync(user, reason);
             await message.RespondAsync($"User {user.Username} (ID: {user.Id}) was successfully kicked with reason: {reason}");

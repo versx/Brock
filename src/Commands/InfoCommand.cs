@@ -33,7 +33,8 @@
 
         public async Task Execute(DiscordMessage message, Command command)
         {
-            if (message.Channel == null) return;
+            await message.IsDirectMessageSupported();
+
             var server = Db[message.Channel.GuildId];
             if (server == null) return;
 

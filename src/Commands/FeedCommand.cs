@@ -11,16 +11,19 @@
     using BrockBot.Extensions;
     using BrockBot.Utilities;
 
+    //TODO: Parse feed cities with spaces, or replace all feeds with a single command.
+
     [Command(Categories.General,
-        "Assign yourself to a city role.",
-        "\tExample: `.feed Upland` (Joins city)\r\n" +
+        "Assign or unassign yourself to a city role.",
+        "\tExample: `.feed Upland,ontario,newport` (Joins city)\r\n" +
+        "\tExample: `.feed All` (Joins all cities)\r\n" +
         "\tExample: `.feed remove Ontario` (Leaves specified city)\r\n" +
-        "\tExample: `.feed None` (Leaves all cities)",
+        "\tExample: `.feed remove all` (Leaves all cities)",
         "feed"
     )]
     public class FeedCommand : ICustomCommand
     {
-        public const string TeamNone = "None";
+        public const string FeedAll = "All";
 
         private readonly Config _config;
 
@@ -49,7 +52,6 @@
         {
             if (!command.HasArgs) return;
 
-            //TODO: Only retrieve the current guild.
             if (message.Channel.Guild == null)
             {
                 //TODO: Ask what server to assign to.
@@ -58,21 +60,37 @@
                 //    await guild.Value.GrantRoleAsync(member, teamRole, reason);
                 //}
                 var channel = await Client.GetChannel(_config.CommandsChannelId);
-                await message.RespondAsync($"Currently I only support city assignment via the channel #{channel.Name}, direct message support is coming soon.");
+                await message.RespondAsync($"Currently I only support city feed assignment via the channel #{channel.Name}, direct message support is coming soon.");
                 return;
             }
 
             try
             {
+                var guild = message.Channel.Guild;
+
                 if (command.Args.Count == 1)
                 {
                     var msg = string.Empty;
-                    var cities = command.Args[0].Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
+                    var cmd = command.Args[0];
+                    if (string.Compare(cmd, FeedAll, true) == 0)
+                    {
+                        var member = await guild.GetMemberAsync(message.Author.Id);
+                        if (member == null)
+                        {
+                            await message.RespondAsync($"Failed to find member with id {message.Author.Id}.");
+                            return;
+                        }
+
+                        await AssignAllDefaultFeedRoles(message, member);
+                        return;
+                    }
+
+                    var cities = cmd.Replace(" ", "").Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
                     foreach (var city in cities)
                     {
-                        if (!_config.CityRoles.Exists(x => string.Compare(city, x, true) == 0 || string.Compare(city, TeamNone, true) == 0))
+                        if (!_config.CityRoles.Exists(x => string.Compare(city, x, true) == 0))
                         {
-                            await message.RespondAsync($"You have entered an incorrect city name, please enter one of the following: {(string.Join(", ", _config.CityRoles))}, or {TeamNone}.");
+                            await message.RespondAsync($"{message.Author.Username} has entered an incorrect city name, please enter one of the following: {(string.Join(",", _config.CityRoles))}, or {FeedAll}.");
                             continue;
                         }
 
@@ -96,7 +114,7 @@
                         if (alreadyAssigned)
                         {
                             if (!string.IsNullOrEmpty(msg)) msg += "\r\n";
-                            msg += $"You are already assigned to city feed {cityRole.Name}. ";
+                            msg += $"{message.Author.Username} is already assigned to city feed {cityRole.Name}. ";
                             continue;
                         }
 
@@ -111,13 +129,33 @@
                 else if (command.Args.Count == 2)
                 {
                     var msg = string.Empty;
-                    var remove = command.Args[0];
-                    var cities = command.Args[1].Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
+                    var remove = command.Args[0].ToLower();
+					if (string.Compare(remove, "remove") != 0)
+					{
+                        await message.RespondAsync("Please specify the 'remove' parameter if you want to remove a city feed role.");
+						return;
+					}
+
+                    var cmd = command.Args[1];
+                    if (string.Compare(cmd, FeedAll, true) == 0)
+                    {
+                        var member = await guild.GetMemberAsync(message.Author.Id);
+                        if (member == null)
+                        {
+                            await message.RespondAsync($"Failed to find member with id {message.Author.Id}.");
+                            return;
+                        }
+
+                        await RemoveAllDefaultFeedRoles(message, member);
+                        return;
+                    }
+
+                    var cities = cmd.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
                     foreach (var city in cities)
                     {
-                        if (!_config.CityRoles.Exists(x => string.Compare(city, x, true) == 0 || string.Compare(city, TeamNone, true) == 0))
+                        if (!_config.CityRoles.Exists(x => string.Compare(city, x, true) == 0))
                         {
-                            await message.RespondAsync($"{message.Author.Username} has entered an incorrect city name, please enter one of the following: {(string.Join(", ", _config.CityRoles))}, or {TeamNone}.");
+                            await message.RespondAsync($"{message.Author.Username} has entered an incorrect city name, please enter one of the following: {(string.Join(",", _config.CityRoles))}, or {FeedAll}.");
                             continue;
                         }
 
@@ -126,7 +164,7 @@
                         var reason = $"User initiated city assignment removal via {AssemblyUtils.AssemblyName}.";
                         var alreadyAssigned = false;
 
-                        if (cityRole == null)
+                        if (cityRole == null && city != FeedAll)
                         {
                             if (!string.IsNullOrEmpty(msg)) msg += "\r\n";
                             msg += $"{city} is not a valid city feed role.";
@@ -159,6 +197,44 @@
             {
                 Utils.LogError(ex);
             }
+        }
+
+        private async Task AssignAllDefaultFeedRoles(DiscordMessage message, DiscordMember member)
+        {
+            var reason = "Default city role assignment initialization.";
+            foreach (var city in _config.CityRoles)
+            {
+                var cityRole = Client.GetRoleFromName(city);
+                if (cityRole == null)
+                {
+                    //Failed to find role.
+                    Utils.LogError(new Exception($"Failed to find city role {city}, please make sure it exists."));
+                    continue;
+                }
+
+                await member.GrantRoleAsync(cityRole, reason);
+            }
+
+            await message.RespondAsync($"{member.Username} was assigned all default city feed roles.");
+        }
+
+        private async Task RemoveAllDefaultFeedRoles(DiscordMessage message, DiscordMember member)
+        {
+            var reason = "Default city role assignment removal.";
+            foreach (var city in _config.CityRoles)
+            {
+                var cityRole = Client.GetRoleFromName(city);
+                if (cityRole == null)
+                {
+                    //Failed to find role.
+                    Utils.LogError(new Exception($"Failed to find city role {city}, please make sure it exists."));
+                    continue;
+                }
+
+                await member.RevokeRoleAsync(cityRole, reason);
+            }
+
+            await message.RespondAsync($"{member.Username} was unassigned all default city feed roles.");
         }
     }
 }

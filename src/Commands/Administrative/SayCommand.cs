@@ -47,11 +47,7 @@
             if (!command.HasArgs) return;
             if (command.Args.Count != 2) return;
 
-            if (message.Channel == null)
-            {
-                await message.RespondAsync("DM is not supported for this command yet.");
-                return;
-            }
+            await message.IsDirectMessageSupported();
 
             var channelName = command.Args[0];
             var channel = Client.GetChannelByName(channelName);

@@ -12,89 +12,24 @@
     using BrockBot.Utilities;
 
     [Command(Categories.General,
-        "Displays a list of available assignable team roles.",
-        "\tExample: `.teams`",
-        "teams"
-    )]
-    public class TeamsCommand : ICustomCommand
-    {
-        private readonly Config _config;
-
-        #region Properties
-
-        public bool AdminCommand => false;
-
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
-
-        #endregion
-
-        #region Constructor
-
-        public TeamsCommand(DiscordClient client, IDatabase db, Config config)
-        {
-            Client = client;
-            Db = db;
-            _config = config;
-        }
-
-        #endregion
-
-        public async Task Execute(DiscordMessage message, Command command)
-        {
-            await message.RespondAsync
-            (
-                $"**Available Assignable Teams:**\r\n{string.Join(Environment.NewLine, _config.TeamRoles)}"
-            );
-        }
-    }
-
-    [Command(Categories.General,
-        "Displays a list of available assignable city feed roles.",
-        "\tExample: `.feeds`",
-        "feeds"
-    )]
-    public class CitiesCommand : ICustomCommand
-    {
-        private readonly Config _config;
-
-        #region Properties
-
-        public bool AdminCommand => false;
-
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
-
-        #endregion
-
-        #region Constructor
-
-        public CitiesCommand(DiscordClient client, IDatabase db, Config config)
-        {
-            Client = client;
-            Db = db;
-            _config = config;
-        }
-
-        #endregion
-
-        public async Task Execute(DiscordMessage message, Command command)
-        {
-            await message.RespondAsync
-            (
-                $"**Available Assignable Cities:**\r\n{string.Join(Environment.NewLine, _config.CityRoles)}"
-            );
-        }
-    }
-
-    [Command(Categories.General,
         "Assign yourself to a team role, available teams to join are **Valor**, **Mystic**, and **Instinct**.",
         "\tExample: `.team Valor` (Joins Valor)\r\n" +
         "\tExample: `.iam None` (Leave Team)",
+        //CommandPermissionLevel.User,
         "team", "iam"
     )]
+
+    //[
+    //    CommandCategory(Categories.General), 
+    //    CommandPermission(CommandPermissionLevel.User), 
+    //    CommandDescription("Assign yourself to a team role, available teams to join are **Valor**, **Mystic**, and **Instinct**."), 
+    //    CommandExample
+    //    (
+    //        "\tExample: `.team Valor` (Joins Valor)\r\n" +
+    //        "\tExample: `.iam None` (Leave Team)"
+    //    ),
+    //    CommandNames("team", "iam")
+    //]
     public class TeamCommand : ICustomCommand
     {
         private readonly Config _config;
@@ -138,7 +73,6 @@
 
             try
             {
-                //TODO: Only retrieve the current guild.
                 if (message.Channel.Guild == null)
                 {
                     //TODO: Ask what server to assign to.
@@ -156,7 +90,6 @@
                 var reason = $"User initiated team assignment via {AssemblyUtils.AssemblyName}.";
                 var alreadyAssigned = false;
                 var msg = string.Empty;
-
 
                 foreach (var role in member.Roles)
                 {

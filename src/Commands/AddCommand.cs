@@ -49,6 +49,8 @@
             if (!command.HasArgs) return;
             if (command.Args.Count != 1) return;
 
+            await message.IsDirectMessageSupported();
+
             var author = message.Author.Id;
             foreach (var chlName in command.Args[0].Split(','))
             {
@@ -62,27 +64,25 @@
                     continue;
                 }
 
-                if (message.Channel == null) return;
                 var server = Db[message.Channel.GuildId];
                 if (server == null) return;
 
                 if (!server.ContainsKey(author))
                 {
-                    server.Subscriptions.Add(new Subscription(author, new List<Pokemon>(), new List<ulong> { channel.Id }));
+                    server.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon>(), new List<ulong> { channel.Id }));
+                    await message.RespondAsync($"You have successfully subscribed to {channel.Mention} notifications!");
+                    continue;
+                }
+
+                //User has already subscribed before, check if their new requested sub already exists.
+                if (!server[author].ChannelIds.Contains(channel.Id))
+                {
+                    server[author].ChannelIds.Add(channel.Id);
                     await message.RespondAsync($"You have successfully subscribed to {channel.Mention} notifications!");
                 }
                 else
                 {
-                    //User has already subscribed before, check if their new requested sub already exists.
-                    if (!server[author].ChannelIds.Contains(channel.Id))
-                    {
-                        server[author].ChannelIds.Add(channel.Id);
-                        await message.RespondAsync($"You have successfully subscribed to {channel.Mention} notifications!");
-                    }
-                    else
-                    {
-                        await message.RespondAsync($"You are already subscribed to {channel.Mention} notifications.");
-                    }
+                    await message.RespondAsync($"You are already subscribed to {channel.Mention} notifications.");
                 }
             }
         }

@@ -4,7 +4,7 @@
 
     using DSharpPlus.Entities;
 
-    //TODO: Fix config to support dictionary of Team Name and Team Color.
+    //TODO: Modify config to support dictionary of Team Name and Team Color.
     public static class Roles
     {
         public static Dictionary<string, DiscordColor> Teams = new Dictionary<string, DiscordColor>

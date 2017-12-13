@@ -117,6 +117,7 @@
   <ItemGroup>
     <Compile Include="Commands\AddCmdCommand.cs" />
     <Compile Include="Commands\Administrative\AddTwitterCommand.cs" />
+    <Compile Include="Commands\Administrative\AssignRolesCommand.cs" />
     <Compile Include="Commands\Administrative\BanCommand.cs" />
     <Compile Include="Commands\Administrative\DeleteTwitterCommand.cs" />
     <Compile Include="Commands\Administrative\EnableDisableTwitterCommand.cs" />
@@ -126,6 +127,7 @@
     <Compile Include="Commands\Administrative\KickCommand.cs" />
     <Compile Include="Commands\Administrative\SayCommand.cs" />
     <Compile Include="Commands\Administrative\UnbanCommand.cs" />
+    <Compile Include="Commands\BotInfoCommand.cs" />
     <Compile Include="Commands\CreateRaidLobbyCommand.cs" />
     <Compile Include="Commands\Administrative\CreateRolesCommand.cs" />
     <Compile Include="Commands\Administrative\DeleteRolesCommand.cs" />
@@ -134,14 +136,17 @@
     <Compile Include="Commands\DonateCommand.cs" />
     <Compile Include="Commands\EditCmdCommand.cs" />
     <Compile Include="Commands\EnableDisableCommand.cs" />
+    <Compile Include="Commands\FeedsCommand.cs" />
     <Compile Include="Commands\HelpCommand.cs" />
     <Compile Include="Commands\InviteCommand.cs" />
     <Compile Include="Commands\InvitesCommand.cs" />
     <Compile Include="Commands\ListCmdCommand.cs" />
     <Compile Include="Commands\MapCommand.cs" />
+    <Compile Include="Commands\NearbyNestsCommand.cs" />
     <Compile Include="Commands\PokemonLookupCommand.cs" />
     <Compile Include="Commands\RaidLobbyListUsersCommand.cs" />
     <Compile Include="Commands\Administrative\SetCommand.cs" />
+    <Compile Include="Commands\ServerInfoCommand.cs" />
     <Compile Include="Commands\SetupCommand.cs" />
     <Compile Include="Commands\FeedCommand.cs" />
     <Compile Include="Commands\TeamCommand.cs" />
@@ -155,6 +160,7 @@
     <Compile Include="Commands\AddCommand.cs" />
     <Compile Include="Commands\Administrative\ShutdownCommand.cs" />
     <Compile Include="Commands\SubscribeCommand.cs" />
+    <Compile Include="Commands\TeamsCommand.cs" />
     <Compile Include="Commands\UnsubscribeCommand.cs" />
     <Compile Include="Commands\UptimeCommand.cs" />
     <Compile Include="Commands\VersionCommand.cs" />
@@ -165,6 +171,8 @@
     <Compile Include="Core\Categories.cs" />
     <Compile Include="Core\CommandAttribute.cs" />
     <Compile Include="Core\CommandList.cs" />
+    <Compile Include="Core\CommandPermissionAttribute.cs" />
+    <Compile Include="Core\CommandPermissionLevel.cs" />
     <Compile Include="Core\FilterBot.cs" />
     <Compile Include="Core\Pokemon.cs" />
     <Compile Include="Core\Roles.cs" />

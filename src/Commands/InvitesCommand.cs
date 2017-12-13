@@ -7,6 +7,7 @@
     using DSharpPlus.Entities;
 
     using BrockBot.Data;
+    using BrockBot.Extensions;
     using BrockBot.Utilities;
 
     [Command(
@@ -27,11 +28,7 @@
         {
             if (command.HasArgs) return;
 
-            if (message.Channel == null)
-            {
-                await message.RespondAsync("DM is not supported for this command yet.");
-                return;
-            }
+            await message.IsDirectMessageSupported();
 
             try
             {

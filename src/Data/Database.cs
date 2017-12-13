@@ -84,6 +84,28 @@
 
         #region Public Methods
 
+        public uint PokemonIdFromName(string name)
+        {
+            foreach (var poke in Pokemon)
+            {
+                if (poke.Value.Name.Contains(name))
+                    return Convert.ToUInt32(poke.Key);
+            }
+
+            return 0;
+        }
+
+        public string PokemonNameFromId(int id)
+        {
+            foreach (var poke in Pokemon)
+            {
+                if (poke.Key == id.ToString())
+                    return poke.Value.Name;
+            }
+
+            return null;
+        }
+
         public bool ContainsKey(ulong guildId)
         {
             return Servers.Exists(x => x.GuildId == guildId);

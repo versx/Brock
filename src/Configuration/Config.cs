@@ -114,6 +114,10 @@
         [JsonProperty("advertisement")]
         public AdvertisementConfig Advertisement { get; set; }
 
+        [XmlElement("nearbyNests")]
+        [JsonProperty("nearbyNests")]
+        public Dictionary<string, int> NearbyNests { get; set; }
+
         [XmlElement("customCommands")]
         [JsonProperty("customCommands")]
         public Dictionary<string, string> CustomCommands { get; set; }
@@ -151,6 +155,7 @@
             CityRoles = new List<string>();
             CommandsPrefix = '.';
             CustomCommands = new Dictionary<string, string>();
+            NearbyNests = new Dictionary<string, int>();
             NotifyMemberBanned = true;
             NotifyMemberUnbanned = true;
             NotifyNewMemberJoined = true;

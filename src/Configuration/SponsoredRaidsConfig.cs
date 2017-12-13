@@ -16,8 +16,8 @@
         public List<ulong> ChannelPool { get; set; }
 
         [XmlArray("keywords")]
-        [XmlArrayItem("sponsorRaidKeyword")]
-        [JsonProperty("sponsorRaidKeywords")]
+        [XmlArrayItem("keyword")]
+        [JsonProperty("keywords")]
         public List<string> Keywords { get; set; }
 
         [XmlElement("webHook")]

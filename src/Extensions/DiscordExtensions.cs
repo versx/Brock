@@ -13,6 +13,15 @@
     {
         #region Channel Extensions
 
+        public static async Task IsDirectMessageSupported(this DiscordMessage message)
+        {
+            if (message.Channel.Guild == null)
+            {
+                await message.RespondAsync("DM is not supported for this command yet.");
+                return;
+            }
+        }
+
         public static DiscordChannel GetChannelByName(this DiscordClient client, string channelName)
         {
             foreach (var guild in client.Guilds)
@@ -282,12 +291,21 @@
             await client.SendDirectMessage
             (
                 user,
-                welcomeMessage.Replace("{username}", user.Username),
+                ReplaceInfo(welcomeMessage, user),
                 //$"Hello {user.Username}, and welcome to versx's discord server!\r\n" +
                 //"I am here to help you with certain things if you require them such as notifications of Pokemon that have spawned as well as setting up Raid Lobbies.\r\n\r\n" +
                 //"To see a full list of my available commands please send me a direct message containing `.help`.",
                 null
             );
+        }
+
+        private static string ReplaceInfo(string message, DiscordUser user)
+        {
+            return message
+                .Replace("{username}", user.Username)
+                .Replace("{mention}", user.Mention)
+                .Replace("{server}", user.Presence.Guild.Name)
+                .Replace("{users}", user.Presence.Guild.MemberCount.ToString("N0"));
         }
 
         #endregion

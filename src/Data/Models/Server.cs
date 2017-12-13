@@ -23,11 +23,16 @@
 
         [XmlElement("subscriptions")]
         [JsonProperty("subscriptions")]
-        public List<Subscription> Subscriptions { get; set; }
+        public List<Subscription<Pokemon>> Subscriptions { get; set; }
+
+        [XmlArrayItem("raid")]
+        [XmlArray("raids")]
+        [JsonProperty("raids")]
+        public List<Subscription<Pokemon>> Raids { get; set; }
 
         [XmlIgnore]
         [JsonIgnore]
-        public Subscription this[ulong userId]
+        public Subscription<Pokemon> this[ulong userId]
         {
             get { return Subscriptions.Find(x => x.UserId == userId); }
         }
@@ -39,10 +44,11 @@
         public Server()
         {
             Lobbies = new List<RaidLobby>();
-            Subscriptions = new List<Subscription>();
+            Raids = new List<Subscription<Pokemon>>();
+            Subscriptions = new List<Subscription<Pokemon>>();
         }
 
-        public Server(ulong guildId, List<RaidLobby> lobbies, List<Subscription> subscriptions)
+        public Server(ulong guildId, List<RaidLobby> lobbies, List<Subscription<Pokemon>> subscriptions)
         {
             GuildId = guildId;
             Lobbies = lobbies;

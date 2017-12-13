@@ -16,79 +16,90 @@
 
         static async Task MainAsync(string[] args)
         {
-            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
-
-            Console.WriteLine($"Arguments: {string.Join(", ", args)}");
-
-            if (!Directory.Exists(LogsFolder))
+            try
             {
-                Directory.CreateDirectory(LogsFolder);
+                AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+
+                Console.WriteLine($"Arguments: {string.Join(", ", args)}");
+
+                if (!Directory.Exists(LogsFolder))
+                {
+                    Directory.CreateDirectory(LogsFolder);
+                }
+
+                var bot = new FilterBot { Logger = new EventLogger(Log) };
+
+                //General Commands
+                bot.RegisterCommand<HelpCommand>();
+                bot.RegisterCommand<TeamsCommand>();
+                bot.RegisterCommand<TeamCommand>();
+                bot.RegisterCommand<FeedsCommand>();
+                bot.RegisterCommand<FeedCommand>();
+                bot.RegisterCommand<PokemonLookupCommand>();
+                bot.RegisterCommand<InviteCommand>();
+                bot.RegisterCommand<InvitesCommand>();
+                bot.RegisterCommand<BansCommand>();
+                bot.RegisterCommand<VersionCommand>();
+
+                bot.RegisterCommand<ServerInfoCommand>();
+                bot.RegisterCommand<BotInfoCommand>();
+                bot.RegisterCommand<NearbyNestsCommand>();
+
+                //Information Commands
+                bot.RegisterCommand<MapCommand>();
+                bot.RegisterCommand<DonateCommand>();
+
+                //Custom Commands
+                bot.RegisterCommand<ListCmdCommand>();
+                bot.RegisterCommand<AddCmdCommand>();
+                bot.RegisterCommand<EditCmdCommand>();
+                bot.RegisterCommand<DelCmdCommand>();
+
+                //Notification Commands
+                bot.RegisterCommand<DemoCommand>();
+                bot.RegisterCommand<InfoCommand>();
+                bot.RegisterCommand<AddCommand>();
+                bot.RegisterCommand<RemoveCommand>();
+                bot.RegisterCommand<SubscribeCommand>();
+                bot.RegisterCommand<UnsubscribeCommand>();
+                bot.RegisterCommand<EnableDisableCommand>(true);
+                bot.RegisterCommand<EnableDisableCommand>(false);
+
+                //Raid Lobby Commands
+                bot.RegisterCommand<CreateRaidLobbyCommand>();
+                bot.RegisterCommand<RaidLobbyCheckInCommand>();
+                bot.RegisterCommand<RaidLobbyOnTheWayCommand>();
+                bot.RegisterCommand<RaidLobbyCancelCommand>();
+                bot.RegisterCommand<RaidLobbyListUsersCommand>();
+
+                //Twitter Commands
+                bot.RegisterCommand<ListTwitterCommand>();
+                bot.RegisterCommand<AddTwitterCommand>();
+                bot.RegisterCommand<DeleteTwitterCommand>();
+                bot.RegisterCommand<EnableDisableTwitterCommand>();
+
+                //Administrative Commands
+                bot.RegisterCommand<CreateRolesCommand>();
+                bot.RegisterCommand<DeleteRolesCommand>();
+                bot.RegisterCommand<AssignRolesCommand>();
+                bot.RegisterCommand<UptimeCommand>();
+                bot.RegisterCommand<SetCommand>();
+                bot.RegisterCommand<SayCommand>();
+                bot.RegisterCommand<LeavelGuildCommand>();
+                bot.RegisterCommand<BanCommand>();
+                bot.RegisterCommand<UnbanCommand>();
+                bot.RegisterCommand<RestartCommand>();
+                bot.RegisterCommand<ShutdownCommand>();
+
+                await bot.StartAsync();
+
+                Console.Read();
+                await bot.StopAsync();
             }
-
-            var bot = new FilterBot { Logger = new EventLogger(Log) };
-
-            //General Commands
-            bot.RegisterCommand<HelpCommand>();
-            bot.RegisterCommand<TeamCommand>();
-            bot.RegisterCommand<TeamsCommand>();
-            bot.RegisterCommand<CitiesCommand>();
-            bot.RegisterCommand<FeedCommand>();
-            bot.RegisterCommand<InviteCommand>();
-            bot.RegisterCommand<InvitesCommand>();
-            bot.RegisterCommand<PokemonLookupCommand>();
-            bot.RegisterCommand<VersionCommand>();
-            bot.RegisterCommand<BansCommand>();
-
-            //Information Commands
-            bot.RegisterCommand<MapCommand>();
-            bot.RegisterCommand<DonateCommand>();
-
-            //Custom Commands
-            bot.RegisterCommand<ListCmdCommand>();
-            bot.RegisterCommand<AddCmdCommand>();
-            bot.RegisterCommand<EditCmdCommand>();
-            bot.RegisterCommand<DelCmdCommand>();
-
-            //Notification Commands
-            bot.RegisterCommand<DemoCommand>();
-            bot.RegisterCommand<InfoCommand>();
-            bot.RegisterCommand<AddCommand>();
-            bot.RegisterCommand<RemoveCommand>();
-            bot.RegisterCommand<SubscribeCommand>();
-            bot.RegisterCommand<UnsubscribeCommand>();
-            bot.RegisterCommand<EnableDisableCommand>(true);
-            bot.RegisterCommand<EnableDisableCommand>(false);
-
-            //Raid Lobby Commands
-            bot.RegisterCommand<CreateRaidLobbyCommand>();
-            bot.RegisterCommand<RaidLobbyCheckInCommand>();
-            bot.RegisterCommand<RaidLobbyOnTheWayCommand>();
-            bot.RegisterCommand<RaidLobbyCancelCommand>();
-            bot.RegisterCommand<RaidLobbyListUsersCommand>();
-
-            //Twitter Commands
-            bot.RegisterCommand<ListTwitterCommand>();
-            bot.RegisterCommand<AddTwitterCommand>();
-            bot.RegisterCommand<DeleteTwitterCommand>();
-            bot.RegisterCommand<EnableDisableTwitterCommand>();
-
-            //Administrative Commands
-            bot.RegisterCommand<CreateRolesCommand>();
-            bot.RegisterCommand<DeleteRolesCommand>();
-            bot.RegisterCommand<UptimeCommand>();
-            bot.RegisterCommand<SetCommand>();
-            bot.RegisterCommand<SayCommand>();
-            bot.RegisterCommand<LeavelGuildCommand>();
-            bot.RegisterCommand<BanCommand>();
-            bot.RegisterCommand<UnbanCommand>();
-            bot.RegisterCommand<RestartCommand>();
-            bot.RegisterCommand<ShutdownCommand>();
-
-            //TODO: Auto-post delete after x minutes/hours etc :arrows_counterclockwise: 
-            await bot.StartAsync();
-
-            Console.Read();
-            await bot.StopAsync();
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
         }
 
         static void Log(LogType logType, string message)

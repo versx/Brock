@@ -44,7 +44,9 @@
             if (!command.HasArgs) return;
             if (command.Args.Count != 1) return;
 
-            if (message.Channel == null) return;
+
+            await message.IsDirectMessageSupported();
+
             var server = Db[message.Channel.GuildId];
             if (server == null) return;
 

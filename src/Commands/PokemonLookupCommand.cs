@@ -11,7 +11,7 @@
     [Command(
         Categories.General,
         "Simple Pokemon stats lookup.",
-        "\tExample: .poke 25",
+        "\tExample: `.poke 25`",
         "poke"
     )]
     public class PokemonLookupCommand : ICustomCommand

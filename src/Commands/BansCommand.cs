@@ -7,6 +7,7 @@
     using DSharpPlus.Entities;
 
     using BrockBot.Data;
+    using BrockBot.Extensions;
     using BrockBot.Utilities;
 
     [Command(
@@ -25,11 +26,7 @@
 
         public async Task Execute(DiscordMessage message, Command command)
         {
-            if (message.Channel == null)
-            {
-                await message.RespondAsync("DM is not supported yet for this command.");
-                return;
-            }
+            await message.IsDirectMessageSupported();
 
             try
             {

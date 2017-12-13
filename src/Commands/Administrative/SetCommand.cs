@@ -54,43 +54,135 @@
             switch (setting)
             {
                 case "owner":
-                    //TODO: Check if provided user exists.
-                    _config.OwnerId = Convert.ToUInt64(value);
+                    #region
+                    if (!ulong.TryParse(value, out ulong newOwnerId))
+                    {
+                        await message.RespondAsync($"{value} is not a valid user id.");
+                        return;
+                    }
+
+                    var newOwner = await Client.GetUserAsync(newOwnerId);
+                    if (newOwner == null)
+                    {
+                        await message.RespondAsync($"{value} is not a valid user id.");
+                        return;
+                    }
+
+                    _config.OwnerId = newOwnerId;
                     break;
+                    #endregion
                 case "command_channel":
-                    //TODO: Check if provided commands channel exists.
+                    #region
+                    if (!ulong.TryParse(value, out ulong newCommandChannelId))
+                    {
+                        await message.RespondAsync($"{value} is not a valid channel id.");
+                        return;
+                    }
+
+                    var newChannel = await Client.GetChannelAsync(newCommandChannelId);
+                    if (newChannel == null)
+                    {
+                        await message.RespondAsync($"{value} is not a valid channel id.");
+                        return;
+                    }
+
                     _config.CommandsChannelId = Convert.ToUInt64(value);
                     break;
+                    #endregion
                 case "prefix":
                     _config.CommandsPrefix = value[0];
                     break;
                 case "notify_joined":
-                    _config.NotifyNewMemberJoined = Convert.ToBoolean(value);
+                    #region
+                    if (!bool.TryParse(value, out bool notifyJoined))
+                    {
+                        await message.RespondAsync($"{value} is not a valid value, please use true or false.");
+                        return;
+                    }
+
+                    _config.NotifyNewMemberJoined = notifyJoined;
                     break;
+                    #endregion
                 case "notify_left":
+                    #region
+                    if (!bool.TryParse(value, out bool notifyLeft))
+                    {
+                        await message.RespondAsync($"{value} is not a valid value, please use true or false.");
+                        return;
+                    }
+
                     _config.NotifyMemberLeft = Convert.ToBoolean(value);
                     break;
+                    #endregion
                 case "notify_banned":
-                    _config.NotifyMemberBanned = Convert.ToBoolean(value);
+                    #region
+                    if (!bool.TryParse(value, out bool notifyBanned))
+                    {
+                        await message.RespondAsync($"{value} is not a valid value, please use true or false.");
+                        return;
+                    }
+
+                    _config.NotifyMemberBanned = notifyBanned;
                     break;
+                    #endregion
                 case "notify_unbanned":
-                    _config.NotifyMemberUnbanned = Convert.ToBoolean(value);
+                    #region
+                    if (!bool.TryParse(value, out bool notifyUnbanned))
+                    {
+                        await message.RespondAsync($"{value} is not a valid value, please use true or false.");
+                        return;
+                    }
+
+                    _config.NotifyMemberUnbanned = notifyUnbanned;
                     break;
+                    #endregion
                 case "team_assignment":
-                    _config.AllowTeamAssignment = Convert.ToBoolean(value);
+                    #region
+                    if (!bool.TryParse(value, out bool teamAssignment))
+                    {
+                        await message.RespondAsync($"{value} is not a valid value, please use true or false.");
+                        return;
+                    }
+
+                    _config.AllowTeamAssignment = teamAssignment;
                     break;
+                    #endregion
                 case "welcome":
-                    _config.SendWelcomeMessage = Convert.ToBoolean(value);
+                    #region
+                    if (!bool.TryParse(value, out bool sendWelcome))
+                    {
+                        await message.RespondAsync($"{value} is not a valid value, please use true or false.");
+                        return;
+                    }
+
+                    _config.SendWelcomeMessage = sendWelcome;
                     break;
+                    #endregion
                 case "welcome_msg":
                     _config.WelcomeMessage = value;
                     break;
                 case "twitter":
-                    _config.TwitterUpdates.PostTwitterUpdates = Convert.ToBoolean(value);
+                    #region
+                    if (!bool.TryParse(value, out bool sendTwitter))
+                    {
+                        await message.RespondAsync($"{value} is not a valid value, please use true or false.");
+                        return;
+                    }
+
+                    _config.TwitterUpdates.PostTwitterUpdates = sendTwitter;
                     break;
+                    #endregion
                 case "advertisement":
-                    _config.Advertisement.Enabled = Convert.ToBoolean(value);
+                    #region
+                    if (!bool.TryParse(value, out bool sendAdvertisement))
+                    {
+                        await message.RespondAsync($"{value} is not a valid value, please use true or false.");
+                        return;
+                    }
+
+                    _config.Advertisement.Enabled = sendAdvertisement;
                     break;
+                    #endregion
             }
 
             _config.Save();

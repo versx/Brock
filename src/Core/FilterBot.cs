@@ -26,16 +26,19 @@
     using Tweetinvi.Streaming;
     using Tweetinvi.Streaming.Parameters;
 
-    //TODO: Post donation message and team information message once/twice a day.
-    //TODO: Change .team and .feed commands to .iam and .iamnot?
-    //TODO: Notify via SMS or Twilio or w/e.
-    //TODO: .interested command or something similar.
+    //TODO: Prune users. await guild.GetPruneCountAsync(365); await guild.PruneAsync(365, "Inactive users");
+    //TODO: Loop through all arguments for the .feed command. Check if first arg is == remove, if not then assume all arguments are city roles?
+    //TODO: Finish Raid notification management commands.
+    //TODO: Add scanning pokemon list command.
+    //TODO: Add rate limiter to prevent spam.
+    //TODO: Add reminders?
+    //TODO: Add .interested command or something similar.
+    //TODO: Notify via SMS or Email or Twilio or w/e.
 
     public class FilterBot
     {
         public const string BotName = "Brock";
         public static string DefaultAdvertisementMessage;
-        //":arrows_counterclockwise: Welcome to versx's server, in order to see a city feed you will need to assign yourself to a city role using the .feed command followed by one or more of the available cities separated by a comma (,): {0}, or None.";
         public const int DefaultAdvertisementMessageDifference = 8;
         public const int OneMinute = 60 * 1000;
 
@@ -63,9 +66,42 @@
 
         public FilterBot()
         {
+            Logger = new EventLogger();
+            //Logger.Trace($"FilterBot::FilterBot");
+            //Logger.Info($"Logging started for {AssemblyUtils.AssemblyName} v{AssemblyUtils.AssemblyVersion} by {AssemblyUtils.CompanyName}...");
+            Commands = new CommandList();
+
             _db = Database.Load();
-            _config = Config.Load();
+            _config = File.Exists(Config.ConfigFilePath) ? Config.Load() : Config.CreateDefaultConfig(true);
             _rand = new Random();
+
+            _client = new DiscordClient
+            (
+                new DiscordConfiguration
+                {
+                    AutoReconnect = true,
+                    LogLevel = LogLevel.Debug,
+                    Token = _config.AuthToken,
+                    TokenType = TokenType.Bot
+                }
+            );
+
+            _client.MessageCreated += Client_MessageCreated;
+            _client.Ready += Client_Ready;
+            _client.DmChannelCreated += Client_DmChannelCreated;
+            _client.GuildMemberAdded += Client_GuildMemberAdded;
+            _client.GuildMemberRemoved += Client_GuildMemberRemoved;
+            _client.GuildBanAdded += Client_GuildBanAdded;
+            _client.GuildBanRemoved += Client_GuildBanRemoved;
+
+            var pokeId = _db.PokemonIdFromName("Magikarp");
+            if (pokeId > 0)
+            {
+                if (_db.Servers[0].Raids.Count == 0)
+                {
+                    _db.Servers[0].Raids.Add(new Subscription<Pokemon>(266771160253988875, new List<Pokemon> { new Pokemon { PokemonId = pokeId } }, new List<ulong>()) { Enabled = true });
+                }
+            }
 
             Task.Run(Init);
         }
@@ -82,7 +118,7 @@
             {
                 if (!_db.ContainsKey(guild.Key))
                 {
-                    _db.Servers.Add(new Server(guild.Key, new List<RaidLobby>(), new List<Subscription>()));
+                    _db.Servers.Add(new Server(guild.Key, new List<RaidLobby>(), new List<Subscription<Pokemon>>()));
                 }
             }
 
@@ -108,20 +144,24 @@
 
         private async Task Client_MessageCreated(MessageCreateEventArgs e)
         {
-            Logger.Trace($"FilterBot::Client_MessageCreated [Username={e.Message.Author.Username} Message={e.Message.Content}]");
+            if (!e.Message.Author.IsBot)
+            {
+                Logger.Trace($"FilterBot::Client_MessageCreated [Username={e.Message.Author.Username} Message={e.Message.Content}]");
+            }
 
             //Console.WriteLine($"Message recieved from server {e.Guild.Name} #{e.Message.Channel.Name}: {e.Message.Author.Username} (IsBot: {e.Message.Author.IsBot}) {e.Message.Content}");
 
             if (e.Message.Author.Id == _client.CurrentUser.Id) return;
 
-            //if (e.Message.Channel == null) return;
+            //await message.IsDirectMessageSupported();
             //var server = _db.Servers[e.Message.Channel.GuildId];
             //if (server == null) return;
 
             if (e.Message.Author.IsBot)
             {
                 await CheckSponsoredRaids(e.Message);
-                await CheckSubscriptions(e.Message);
+                await CheckPokeSubscriptions(e.Message);
+                await CheckRaidSubscriptions(e.Message);
             }
             else if (e.Message.Channel.Id == _config.CommandsChannelId || 
                      e.Message.Channel.Id == _config.AdminCommandsChannelId ||
@@ -193,6 +233,25 @@
             {
                 await _client.SendWelcomeMessage(e.Member, _config.WelcomeMessage);
             }
+
+#pragma warning disable RECS0165
+            new System.Threading.Thread(async x =>
+#pragma warning restore RECS0165
+            {
+                foreach (var city in _config.CityRoles)
+                {
+                    var cityRole = _client.GetRoleFromName(city);
+                    if (cityRole == null)
+                    {
+                        //Failed to find role.
+                        Utils.LogError(new Exception($"Failed to find city role {city}, please make sure it exists."));
+                        continue;
+                    }
+
+                    await e.Member.GrantRoleAsync(cityRole, "Default city role assignment initialization.");
+                }
+            })
+            { IsBackground = true }.Start();
         }
 
         private async Task Client_GuildMemberRemoved(GuildMemberRemoveEventArgs e)
@@ -407,36 +466,8 @@
         private async Task Init()
         {
             var channel = await _client.GetChannel(_config.CommandsChannelId);
-            DefaultAdvertisementMessage = $":arrows_counterclockwise: Welcome to **versx**'s server! Looks empty? You need to assign yourself to a city feed or team, please review the pinned messages in the {channel.Mention} channel or type `.help`.";
-
-            Logger = new EventLogger();
-            //Logger.Trace($"FilterBot::FilterBot");
-            //Logger.Info($"Logging started for {AssemblyUtils.AssemblyName} v{AssemblyUtils.AssemblyVersion} by {AssemblyUtils.CompanyName}...");
-            Commands = new CommandList();
-
-            if (!File.Exists(Config.ConfigFilePath))
-            {
-                Config.CreateDefaultConfig(true);
-            }
-
-            _client = new DiscordClient
-            (
-                new DiscordConfiguration
-                {
-                    AutoReconnect = true,
-                    LogLevel = LogLevel.Debug,
-                    Token = _config.AuthToken,
-                    TokenType = TokenType.Bot
-                }
-            );
-
-            _client.MessageCreated += Client_MessageCreated;
-            _client.Ready += Client_Ready;
-            _client.DmChannelCreated += Client_DmChannelCreated;
-            _client.GuildMemberAdded += Client_GuildMemberAdded;
-            _client.GuildMemberRemoved += Client_GuildMemberRemoved;
-            _client.GuildBanAdded += Client_GuildBanAdded;
-            _client.GuildBanRemoved += Client_GuildBanRemoved;
+            DefaultAdvertisementMessage = $":arrows_counterclockwise: Welcome to **versx**'s server! To assign or unassign yourself to or from a city feed or team please review the pinned messages in the {channel.Mention} channel or type `.help`.";
+            //":arrows_counterclockwise: Welcome to versx's server, in order to see a city feed you will need to assign yourself to a city role using the .feed command followed by one or more of the available cities separated by a comma (,): {0}, or None.";
         }
 
         private async Task ParseCommand(DiscordMessage message)
@@ -535,7 +566,7 @@
             }
         }
 
-        private async Task CheckSubscriptions(DiscordMessage message)
+        private async Task CheckPokeSubscriptions(DiscordMessage message)
         {
             if (message.Channel == null) return;
             var server = _db[message.Channel.GuildId];
@@ -549,7 +580,7 @@
                 discordUser = await _client.GetUserAsync(user.UserId);
                 if (discordUser == null) continue;
 
-                if (!user.ChannelIds.Contains(message.Channel.Id)) continue;
+                //if (!user.ChannelIds.Contains(message.Channel.Id)) continue;
 
                 foreach (var poke in user.Pokemon)
                 {
@@ -561,6 +592,39 @@
                     Console.WriteLine($"Notifying user {discordUser.Username} that a {pokemon.Name} has appeared in channel #{message.Channel.Name}...");
 
                     var msg = $"A wild {pokemon.Name} has appeared in channel {message.Channel.Mention}!\r\n\r\n" + message.Content;
+                    Notify(discordUser.Username, msg, poke, message.Embeds[0]);
+
+                    await _client.SendDirectMessage(discordUser, msg, message.Embeds.Count == 0 ? null : message.Embeds[0]);
+                }
+            }
+        }
+
+        private async Task CheckRaidSubscriptions(DiscordMessage message)
+        {
+            if (message.Channel == null) return;
+            var server = _db[message.Channel.GuildId];
+            if (server == null) return;
+
+            DiscordUser discordUser;
+            foreach (var raid in server.Raids)
+            {
+                if (!raid.Enabled) continue;
+
+                discordUser = await _client.GetUserAsync(raid.UserId);
+                if (discordUser == null) continue;
+
+                if (!_config.SponsoredRaids.ChannelPool.Contains(message.Channel.Id)) continue;
+
+                foreach (var poke in raid.Pokemon)
+                {
+                    if (!_db.Pokemon.ContainsKey(poke.PokemonId.ToString())) continue;
+                    var pokemon = _db.Pokemon[poke.PokemonId.ToString()];
+
+                    if (!message.Author.Username.ToLower().Contains(pokemon.Name.ToLower())) continue;
+                    
+                    Console.WriteLine($"Notifying user {discordUser.Username} that a {pokemon.Name} raid is available...");
+
+                    var msg = $"A {pokemon.Name} raid is available!\r\n\r\n" + message.Content;
                     Notify(discordUser.Username, msg, poke, message.Embeds[0]);
 
                     await _client.SendDirectMessage(discordUser, msg, message.Embeds.Count == 0 ? null : message.Embeds[0]);
@@ -652,8 +716,9 @@
                         foreach (var poke in sub.Pokemon)
                         {
                             if (!_db.Pokemon.ContainsKey(poke.PokemonId.ToString())) continue;
-                            Console.WriteLine(_db.Pokemon[poke.PokemonId.ToString()].Name + $" ({poke})");
+                            Console.WriteLine(_db.Pokemon[poke.PokemonId.ToString()].Name + $" (Id: {poke.PokemonId}, Minimum CP: {poke.MinimumCP}, Minimum IV: {poke.MinimumIV})");
                         }
+                        Console.WriteLine();
                         Console.WriteLine($"Channel Subscriptions: {string.Join(", ", sub.ChannelIds)}");
                         Console.WriteLine();
                         Console.WriteLine();
@@ -759,7 +824,6 @@
         {
             if (!_config.Advertisement.Enabled) return;
 
-            //var channel = _client.GetChannelByName(_config.CommandsChannel);
             var channel = await _client.GetChannel(_config.Advertisement.ChannelId);
             if (channel == null)
             {
@@ -769,7 +833,13 @@
 
             if (_config.Advertisement.LastMessageId == 0)
             {
-                var msg = string.Format(string.IsNullOrEmpty(_config.Advertisement.Message) ? DefaultAdvertisementMessage : _config.Advertisement.Message, string.Join(", ", _config.CityRoles));
+                var msg = string.Format
+                (
+                    string.IsNullOrEmpty(_config.Advertisement.Message) 
+                    ? DefaultAdvertisementMessage 
+                    : _config.Advertisement.Message, 
+                    string.Join(",", _config.CityRoles)
+                );
                 var sentMessage = await channel.SendMessageAsync(msg);
                 _config.Advertisement.LastMessageId = sentMessage.Id;
                 _config.Save();
@@ -798,15 +868,14 @@
                     }
 
                     var message = await _client.GetMessageById(guild.Id, _config.Advertisement.LastMessageId);
-                    if (message == null)
+                    if (message != null)
                     {
-                        Console.WriteLine($"Failed to retrieve last advertisement message with id {_config.Advertisement.LastMessageId}.");
-                        return;
+						await message.DeleteAsync();
+                        //Console.WriteLine($"Failed to retrieve last advertisement message with id {_config.Advertisement.LastMessageId}.");
+                        //return;
                     }
 
-                    await message.DeleteAsync();
-
-                    var msg = string.Format(string.IsNullOrEmpty(_config.Advertisement.Message) ? DefaultAdvertisementMessage : _config.Advertisement.Message, string.Join(", ", _config.CityRoles));
+                    var msg = string.Format(string.IsNullOrEmpty(_config.Advertisement.Message) ? DefaultAdvertisementMessage : _config.Advertisement.Message, string.Join(",", _config.CityRoles));
                     var sentMessage = await channel.SendMessageAsync(msg);
                     _config.Advertisement.LastMessageId = sentMessage.Id;
                     _config.Save();
@@ -815,12 +884,5 @@
         }
 
         #endregion
-    }
-
-    public enum CommandPermissionLevel
-    {
-        User,
-        Moderator,
-        Admin
     }
 }
