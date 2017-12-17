@@ -28,5 +28,14 @@
         [XmlElement("channelId")]
         [JsonProperty("channelId")]
         public ulong ChannelId { get; set; }
+
+        [XmlElement("messageThreshold")]
+        [JsonProperty("messageThreshold")]
+        public int MessageThreshold { get; set; }
+
+        public AdvertisementConfig()
+        {
+            MessageThreshold = 10;
+        }
     }
 }

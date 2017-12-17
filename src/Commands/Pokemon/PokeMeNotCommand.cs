@@ -12,12 +12,12 @@
     [Command(
         Categories.Notifications,
         "Unsubscribe from a one or more or even all subscribed Pokemon notifications.",
-        "\tExample: `.unsub 149`\r\n" +
-        "\tExample: `.unsub 3,6,9,147,148,149`\r\n" +
-        "\tExample: `.unsub` (Removes all subscribed Pokemon notifications.)",
-        "unsub"
+        "\tExample: `.pokemenot 149`\r\n" +
+        "\tExample: `.pokemenot 3,6,9,147,148,149`\r\n" +
+        "\tExample: `.pokemenot` (Removes all subscribed Pokemon notifications.)",
+        "pokemenot"
     )]
-    public class UnsubscribeCommand : ICustomCommand
+    public class PokeMeNotCommand : ICustomCommand
     {
         #region Properties
 
@@ -31,7 +31,7 @@
 
         #region Constructor
 
-        public UnsubscribeCommand(DiscordClient client, IDatabase db)
+        public PokeMeNotCommand(DiscordClient client, IDatabase db)
         {
             Client = client;
             Db = db;
@@ -48,7 +48,7 @@
 
             var author = message.Author.Id;
 
-            if (server.ContainsKey(author))
+            if (server.SubscriptionExists(author))
             {
                 if (command.HasArgs && command.Args.Count == 1)
                 {
@@ -78,7 +78,7 @@
                 }
                 else
                 {
-                    server.Remove(author);
+                    server.RemoveAllPokemon(author);
                     await message.RespondAsync($"You have successfully unsubscribed from all notifications!");
                 }
             }

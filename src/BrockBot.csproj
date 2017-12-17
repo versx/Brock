@@ -135,8 +135,10 @@
     <Compile Include="Commands\DemoCommand.cs" />
     <Compile Include="Commands\DonateCommand.cs" />
     <Compile Include="Commands\EditCmdCommand.cs" />
-    <Compile Include="Commands\EnableDisableCommand.cs" />
-    <Compile Include="Commands\FeedsCommand.cs" />
+    <Compile Include="Commands\Pokemon\EnableDisableCommand.cs" />
+    <Compile Include="Commands\Feeds\FeedsCommand.cs" />
+    <Compile Include="Commands\Feeds\FeedMeCommand.cs" />
+    <Compile Include="Commands\Feeds\FeedMeNotCommand.cs" />
     <Compile Include="Commands\HelpCommand.cs" />
     <Compile Include="Commands\InviteCommand.cs" />
     <Compile Include="Commands\InvitesCommand.cs" />
@@ -146,12 +148,14 @@
     <Compile Include="Commands\PokemonLookupCommand.cs" />
     <Compile Include="Commands\RaidLobbyListUsersCommand.cs" />
     <Compile Include="Commands\Administrative\SetCommand.cs" />
+    <Compile Include="Commands\Raids\RaidMeCommand.cs" />
+    <Compile Include="Commands\Raids\RaidMeNotCommand.cs" />
     <Compile Include="Commands\ServerInfoCommand.cs" />
     <Compile Include="Commands\SetupCommand.cs" />
-    <Compile Include="Commands\FeedCommand.cs" />
+    <Compile Include="Commands\Feeds\FeedCommand.cs" />
     <Compile Include="Commands\TeamCommand.cs" />
     <Compile Include="Commands\ICustomCommand.cs" />
-    <Compile Include="Commands\InfoCommand.cs" />
+    <Compile Include="Commands\Pokemon\InfoCommand.cs" />
     <Compile Include="Commands\RaidLobbyCancelCommand.cs" />
     <Compile Include="Commands\RaidLobbyCheckInCommand.cs" />
     <Compile Include="Commands\RaidLobbyOnTheWayCommand.cs" />
@@ -159,9 +163,9 @@
     <Compile Include="Commands\Administrative\RestartCommand.cs" />
     <Compile Include="Commands\AddCommand.cs" />
     <Compile Include="Commands\Administrative\ShutdownCommand.cs" />
-    <Compile Include="Commands\SubscribeCommand.cs" />
+    <Compile Include="Commands\Pokemon\PokeMeCommand.cs" />
     <Compile Include="Commands\TeamsCommand.cs" />
-    <Compile Include="Commands\UnsubscribeCommand.cs" />
+    <Compile Include="Commands\Pokemon\PokeMeNotCommand.cs" />
     <Compile Include="Commands\UptimeCommand.cs" />
     <Compile Include="Commands\VersionCommand.cs" />
     <Compile Include="Configuration\AdvertisementConfig.cs" />
@@ -191,6 +195,7 @@
     <Compile Include="Diagnostics\LogType.cs" />
     <Compile Include="Extensions\DiscordExtensions.cs" />
     <Compile Include="Extensions\TypeExtensions.cs" />
+    <Compile Include="Net\HttpServer.cs" />
     <Compile Include="Net\IDiscordChannel.cs" />
     <Compile Include="Net\IDiscordClient.cs" />
     <Compile Include="Program.cs" />
@@ -205,5 +210,6 @@
     <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

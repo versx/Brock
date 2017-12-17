@@ -69,6 +69,10 @@
         [JsonProperty("authToken")]
         public string AuthToken { get; set; }
 
+        [XmlElement("webHookPort")]
+        [JsonProperty("webHookPort")]
+        public ushort WebHookPort { get; set; }
+
         [XmlElement("sendStartupMessage")]
         [JsonProperty("sendStartupMessage")]
         public bool SendStartupMessage { get; set; }
@@ -175,6 +179,7 @@
             //    "Looks like we're not in Kansas anymore...",
             //    "Hey...watch where you put those mittens!"
             //};
+            WebHookPort = 8008;
             WelcomeMessage = DefaultWelcomeMessage;
             SponsoredRaids = new SponsoredRaidsConfig();
             TwitterUpdates = new TwitterUpdatesConfig();

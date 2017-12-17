@@ -34,7 +34,9 @@
                 bot.RegisterCommand<TeamsCommand>();
                 bot.RegisterCommand<TeamCommand>();
                 bot.RegisterCommand<FeedsCommand>();
-                bot.RegisterCommand<FeedCommand>();
+                //bot.RegisterCommand<FeedCommand>();
+                bot.RegisterCommand<FeedMeCommand>();
+                bot.RegisterCommand<FeedMeNotCommand>();
                 bot.RegisterCommand<PokemonLookupCommand>();
                 bot.RegisterCommand<InviteCommand>();
                 bot.RegisterCommand<InvitesCommand>();
@@ -58,10 +60,14 @@
                 //Notification Commands
                 bot.RegisterCommand<DemoCommand>();
                 bot.RegisterCommand<InfoCommand>();
-                bot.RegisterCommand<AddCommand>();
-                bot.RegisterCommand<RemoveCommand>();
-                bot.RegisterCommand<SubscribeCommand>();
-                bot.RegisterCommand<UnsubscribeCommand>();
+                //bot.RegisterCommand<AddCommand>();
+                //bot.RegisterCommand<RemoveCommand>();
+                //bot.RegisterCommand<SubscribeCommand>();
+                //bot.RegisterCommand<UnsubscribeCommand>();
+                bot.RegisterCommand<PokeMeCommand>();
+                bot.RegisterCommand<PokeMeNotCommand>();
+                bot.RegisterCommand<RaidMeCommand>();
+                bot.RegisterCommand<RaidMeNotCommand>();
                 bot.RegisterCommand<EnableDisableCommand>(true);
                 bot.RegisterCommand<EnableDisableCommand>(false);
 

@@ -25,11 +25,6 @@
         [JsonProperty("subscriptions")]
         public List<Subscription<Pokemon>> Subscriptions { get; set; }
 
-        [XmlArrayItem("raid")]
-        [XmlArray("raids")]
-        [JsonProperty("raids")]
-        public List<Subscription<Pokemon>> Raids { get; set; }
-
         [XmlIgnore]
         [JsonIgnore]
         public Subscription<Pokemon> this[ulong userId]
@@ -44,7 +39,6 @@
         public Server()
         {
             Lobbies = new List<RaidLobby>();
-            Raids = new List<Subscription<Pokemon>>();
             Subscriptions = new List<Subscription<Pokemon>>();
         }
 
@@ -59,16 +53,28 @@
 
         #region Public Methods
 
-        public bool ContainsKey(ulong userId)
+        public bool SubscriptionExists(ulong userId)
         {
             return this[userId] != null;
         }
 
-        public bool Remove(ulong userId)
+        public bool RemoveAllPokemon(ulong userId)
         {
-            if (ContainsKey(userId))
+            if (SubscriptionExists(userId))
             {
-                return Subscriptions.Remove(this[userId]);
+                var sub = this[userId];
+                sub.Pokemon.Clear();
+            }
+
+            return false;
+        }
+
+        public bool RemoveAllRaids(ulong userId)
+        {
+            if (SubscriptionExists(userId))
+            {
+                var sub = this[userId];
+                sub.Raids.Clear();
             }
 
             return false;

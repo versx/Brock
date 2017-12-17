@@ -16,6 +16,7 @@
     using BrockBot.Data.Models;
     using BrockBot.Diagnostics;
     using BrockBot.Extensions;
+    using BrockBot.Net;
     using BrockBot.Utilities;
 
     using DSharpPlus;
@@ -34,6 +35,10 @@
     //TODO: Add reminders?
     //TODO: Add .interested command or something similar.
     //TODO: Notify via SMS or Email or Twilio or w/e.
+
+    //Pokemon Subscriptions: poke/unpoke/nopoke <name/id>
+    //Raid Subscriptions: raid/unraid/noraid <name/id>
+    //notify-raid/notify_raid
 
     public class FilterBot
     {
@@ -94,16 +99,54 @@
             _client.GuildBanAdded += Client_GuildBanAdded;
             _client.GuildBanRemoved += Client_GuildBanRemoved;
 
-            var pokeId = _db.PokemonIdFromName("Magikarp");
-            if (pokeId > 0)
-            {
-                if (_db.Servers[0].Raids.Count == 0)
-                {
-                    _db.Servers[0].Raids.Add(new Subscription<Pokemon>(266771160253988875, new List<Pokemon> { new Pokemon { PokemonId = pokeId } }, new List<ulong>()) { Enabled = true });
-                }
-            }
+            //var guildId = 342025055510855680u;
+            //var userId = 266771160253988875u;
+            //var pokeId = _db.PokemonIdFromName("Absol");
+
+            //_db.Servers.Add(new Server(guildId, new List<RaidLobby>(), new List<Subscription<Pokemon>>()));
+            //_db[guildId].Subscriptions.Add
+            //(
+            //    new Subscription<Pokemon>
+            //    (
+            //        userId,
+            //        new List<Pokemon>
+            //        {
+            //            new Pokemon { PokemonId = 147, PokemonName = "Dratini" },
+            //            new Pokemon { PokemonId = 148, PokemonName = "Dragonair" },
+            //            new Pokemon { PokemonId = 149, PokemonName = "Dragonite" },
+            //            new Pokemon { PokemonId = 201, PokemonName = "Unown" },
+            //            new Pokemon { PokemonId = 246, PokemonName = "Larvitar" },
+            //            new Pokemon { PokemonId = 247, PokemonName = "Pupitar" },
+            //            new Pokemon { PokemonId = 248, PokemonName = "Tyranitar" }
+            //        },
+            //        new List<Pokemon>
+            //        {
+            //            new Pokemon { PokemonId = pokeId, PokemonName = "Absol" }
+            //        }
+            //    )
+            //);
+            //_db.Save();
+            //Environment.Exit(0);
 
             Task.Run(Init);
+
+            var http = new HttpServer(_config.WebHookPort);
+            http.PokemonReceived += PokemonReceived;
+            http.RaidReceived += RaidReceived;
+        }
+
+        #endregion
+
+        #region Http Server Events
+
+        private async void RaidReceived(object sender, RaidReceivedEventArgs e)
+        {
+            await CheckRaidSubscriptions(e.Raid);
+        }
+
+        private async void PokemonReceived(object sender, PokemonReceivedEventArgs e)
+        {
+            await CheckPokeSubscriptions(e.Pokemon);
         }
 
         #endregion
@@ -160,8 +203,8 @@
             if (e.Message.Author.IsBot)
             {
                 await CheckSponsoredRaids(e.Message);
-                await CheckPokeSubscriptions(e.Message);
-                await CheckRaidSubscriptions(e.Message);
+                //await CheckPokeSubscriptions(e.Message);
+                //await CheckRaidSubscriptions(e.Message);
             }
             else if (e.Message.Channel.Id == _config.CommandsChannelId || 
                      e.Message.Channel.Id == _config.AdminCommandsChannelId ||
@@ -229,11 +272,6 @@
                 await channel.SendMessageAsync($"Everyone let's welcome {e.Member.Mention} to the server! We've been waiting for you!");
             }
 
-            if (_config.SendWelcomeMessage)
-            {
-                await _client.SendWelcomeMessage(e.Member, _config.WelcomeMessage);
-            }
-
 #pragma warning disable RECS0165
             new System.Threading.Thread(async x =>
 #pragma warning restore RECS0165
@@ -252,6 +290,11 @@
                 }
             })
             { IsBackground = true }.Start();
+
+            if (_config.SendWelcomeMessage)
+            {
+                await _client.SendWelcomeMessage(e.Member, _config.WelcomeMessage);
+            }
         }
 
         private async Task Client_GuildMemberRemoved(GuildMemberRemoveEventArgs e)
@@ -466,7 +509,7 @@
         private async Task Init()
         {
             var channel = await _client.GetChannel(_config.CommandsChannelId);
-            DefaultAdvertisementMessage = $":arrows_counterclockwise: Welcome to **versx**'s server! To assign or unassign yourself to or from a city feed or team please review the pinned messages in the {channel.Mention} channel or type `.help`.";
+            DefaultAdvertisementMessage = $":arrows_counterclockwise: Welcome to **{channel.Guild.Name}**'s server! To assign or unassign yourself to or from a city feed or team please review the pinned messages in the {channel.Mention} channel or type `.help`.";
             //":arrows_counterclockwise: Welcome to versx's server, in order to see a city feed you will need to assign yourself to a city role using the .feed command followed by one or more of the available cities separated by a comma (,): {0}, or None.";
         }
 
@@ -566,71 +609,137 @@
             }
         }
 
-        private async Task CheckPokeSubscriptions(DiscordMessage message)
+        #region Subscriptions
+
+        private async Task CheckPokeSubscriptions(PokemonData pkmn)
         {
-            if (message.Channel == null) return;
-            var server = _db[message.Channel.GuildId];
-            if (server == null) return;
-
             DiscordUser discordUser;
-            foreach (var user in server.Subscriptions)
+            foreach (var server in _db.Servers)
             {
-                if (!user.Enabled) continue;
-
-                discordUser = await _client.GetUserAsync(user.UserId);
-                if (discordUser == null) continue;
-
-                //if (!user.ChannelIds.Contains(message.Channel.Id)) continue;
-
-                foreach (var poke in user.Pokemon)
+                foreach (var user in server.Subscriptions)
                 {
-                    if (!_db.Pokemon.ContainsKey(poke.PokemonId.ToString())) continue;
-                    var pokemon = _db.Pokemon[poke.PokemonId.ToString()];
+                    if (!user.Enabled) continue;
 
-                    if (!message.Author.Username.ToLower().Contains(pokemon.Name.ToLower())) continue;
+                    discordUser = await _client.GetUserAsync(user.UserId);
+                    if (discordUser == null) continue;
 
-                    Console.WriteLine($"Notifying user {discordUser.Username} that a {pokemon.Name} has appeared in channel #{message.Channel.Name}...");
+                    foreach (var poke in user.Pokemon)
+                    {
+                        if (!_db.Pokemon.ContainsKey(poke.PokemonId.ToString())) continue;
+                        var pokemon = _db.Pokemon[poke.PokemonId.ToString()];
 
-                    var msg = $"A wild {pokemon.Name} has appeared in channel {message.Channel.Mention}!\r\n\r\n" + message.Content;
-                    Notify(discordUser.Username, msg, poke, message.Embeds[0]);
+                        if (poke.PokemonId != pkmn.PokemonId) continue;
+                        //TODO: Match CP and IV
 
-                    await _client.SendDirectMessage(discordUser, msg, message.Embeds.Count == 0 ? null : message.Embeds[0]);
+                        Console.WriteLine($"Notifying user {discordUser.Username} that a {pokemon.Name} has appeared..."); //in channel #{message.Channel.Name}...");
+
+                        var embed = BuildEmbedPokemon(pkmn);
+                        Notify(poke, embed);
+
+                        await _client.SendDirectMessage(discordUser, string.Empty, embed);
+                    }
                 }
             }
         }
 
-        private async Task CheckRaidSubscriptions(DiscordMessage message)
+        //private async Task CheckPokeSubscriptions(DiscordMessage message)
+        //{
+        //    if (message.Channel == null) return;
+        //    var server = _db[message.Channel.GuildId];
+        //    if (server == null) return;
+
+        //    DiscordUser discordUser;
+        //    foreach (var user in server.Subscriptions)
+        //    {
+        //        if (!user.Enabled) continue;
+
+        //        discordUser = await _client.GetUserAsync(user.UserId);
+        //        if (discordUser == null) continue;
+
+        //        //if (!user.ChannelIds.Contains(message.Channel.Id)) continue;
+
+        //        foreach (var poke in user.Pokemon)
+        //        {
+        //            if (!_db.Pokemon.ContainsKey(poke.PokemonId.ToString())) continue;
+        //            var pokemon = _db.Pokemon[poke.PokemonId.ToString()];
+
+        //            if (!message.Author.Username.ToLower().Contains(pokemon.Name.ToLower())) continue;
+
+        //            Console.WriteLine($"Notifying user {discordUser.Username} that a {pokemon.Name} has appeared in channel #{message.Channel.Name}...");
+
+        //            var msg = $"A wild {pokemon.Name} has appeared in channel {message.Channel.Mention}!\r\n\r\n" + message.Content;
+        //            Notify(discordUser.Username, msg, poke, message.Embeds[0]);
+
+        //            await _client.SendDirectMessage(discordUser, msg, message.Embeds.Count == 0 ? null : message.Embeds[0]);
+        //        }
+        //    }
+        //}
+
+        private async Task CheckRaidSubscriptions(RaidData raid)
         {
-            if (message.Channel == null) return;
-            var server = _db[message.Channel.GuildId];
-            if (server == null) return;
-
             DiscordUser discordUser;
-            foreach (var raid in server.Raids)
+            foreach (var server in _db.Servers)
             {
-                if (!raid.Enabled) continue;
-
-                discordUser = await _client.GetUserAsync(raid.UserId);
-                if (discordUser == null) continue;
-
-                if (!_config.SponsoredRaids.ChannelPool.Contains(message.Channel.Id)) continue;
-
-                foreach (var poke in raid.Pokemon)
+                foreach (var user in server.Subscriptions)
                 {
-                    if (!_db.Pokemon.ContainsKey(poke.PokemonId.ToString())) continue;
-                    var pokemon = _db.Pokemon[poke.PokemonId.ToString()];
+                    if (!user.Enabled) continue;
 
-                    if (!message.Author.Username.ToLower().Contains(pokemon.Name.ToLower())) continue;
-                    
-                    Console.WriteLine($"Notifying user {discordUser.Username} that a {pokemon.Name} raid is available...");
+                    discordUser = await _client.GetUserAsync(user.UserId);
+                    if (discordUser == null) continue;
 
-                    var msg = $"A {pokemon.Name} raid is available!\r\n\r\n" + message.Content;
-                    Notify(discordUser.Username, msg, poke, message.Embeds[0]);
+                    foreach (var poke in user.Raids)
+                    {
+                        if (!_db.Pokemon.ContainsKey(poke.PokemonId.ToString())) continue;
+                        var pokemon = _db.Pokemon[poke.PokemonId.ToString()];
 
-                    await _client.SendDirectMessage(discordUser, msg, message.Embeds.Count == 0 ? null : message.Embeds[0]);
+                        //if (!message.Author.Username.ToLower().Contains(pokemon.Name.ToLower())) continue;
+                        if (poke.PokemonId != raid.PokemonId) continue;
+
+                        Console.WriteLine($"Notifying user {discordUser.Username} that a {pokemon.Name} raid is available...");
+
+                        var embed = BuildEmbedRaid(raid);
+                        Notify(poke, embed);
+
+                        await _client.SendDirectMessage(discordUser, string.Empty, embed);
+                    }
                 }
             }
         }
+
+        //private async Task CheckRaidSubscriptions(DiscordMessage message)
+        //{
+        //    if (message.Channel == null) return;
+        //    var server = _db[message.Channel.GuildId];
+        //    if (server == null) return;
+
+        //    DiscordUser discordUser;
+        //    foreach (var user in server.Raids)
+        //    {
+        //        if (!user.Enabled) continue;
+
+        //        discordUser = await _client.GetUserAsync(user.UserId);
+        //        if (discordUser == null) continue;
+
+        //        if (!_config.SponsoredRaids.ChannelPool.Contains(message.Channel.Id)) continue;
+
+        //        foreach (var poke in user.Pokemon)
+        //        {
+        //            if (!_db.Pokemon.ContainsKey(poke.PokemonId.ToString())) continue;
+        //            var pokemon = _db.Pokemon[poke.PokemonId.ToString()];
+
+        //            if (!message.Author.Username.ToLower().Contains(pokemon.Name.ToLower())) continue;
+
+        //            Console.WriteLine($"Notifying user {discordUser.Username} that a {pokemon.Name} raid is available...");
+
+        //            var msg = $"A {pokemon.Name} raid is available!\r\n\r\n" + message.Content;
+        //            Notify(discordUser.Username, msg, poke, message.Embeds[0]);
+
+        //            await _client.SendDirectMessage(discordUser, msg, message.Embeds.Count == 0 ? null : message.Embeds[0]);
+        //        }
+        //    }
+        //}
+
+        #endregion
 
         private void CheckTwitterFollows()
         {
@@ -712,14 +821,19 @@
                     {
                         Console.WriteLine($"Enabled: {(sub.Enabled ? "Yes" : "No")}");
                         Console.WriteLine($"Username: {user.Username}");
-                        Console.WriteLine($"Pokemon Notifications:");
+                        Console.WriteLine($"Pokemon Subscriptions:");
                         foreach (var poke in sub.Pokemon)
                         {
                             if (!_db.Pokemon.ContainsKey(poke.PokemonId.ToString())) continue;
                             Console.WriteLine(_db.Pokemon[poke.PokemonId.ToString()].Name + $" (Id: {poke.PokemonId}, Minimum CP: {poke.MinimumCP}, Minimum IV: {poke.MinimumIV})");
                         }
                         Console.WriteLine();
-                        Console.WriteLine($"Channel Subscriptions: {string.Join(", ", sub.ChannelIds)}");
+                        Console.WriteLine($"Raid Subscriptions: {string.Join(", ", sub.Raids)}");
+                        foreach (var raid in sub.Raids)
+                        {
+                            if (!_db.Pokemon.ContainsKey(raid.PokemonId.ToString())) continue;
+                            Console.WriteLine(_db.Pokemon[raid.PokemonId.ToString()].Name + $" (Id: {raid.PokemonId}");
+                        }
                         Console.WriteLine();
                         Console.WriteLine();
                     }
@@ -761,7 +875,7 @@
             Console.WriteLine($"**************************************");
         }
 
-        private void Notify(string username, string message, Pokemon pokemon, DiscordEmbed embed)
+        private void Notify(Pokemon pokemon, DiscordEmbed embed)
         {
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine();
@@ -775,8 +889,6 @@
             Console.WriteLine("***********************************");
             Console.WriteLine();
             Console.ResetColor();
-
-            Console.WriteLine($"Alerting discord user {username} of {message}.");
         }
 
         private Dictionary<string, List<ICustomCommand>> GetCommandsByCategory()
@@ -875,12 +987,78 @@
                         //return;
                     }
 
-                    var msg = string.Format(string.IsNullOrEmpty(_config.Advertisement.Message) ? DefaultAdvertisementMessage : _config.Advertisement.Message, string.Join(",", _config.CityRoles));
+                    var msg = string.Format(string.IsNullOrEmpty(_config.Advertisement.Message) ? DefaultAdvertisementMessage : _config.Advertisement.Message, string.Join(",", _config.CityRoles))
+                        .Replace("{server}", channel.Guild.Name)
+                        .Replace("{bot}", channel.Mention);
                     var sentMessage = await channel.SendMessageAsync(msg);
                     _config.Advertisement.LastMessageId = sentMessage.Id;
                     _config.Save();
                 }
             }
+        }
+
+        private string ReplaceInfo(string message)
+        {
+            return message.Replace("{bot}", "");
+        }
+
+        private DiscordEmbed BuildEmbedRaid(RaidData raid)
+        {
+            var pkmn = _db.Pokemon[raid.PokemonId.ToString()];
+            if (pkmn == null)
+            {
+                Logger.Error($"Failed to lookup Raid Pokemon '{raid.PokemonId}' in database.");
+                return null;
+            }
+
+            var eb = new DiscordEmbedBuilder
+            {
+                Title = "DIRECTIONS",
+                Description = $"**{raid.PokemonId} raid is available!**",
+                Url = string.Format(HttpServer.GoogleMaps, raid.Latitude, raid.Longitude),
+                ImageUrl = string.Format(HttpServer.GoogleMapsImage, raid.Latitude, raid.Longitude),
+                ThumbnailUrl = string.Format(HttpServer.PokemonImage, raid.PokemonId),
+                Color = DiscordColor.Red
+            };
+
+            eb.AddField($"{pkmn.Name} (#{raid.PokemonId}, Level {raid.Level})", $"CP: {raid.CP}");
+            eb.AddField("Started:", raid.StartTime.ToString("hh:mm:ss tt"));
+            eb.AddField("Available Until:", $"{raid.EndTime.ToString("hh:mm:ss tt")} ({raid.EndTime.Subtract(raid.StartTime).Minutes} minutes remaining)");
+            eb.AddField("Fast Move:", raid.FastMove);
+            eb.AddField("Charge Move:", raid.ChargeMove);
+            eb.AddField("Location:", $"{raid.Latitude},{raid.Longitude}");
+            eb.WithImageUrl(string.Format(HttpServer.GoogleMapsImage, raid.Latitude, raid.Longitude));
+            var embed = eb.Build();
+
+            return embed;
+        }
+
+        private DiscordEmbed BuildEmbedPokemon(PokemonData pokemon)
+        {
+            var pkmn = _db.Pokemon[pokemon.PokemonId.ToString()];
+            if (pkmn == null)
+            {
+                Logger.Error($"Failed to lookup Pokemon '{pokemon.PokemonId}' in database.");
+                return null;
+            }
+
+            var eb = new DiscordEmbedBuilder
+            {
+                Title = "DIRECTIONS",
+                Description = $"**A wild {pkmn.Name} has appeared!**",
+                Url = string.Format(HttpServer.GoogleMaps, pokemon.Latitude, pokemon.Longitude),
+                ImageUrl = string.Format(HttpServer.GoogleMapsImage, pokemon.Latitude, pokemon.Longitude),
+                ThumbnailUrl = string.Format(HttpServer.PokemonImage, pokemon.PokemonId),
+                Color = DiscordColor.Red
+            };
+
+            eb.AddField($"{pkmn.Name} (#{pokemon.PokemonId}, {pokemon.Gender})", $"CP: {pokemon.CP} IV: {pokemon.IV} (Sta: {pokemon.Stamina}/Atk: {pokemon.Attack}/Def: {pokemon.Defense}) LV: {pokemon.PlayerLevel}");
+            eb.AddField("Available Until:", $"{pokemon.DespawnTime.ToLongTimeString()} ({pokemon.SecondsLeft} remaining)");
+            eb.AddField("Location:", $"{pokemon.Latitude},{pokemon.Longitude}");
+            eb.WithImageUrl(string.Format(HttpServer.GoogleMapsImage, pokemon.Latitude, pokemon.Longitude));
+            var embed = eb.Build();
+
+            return embed;
         }
 
         #endregion

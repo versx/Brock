@@ -11,8 +11,9 @@
 
     [Command(
         Categories.Notifications,
-        "Activates or deactivates all of your Pokemon subscriptions at once.",
-        null,
+        "Enables or disables all of your Pokemon and Raid notification subscriptions at once.",
+        "\tExample: `.enable` (Enables all of your Pokemon and Raid notifications.)\r\n" +
+        "\tExample: `.disable` (Disables all of your Pokemon and Raid notifications.)",
         "enable", "disable"
     )]
     public class EnableDisableCommand : ICustomCommand
@@ -48,14 +49,14 @@
             if (server == null) return;
 
             var author = message.Author.Id;
-            if (!server.ContainsKey(author))
+            if (!server.SubscriptionExists(author))
             {
-                await message.RespondAsync("You currently do not have any Pokemon subscriptions.");
+                await message.RespondAsync($"{message.Author.Username} is not currently subscribed to any Pokemon or Raid notifications.");
                 return;
             }
 
             server[author].Enabled = _enable;
-            await message.RespondAsync($"You have {(_enable ? "" : "de-")}activated Pokemon notifications.");
+            await message.RespondAsync($"{message.Author.Username} has {(_enable ? "en" : "dis")}abled Pokemon and Raid notifications.");
         }
     }
 }
