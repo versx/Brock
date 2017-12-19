@@ -40,11 +40,9 @@
         public async Task Execute(DiscordMessage message, Command command)
         {
             var eb = new DiscordEmbedBuilder();
-            eb.WithTitle("Brock Demo Usage:");
-            eb.AddField("We will setup channel subscriptions from #upland_rares and #upland_ultra", "`.add upland_rares,upland_ultra`");
-            eb.AddField("Subscribes to Bulbasaur, Dratini, Dragonair, and Dragonite notifications.", "`.sub 1,147,148,149`");
-            eb.AddField("Accidentally subscribed to Bulbasaur, unsubscribing...", "`.unsub 1`");
-            eb.AddField("Accidentally setup channel subscriptions for #upland_rares, removing...", "`remove upland_rares`");
+            eb.WithTitle("Brock Pokemon Notification Demo Usage:");
+            eb.AddField("Subscribes to Bulbasaur, Dratini, Dragonair, and Dragonite notifications.", "`.pokeme 1,147,148,149 0 0`");
+            eb.AddField("Accidentally subscribed to Bulbasaur, unsubscribing...", "`.pokemenot 1`");
             eb.AddField("Activating the Pokemon notification subscriptions.", "`.enable`");
             eb.AddField("Displays your current Pokemon notification setting information.", "`.info`");
             var embed = eb.Build();

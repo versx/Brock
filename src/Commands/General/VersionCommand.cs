@@ -9,7 +9,7 @@
     using BrockBot.Utilities;
 
     [Command(
-        Categories.Info,
+        Categories.General,
         "Display " + FilterBot.BotName + "'s current version.",
         null,
         "v", "ver", "version", "about"

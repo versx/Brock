@@ -9,9 +9,10 @@
     using BrockBot.Data;
 
     [Command(
-        Categories.Info,
+        Categories.General,
         "Displays the Pokemon and Gyms & Raids map links.",
-        null,
+        "\tExample: `.map`\r\n" +
+        "\tExample: `.maps`",
         "map", "maps"
     )]
     public class MapCommand : ICustomCommand

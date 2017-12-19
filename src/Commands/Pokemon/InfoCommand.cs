@@ -14,7 +14,7 @@
     [Command(
         Categories.Notifications, 
         "Shows your current notification subscriptions.",
-        null, 
+        "\tExample: `.info`", 
         "info"
     )]
     public class InfoCommand : ICustomCommand

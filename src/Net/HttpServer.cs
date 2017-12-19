@@ -4,13 +4,11 @@
     using System.IO;
     using System.Net;
     using System.Text;
-    using System.Threading.Tasks;
-
-    using DSharpPlus;
-    using DSharpPlus.Entities;
-    using DSharpPlus.EventArgs;
 
     using Newtonsoft.Json;
+
+    using BrockBot.Configuration;
+    using BrockBot.Diagnostics;
 
     public enum PokemonGender
     {
@@ -40,7 +38,8 @@
 
         #region Variables
 
-        private DiscordClient _client;
+        private readonly Config _config;
+        private readonly EventLogger _logger;
 
         #endregion
 
@@ -64,38 +63,38 @@
 
         #region Constructor
 
-        public HttpServer(ushort port)
+        public HttpServer(Config config, EventLogger logger)
         {
+            _config = config;
+            _logger = logger;
+
             var server = new HttpListener();
-            server.Prefixes.Add($"http://127.0.0.1:{port}/");
-            server.Prefixes.Add($"http://localhost:{port}/");
+            server.Prefixes.Add($"http://127.0.0.1:{_config.WebHookPort}/");
+            server.Prefixes.Add($"http://localhost:{_config.WebHookPort}/");
             server.Start();
 
-            Log("Listening...");
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("Listening...");
+            Console.ResetColor();
 
             new System.Threading.Thread(x =>
             {
-                Task.Run(async () =>
+                while (true)
                 {
-                    await Start();
+                    var context = server.GetContext();
+                    var response = context.Response;
 
-                    while (true)
+                    using (var sr = new StreamReader(context.Request.InputStream))
                     {
-                        var context = server.GetContext();
-                        var response = context.Response;
-
-                        using (var sr = new StreamReader(context.Request.InputStream))
-                        {
-                            var data = sr.ReadToEnd();
-                            ParseData(data);
-                        }
-
-                        var buffer = Encoding.UTF8.GetBytes("WH Test Running!");
-                        response.ContentLength64 = buffer.Length;
-                        response.OutputStream.Write(buffer, 0, buffer.Length);
-                        context.Response.Close();
+                        var data = sr.ReadToEnd();
+                        ParseData(data);
                     }
-                });
+
+                    var buffer = Encoding.UTF8.GetBytes("WH Test Running!");
+                    response.ContentLength64 = buffer.Length;
+                    response.OutputStream.Write(buffer, 0, buffer.Length);
+                    context.Response.Close();
+                }
             })
             { IsBackground = true }.Start();
         }
@@ -110,7 +109,7 @@
             {
                 if (string.IsNullOrEmpty(data)) return;
 
-                Log("Request: {0}", data);
+                //Log("Request: {0}", data);
                 dynamic obj = JsonConvert.DeserializeObject(data);
                 if (obj == null) return;
 
@@ -121,7 +120,7 @@
                     switch (type)
                     {
                         case "pokemon":
-                            Task.Run(() => ParsePokemon(message));
+                            ParsePokemon(message);
                             break;
                         //case "gym":
                         //    ParseGym(message);
@@ -132,7 +131,7 @@
                         //    break;
                         case "egg":
                         case "raid":
-                            Task.Run(() => ParseRaid(message));
+                            ParseRaid(message);
                             break;
                             //case "tth":
                             //case "scheduler":
@@ -143,7 +142,7 @@
             }
             catch (Exception ex)
             {
-                Log(ex);
+                _logger.Error(ex);
             }
         }
 
@@ -219,22 +218,22 @@
 
                 var pokeGender = (PokemonGender)Convert.ToInt32(gender);
 
-                Log($"Pokemon Id: {pokeId}");
-                Log($"Seconds Until Despawn: {TimeSpan.FromSeconds(secondsUntilDespawn)}");
-                Log($"Disappear Time: {new DateTime(TimeSpan.FromMilliseconds(disappearTime).Ticks).ToLongTimeString()}");
-                Log($"CP: {cp}");
-                Log($"IV: {iv}");
-                Log($"Stamina: {stamina}");
-                Log($"Attack: {attack}");
-                Log($"Defense: {defense}");
-                Log($"Gender: {gender}");
-                Log($"Level: {playerLevel}");
-                Log($"Location: {latitude},{longitude}");
-                Log($"Quick Move: {move1}");
-                Log($"Charge Move: {move2}");
-                Log($"Height: {height}");
-                Log($"Weight: {weight}");
-                Log($"Verified TTH: {verified}");
+                //Log($"Pokemon Id: {pokeId}");
+                //Log($"Seconds Until Despawn: {TimeSpan.FromSeconds(secondsUntilDespawn)}");
+                //Log($"Disappear Time: {new DateTime(TimeSpan.FromMilliseconds(disappearTime).Ticks).ToLongTimeString()}");
+                //Log($"CP: {cp}");
+                //Log($"IV: {iv}");
+                //Log($"Stamina: {stamina}");
+                //Log($"Attack: {attack}");
+                //Log($"Defense: {defense}");
+                //Log($"Gender: {gender}");
+                //Log($"Level: {playerLevel}");
+                //Log($"Location: {latitude},{longitude}");
+                //Log($"Quick Move: {move1}");
+                //Log($"Charge Move: {move2}");
+                //Log($"Height: {height}");
+                //Log($"Weight: {weight}");
+                //Log($"Verified TTH: {verified}");
 
                 var pokemon = new PokemonData
                 (
@@ -262,7 +261,7 @@
             }
             catch (Exception ex)
             {
-                Log(ex);
+                _logger.Error(ex);
             }
         }
 
@@ -294,17 +293,17 @@
                 string move1 = Convert.ToString(message["move_1"] ?? "?");
                 string move2 = Convert.ToString(message["move_2"] ?? "?");
 
-                Log($"Gym Id: {gymId}");
-                Log($"Latitude: {latitude}");
-                Log($"Longitude: {longitude}");
-                Log($"Spawn Time: {new DateTime(spawn)}");
-                Log($"Start Time: {new DateTime(start)}");
-                Log($"End Time: {new DateTime(end)}");
-                Log($"Level: {level}");
-                Log($"Pokemon Id: {pokemonId}");
-                Log($"CP: {cp}");
-                Log($"Quick Move: {move1}");
-                Log($"Charge Move: {move2}");
+                //Log($"Gym Id: {gymId}");
+                //Log($"Latitude: {latitude}");
+                //Log($"Longitude: {longitude}");
+                //Log($"Spawn Time: {new DateTime(spawn)}");
+                //Log($"Start Time: {new DateTime(start)}");
+                //Log($"End Time: {new DateTime(end)}");
+                //Log($"Level: {level}");
+                //Log($"Pokemon Id: {pokemonId}");
+                //Log($"CP: {cp}");
+                //Log($"Quick Move: {move1}");
+                //Log($"Charge Move: {move2}");
 
                 var raid = new RaidData
                 (
@@ -322,7 +321,7 @@
             }
             catch (Exception ex)
             {
-                Log(ex);
+                _logger.Error(ex);
             }
         }
 
@@ -358,7 +357,7 @@
         //    }
         //    catch (Exception ex)
         //    {
-        //        Log(ex);
+        //        Logger.Error(ex);
         //    }
         //}
 
@@ -465,7 +464,7 @@
         //    }
         //    catch (Exception ex)
         //    {
-        //        Log(ex);
+        //        Logger.Error(ex);
         //    }
         //}
 
@@ -490,133 +489,9 @@
         //    }
         //    catch (Exception ex)
         //    {
-        //        Log(ex);
+        //        Logger.Error(ex);
         //    }
         //}
-
-        #endregion
-
-        #region Private Methods
-
-        private async Task Start()
-        {
-            if (_client != null)
-            {
-                Console.WriteLine($"WH already started, no need to start again.");
-                return;
-            }
-
-            _client = new DiscordClient(new DiscordConfiguration
-            {
-                AutoReconnect = true,
-                //DiscordBranch = Branch.Stable,
-                LogLevel = LogLevel.Debug,
-                Token = "Mzg0MjU0MDQ0NjkwMTg2MjU1.DPwIXA.bqkUMDRepWtutwpgq1EpmOM6JSM",//"MzY5MDQ4NzAzMDMxNTc0NTI5.DMS29Q.veATwRAOLhLPU6EexnokGhnInHM",//_config.AuthToken,
-                TokenType = TokenType.Bot
-            });
-
-            _client.Ready += Client_Ready;
-            _client.MessageCreated += Client_MessageCreated;
-            //_client.DmChannelCreated += Client_DmChannelCreated;
-
-            Console.WriteLine("Connecting to discord server...");
-            await _client.ConnectAsync();
-
-            //await Task.Delay(-1);
-        }
-
-        private async Task Client_Ready(ReadyEventArgs e)
-        {
-            //await SendMessage("https://discordapp.com/api/webhooks/374338702698348546/T47Tx-Rn7WGZ1ap99jTpJ8WDXi0AlBqNxr5593nhNEpNlzuAgqCP1Bj_WZs99hfa_11p", "Test", null);
-            //var pokemonData = "[{\"message\": { \"disappear_time\": 1509308578, \"form\": null, \"seconds_until_despawn\": 1697, \"spawnpoint_id\": \"80c3347a811\", \"cp_multiplier\": null, \"move_2\": null, \"height\": null, \"time_until_hidden_ms\": -1773360683, \"last_modified_time\": 1509306881578, \"cp\": null, \"encounter_id\": \"MTQyODEwOTU4MDE4ODI3NDIyMjI=\", \"spawn_end\": 1378, \"move_1\": null, \"individual_defense\": null, \"verified\": true, \"weight\": null, \"pokemon_id\": 111, \"player_level\": 4, \"individual_stamina\": null, \"longitude\": -117.63445402991555, \"spawn_start\": 3179, \"gender\": 1, \"latitude\": 34.06371229679003, \"individual_attack\": null}, \"type\": \"pokemon\"}]";
-            //var gymData = "[{\"message\": { \"raid_active_until\": 0, \"gym_id\": \"ZjFkNmI2ZGJiM2MwNGIzZDlmMDY3OWRiMTRmZmRjMWUuMTY=\", \"team_id\": 3, \"last_modified\": 1509293691305, \"slots_available\": 4, \"guard_pokemon_id\": 65, \"enabled\": true, \"longitude\": -117.647777, \"latitude\": 34.078344, \"lowest_pokemon_motivation\": 0.7790350317955017, \"total_cp\": 2331, \"occupied_since\": 1509291784}, \"type\": \"gym\"}]";
-            //var raidData = "[{\"message\": {\"spawn\": 1509370079, \"move_1\": 240, \"move_2\": 103, \"end\": 1509377279, \"level\": 5, \"pokemon_id\": 244, \"gym_id\": \"M2Q5YjRlOTA1YWQzNGVhM2E5YmUyMjg3YzEzMzE4YTUuMTY=\", \"longitude\": -117.63476, \"start\": 1509373679, \"latitude\": 34.105152, \"cp\": 38628}, \"type\": \"raid\"}]";
-
-            //ParseData(pokemonData);
-            //ParseData(gymData);
-            //ParseData(raidData);
-
-            await Task.CompletedTask;
-        }
-
-        private async Task Client_MessageCreated(MessageCreateEventArgs e)
-        {
-            await Task.CompletedTask;
-        }
-
-        private async Task SendMessage(string webHookUrl, string message, DiscordEmbed embed = null)
-        {
-            var data = GetWebHookData(webHookUrl);
-            if (data == null) return;
-
-            var guildId = Convert.ToUInt64(Convert.ToString(data["guild_id"]));
-            var channelId = Convert.ToUInt64(Convert.ToString(data["channel_id"]));
-
-            var guild = await _client.GetGuildAsync(guildId);
-            if (guild == null)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Error: Guild does not exist!");
-                Console.ResetColor();
-                return;
-            }
-
-            var channel = await _client.GetChannelAsync(channelId);
-            if (channel == null)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Error: Channel does not exist!");
-                Console.ResetColor();
-                return;
-            }
-
-            await channel.SendMessageAsync(message, false, embed);
-        }
-
-        private dynamic GetWebHookData(string webHook)
-        {
-            /**Example:
-             * {
-             *   "name": "Pogo", 
-             *   "channel_id": "352137087782486016", 
-             *   "token": "fCdHsCZWeGB_vTkdPRqnB4_7fXil5tutXDLCZQYDurkTWQOqzSptiSQHbiCOBGlsF8J8", 
-             *   "avatar": null, 
-             *   "guild_id": "342025055510855680", 
-             *   "id": "352137475101032449"
-             * }
-             * 
-             */
-
-            using (var wc = new WebClient())
-            {
-                wc.Proxy = null;
-                string json = wc.DownloadString(webHook);
-                dynamic data = JsonConvert.DeserializeObject(json);
-                return data;
-            }
-        }
-
-        #endregion
-
-        #region Logging Methods
-
-        private void Log(string format, params object[] args)
-        {
-            Console.WriteLine(DateTime.Now.ToString() + " " + (args.Length > 0 ? string.Format(format, args) : format) + Environment.NewLine);
-            File.AppendAllText("logs.txt", DateTime.Now.ToString() + " " + (args.Length > 0 ? string.Format(format, args) : format) + Environment.NewLine);
-        }
-
-        private void Log(Exception ex)
-        {
-            Console.WriteLine();
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("ERROR:");
-            Console.WriteLine(ex);
-            Console.ResetColor();
-            Console.WriteLine();
-
-            File.AppendAllText("errors.txt", ex + Environment.NewLine);
-        }
 
         #endregion
     }

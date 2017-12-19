@@ -48,43 +48,47 @@
 
             var author = message.Author.Id;
 
-            if (server.SubscriptionExists(author))
+            if (!server.SubscriptionExists(author))
             {
-                if (command.HasArgs && command.Args.Count == 1)
-                {
-                    foreach (var arg in command.Args[0].Split(','))
-                    {
-                        var index = Convert.ToUInt32(arg);
-                        if (!Db.Pokemon.ContainsKey(index.ToString()))
-                        {
-                            await message.RespondAsync($"Pokedex number {index} is not a valid Pokemon id.");
-                            continue;
-                        }
+                await message.RespondAsync($"{message.Author.Username} is not subscribed to any Pokemon notifications.");
+                return;
+            }
 
-                        var pokemon = Db.Pokemon[index.ToString()];
-                        var unsubscribePokemon = server[author].Pokemon.Find(x => x.PokemonId == index);
-                        if (unsubscribePokemon != null)
-                        {
-                            if (server[author].Pokemon.Remove(unsubscribePokemon))
-                            {
-                                await message.RespondAsync($"You have successfully unsubscribed from {pokemon.Name} notifications!");
-                            }
-                        }
-                        else
-                        {
-                            await message.RespondAsync($"You are not subscribed to {pokemon.Name} notifications.");
-                        }
+            if (!(command.HasArgs && command.Args.Count == 1))
+            {
+                if (!server.RemoveAllPokemon(author))
+                {
+                    await message.RespondAsync($"An error occurred while removing all Pokemon notifications for {message.Author.Username}.");
+                    return;
+                }
+
+                await message.RespondAsync($"{message.Author.Username} has unsubscribed from all Pokemon notifications.");
+                return;
+            }
+
+            var cmd = command.Args[0];
+            foreach (var arg in cmd.Split(','))
+            {
+                var index = Convert.ToUInt32(arg);
+                if (!Db.Pokemon.ContainsKey(index.ToString()))
+                {
+                    await message.RespondAsync($"Pokedex number {index} is not a valid Pokemon id.");
+                    continue;
+                }
+
+                var pokemon = Db.Pokemon[index.ToString()];
+                var unsubscribePokemon = server[author].Pokemon.Find(x => x.PokemonId == index);
+                if (unsubscribePokemon != null)
+                {
+                    if (server[author].Pokemon.Remove(unsubscribePokemon))
+                    {
+                        await message.RespondAsync($"{message.Author.Username} has unsubscribed from {pokemon.Name} notifications.");
                     }
                 }
                 else
                 {
-                    server.RemoveAllPokemon(author);
-                    await message.RespondAsync($"You have successfully unsubscribed from all notifications!");
+                    await message.RespondAsync($"{message.Author.Username} is not subscribed to {pokemon.Name} notifications.");
                 }
-            }
-            else
-            {
-                await message.RespondAsync($"You are not subscribed to any notifications.");
             }
         }
     }

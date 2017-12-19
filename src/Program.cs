@@ -33,37 +33,24 @@
                 bot.RegisterCommand<HelpCommand>();
                 bot.RegisterCommand<TeamsCommand>();
                 bot.RegisterCommand<TeamCommand>();
+                bot.RegisterCommand<NearbyNestsCommand>();
                 bot.RegisterCommand<FeedsCommand>();
-                //bot.RegisterCommand<FeedCommand>();
                 bot.RegisterCommand<FeedMeCommand>();
                 bot.RegisterCommand<FeedMeNotCommand>();
                 bot.RegisterCommand<PokemonLookupCommand>();
-                bot.RegisterCommand<InviteCommand>();
-                bot.RegisterCommand<InvitesCommand>();
-                bot.RegisterCommand<BansCommand>();
-                bot.RegisterCommand<VersionCommand>();
-
-                bot.RegisterCommand<ServerInfoCommand>();
-                bot.RegisterCommand<BotInfoCommand>();
-                bot.RegisterCommand<NearbyNestsCommand>();
-
-                //Information Commands
                 bot.RegisterCommand<MapCommand>();
                 bot.RegisterCommand<DonateCommand>();
+                bot.RegisterCommand<VersionCommand>();
 
                 //Custom Commands
-                bot.RegisterCommand<ListCmdCommand>();
-                bot.RegisterCommand<AddCmdCommand>();
-                bot.RegisterCommand<EditCmdCommand>();
-                bot.RegisterCommand<DelCmdCommand>();
+                //bot.RegisterCommand<ListCmdCommand>();
+                //bot.RegisterCommand<AddCmdCommand>();
+                //bot.RegisterCommand<EditCmdCommand>();
+                //bot.RegisterCommand<DelCmdCommand>();
 
                 //Notification Commands
                 bot.RegisterCommand<DemoCommand>();
                 bot.RegisterCommand<InfoCommand>();
-                //bot.RegisterCommand<AddCommand>();
-                //bot.RegisterCommand<RemoveCommand>();
-                //bot.RegisterCommand<SubscribeCommand>();
-                //bot.RegisterCommand<UnsubscribeCommand>();
                 bot.RegisterCommand<PokeMeCommand>();
                 bot.RegisterCommand<PokeMeNotCommand>();
                 bot.RegisterCommand<RaidMeCommand>();
@@ -87,13 +74,11 @@
                 //Administrative Commands
                 bot.RegisterCommand<CreateRolesCommand>();
                 bot.RegisterCommand<DeleteRolesCommand>();
-                bot.RegisterCommand<AssignRolesCommand>();
+                //bot.RegisterCommand<AssignRolesCommand>();
                 bot.RegisterCommand<UptimeCommand>();
-                bot.RegisterCommand<SetCommand>();
+                //bot.RegisterCommand<SetCommand>();
                 bot.RegisterCommand<SayCommand>();
-                bot.RegisterCommand<LeavelGuildCommand>();
-                bot.RegisterCommand<BanCommand>();
-                bot.RegisterCommand<UnbanCommand>();
+                //bot.RegisterCommand<LeaveGuildCommand>();
                 bot.RegisterCommand<RestartCommand>();
                 bot.RegisterCommand<ShutdownCommand>();
 

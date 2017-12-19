@@ -43,7 +43,7 @@
         public async Task Execute(DiscordMessage message, Command command)
         {
             if (!command.HasArgs) return;
-            if (command.Args.Count != 3) return;
+            if (command.Args.Count != 1 || command.Args.Count != 3) return;
 
             await message.IsDirectMessageSupported();
 
@@ -53,8 +53,8 @@
 
             var author = message.Author.Id;
             var cmd = command.Args[0];
-            var cpArg = command.Args[1];
-            var ivArg = command.Args[2];
+            var cpArg = command.Args.Count == 1 ? "0" : command.Args[1];
+            var ivArg = command.Args.Count == 1 ? "0" : command.Args[2];
 
             if (!int.TryParse(cpArg, out int cp))
             {
