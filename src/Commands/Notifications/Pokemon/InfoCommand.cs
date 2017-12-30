@@ -44,24 +44,33 @@
             var hasRaids = isSubbed && server[author].Raids.Count > 0;
             var msg = string.Empty;
 
-            if (hasPokemon && hasRaids)
+            if (hasPokemon)
             {
-                msg = $"**{message.Author.Username}** is subscribed to **{string.Join(", ", GetPokemonSubscriptionNames(server, author))}** Pokemon notifications.\r\n**{message.Author.Username}** is subscribed to **{string.Join(", ", GetRaidSubscriptionNames(server, author))}** Raid notifications.";
+                msg = $"**{message.Author.Username} Pokemon Subscriptions:**\r\n";
+                foreach (var sub in server[author].Pokemon)
+                {
+                    msg += $"{sub.PokemonId}: {sub.PokemonName} {sub.MinimumIV}%+\r\n";
+                }
+                //msg += string.Join(", "/*Environment.NewLine*/, GetPokemonSubscriptionNames(server, author));
+                msg += Environment.NewLine + Environment.NewLine;
             }
-            else if (hasPokemon && !hasRaids)
+
+            if (hasRaids)
             {
-                msg = $"**{message.Author.Username}** is currently subscribed to **{string.Join(", ", GetPokemonSubscriptionNames(server, author))}** Pokemon notifications and 0 Raid notifications.";
+                msg += $"**{message.Author.Username} Raid Subscriptions:**\r\n";
+                msg += string.Join(", "/*Environment.NewLine*/, GetRaidSubscriptionNames(server, author));
             }
-            else if (!hasPokemon && hasRaids)
+
+            if (string.IsNullOrEmpty(msg))
             {
-                msg = $"**{message.Author.Username}** is currently subscribed to 0 Pokemon notifications but subscribed to **{string.Join(", ",GetRaidSubscriptionNames(server, author))}** Raid notifications.";
+                msg = $"**{message.Author.Username}** is not subscribed to any Pokemon or Raid notifications.";
             }
-            else if (!hasPokemon && !hasRaids)
+
+            var messages = ChunksUpto(msg, 2000);
+            foreach (var splitMessage in messages)
             {
-                msg = $"**{message.Author.Username}** is not currently subscribed to any Pokemon or Raid notifications.";
+                await message.RespondAsync(splitMessage);
             }
-            
-            await message.RespondAsync(msg);
         }
 
         private List<string> GetPokemonSubscriptionNames(Server server, ulong userId)
@@ -105,6 +114,14 @@
                 }
             }
             return list;
+        }
+
+        private IEnumerable<string> ChunksUpto(string str, int maxChunkSize)
+        {
+            for (int i = 0; i < str.Length; i += maxChunkSize)
+            {
+                yield return str.Substring(i, Math.Min(maxChunkSize, str.Length - i));
+            }
         }
     }
 }

@@ -30,7 +30,10 @@
     {
         #region Constants
 
-        public const string PokemonImage = "https://raw.githubusercontent.com/Necrobot-Private/PokemonGO-Assets/master/pokemon/{0}.png";
+        public const string PokemonImage = "https://bytebucket.org/anzmap/sprites/raw/388a1e0ef08b98eaa0412c8a5f67ffb14d6a707d/{0}.png";
+        //https://raw.githubusercontent.com/Necrobot-Private/PokemonGO-Assets/master/pokemon/{0}.png
+        //https://github.com/not4profit/images/tree/master/monsters/{0:D3}.png
+        //https://bytebucket.org/anzmap/sprites/raw/388a1e0ef08b98eaa0412c8a5f67ffb14d6a707d/{0}.png
         public const string GoogleMaps = "http://maps.google.com/maps?q={0},{1}";
         public const string GoogleMapsImage = "https://maps.googleapis.com/maps/api/staticmap?center={0},{1}&markers=color:red%7C&maptype=roadmap&size=250x125&zoom=15";
 
@@ -69,8 +72,17 @@
             _logger = logger;
 
             var server = new HttpListener();
-            server.Prefixes.Add($"http://127.0.0.1:{_config.WebHookPort}/");
-            server.Prefixes.Add($"http://localhost:{_config.WebHookPort}/");
+            try
+            {
+                if (!server.Prefixes.Contains($"http://127.0.0.1:{_config.WebHookPort}/"))
+                    server.Prefixes.Add($"http://127.0.0.1:{_config.WebHookPort}/");
+                if (!server.Prefixes.Contains($"http://localhost:{_config.WebHookPort}/"))
+                    server.Prefixes.Add($"http://localhost:{_config.WebHookPort}/");
+            }
+            catch (Exception ex)
+            {
+                Utilities.Utils.LogError(ex);
+            }
             server.Start();
 
             Console.ForegroundColor = ConsoleColor.Green;
@@ -109,6 +121,8 @@
             {
                 if (string.IsNullOrEmpty(data)) return;
 
+                File.AppendAllText("debug.txt", data + Environment.NewLine);
+
                 //Log("Request: {0}", data);
                 dynamic obj = JsonConvert.DeserializeObject(data);
                 if (obj == null) return;
@@ -143,6 +157,7 @@
             catch (Exception ex)
             {
                 _logger.Error(ex);
+                _logger.Info("{0}", Convert.ToString(data));
             }
         }
 
@@ -184,7 +199,7 @@
             {
                 int pokeId = Convert.ToInt32(Convert.ToString(message["pokemon_id"]));
                 int secondsUntilDespawn = Convert.ToInt32(Convert.ToString(message["seconds_until_despawn"]));
-                int disappearTime = Convert.ToInt32(Convert.ToString(message["disappear_time"]));
+                long disappearTime = Convert.ToInt64(Convert.ToString(message["disappear_time"]));
                 string cp = Convert.ToString(message["cp"] ?? "?");
                 string stamina = Convert.ToString(message["individual_stamina"] ?? "?");
                 string attack = Convert.ToString(message["individual_attack"] ?? "?");
@@ -192,7 +207,7 @@
                 string gender = Convert.ToString(message["gender"] ?? "?");
                 double latitude = Convert.ToDouble(Convert.ToString(message["latitude"]));
                 double longitude = Convert.ToDouble(Convert.ToString(message["longitude"]));
-                string playerLevel = Convert.ToString(message["player_level"] ?? "?");
+                string level = Convert.ToString(message["pokemon_level"] ?? "?");
                 string move1 = Convert.ToString(message["move_1"] ?? "?");
                 string move2 = Convert.ToString(message["move_2"] ?? "?");
                 string height = Convert.ToString(message["height"] ?? "?");
@@ -244,7 +259,7 @@
                     attack,
                     defense,
                     pokeGender,
-                    playerLevel,
+                    level,
                     latitude,
                     longitude,
                     move1,
@@ -262,6 +277,7 @@
             catch (Exception ex)
             {
                 _logger.Error(ex);
+                _logger.Info("{0}", Convert.ToString(message));
             }
         }
 
@@ -285,11 +301,17 @@
                 double latitude = Convert.ToDouble(Convert.ToString(message["latitude"]));
                 double longitude = Convert.ToDouble(Convert.ToString(message["longitude"]));
                 long spawn = Convert.ToInt64(Convert.ToString(message["spawn"]));
-                long start = Convert.ToInt64(Convert.ToString(message["start"]));
-                long end = Convert.ToInt64(Convert.ToString(message["end"]));
+                long start = Convert.ToInt64(Convert.ToString(message["raid_begin"]));
+                long end = Convert.ToInt64(Convert.ToString(message["raid_end"]));
                 string level = Convert.ToString(message["level"] ?? "?");
-                int pokemonId = Convert.ToInt32(Convert.ToString(message["pokemon_id"]));
-                string cp = Convert.ToString(message["cp"]);
+
+                if (message["pokemon_id"] == null)
+                {
+                    Console.WriteLine("Raid Egg found, skipping...");
+                    return;
+                }
+                int pokemonId = Convert.ToInt32(Convert.ToString(message["pokemon_id"] ?? 0));
+                string cp = Convert.ToString(message["cp"] ?? "?");
                 string move1 = Convert.ToString(message["move_1"] ?? "?");
                 string move2 = Convert.ToString(message["move_2"] ?? "?");
 
@@ -305,6 +327,12 @@
                 //Log($"Quick Move: {move1}");
                 //Log($"Charge Move: {move2}");
 
+                if (pokemonId == 0)
+                {
+                    _logger.Debug($"Level {level} Egg, skipping...");
+                    return;
+                }
+
                 var raid = new RaidData
                 (
                     pokemonId,
@@ -314,14 +342,15 @@
                     move2,
                     latitude,
                     longitude,
-                    new DateTime(start),
-                    new DateTime(end)
+                    new DateTime(TimeSpan.FromMilliseconds(start).Ticks),
+                    new DateTime(TimeSpan.FromMilliseconds(end).Ticks)
                 );
                 OnRaidReceived(raid);
             }
             catch (Exception ex)
             {
-                _logger.Error(ex);
+                _logger.Error(ex.StackTrace);
+                _logger.Info("{0}", Convert.ToString(message));
             }
         }
 

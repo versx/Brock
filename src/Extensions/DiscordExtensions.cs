@@ -96,6 +96,19 @@
             return null;
         }
 
+        public static bool HasSupporterRole(this DiscordMember member, ulong supporterRoleId)
+        {
+            foreach (var role in member.Roles)
+            {
+                if (role.Id == supporterRoleId)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         #endregion
 
         #region Raid Lobby Extensions
@@ -214,6 +227,18 @@
 
         #region Message Extensions
 
+        public static async Task<DiscordMessage> GetMessage(this DiscordChannel channel, ulong messageId)
+        {
+            try
+            {
+                return await channel.GetMessageAsync(messageId);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
         public static async Task RespondAsync(this DiscordMessage message, string content, DiscordEmbed embed = null, int deleteAfterMs = 10 * 1000)
         {
             var msg = await message.RespondAsync(content, false, embed);
@@ -253,8 +278,17 @@
             var data = Utils.GetWebHookData(webHookUrl);
             if (data == null) return;
 
-            var guildId = Convert.ToUInt64(Convert.ToString(data["guild_id"]));
-            var channelId = Convert.ToUInt64(Convert.ToString(data["channel_id"]));
+            if (!ulong.TryParse(Convert.ToString(data["guild_id"]), out ulong guildId))
+            {
+                Console.WriteLine("Error: Failed to parse guild_id from webhook data.");
+                return;
+            }
+
+            if (!ulong.TryParse(Convert.ToString(data["channel_id"]), out ulong channelId))
+            {
+                Console.WriteLine("Error: Failed to parse channel_id from webhook data.");
+                return;
+            }
 
             var guild = await client.GetGuildAsync(guildId);
             if (guild == null)
@@ -264,8 +298,8 @@
                 Console.ResetColor();
                 return;
             }
-            //var channel = guild.GetChannel(channelId);
-            var channel = await client.GetChannelAsync(channelId);
+            var channel = await client.GetChannel(channelId);
+            //var channel = await client.GetChannelAsync(channelId);
             if (channel == null)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -279,6 +313,8 @@
 
         public static async Task SendDirectMessage(this DiscordClient client, DiscordUser user, string message, DiscordEmbed embed)
         {
+            if (string.IsNullOrEmpty(message) && embed == null) return;
+
             var dm = await client.CreateDmAsync(user);
             if (dm != null)
             {

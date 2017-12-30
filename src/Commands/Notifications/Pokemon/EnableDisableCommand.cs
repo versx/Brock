@@ -56,7 +56,7 @@
             }
 
             server[author].Enabled = _enable;
-            await message.RespondAsync($"{message.Author.Username} has {(_enable ? "en" : "dis")}abled Pokemon and Raid notifications.");
+            await message.RespondAsync($"{message.Author.Username} has **{(_enable ? "en" : "dis")}abled** Pokemon and Raid notifications.");
         }
     }
 }

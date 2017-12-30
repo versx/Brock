@@ -21,6 +21,8 @@
 
         public const string PokemonDatabaseFileName = "pokemon.json";
 
+        public const string MovesetDatabaseFileName = "moves.json";
+
         #region Properties
 
         [XmlArrayItem("server")]
@@ -31,6 +33,10 @@
         [XmlIgnore]
         [JsonIgnore]
         public Dictionary<string, PokemonInfo> Pokemon { get; }
+
+        [XmlIgnore]
+        [JsonIgnore]
+        public Dictionary<string, Moveset> Movesets { get; }
 
         /// <summary>
         /// Gets the config full config file path.
@@ -76,6 +82,15 @@
                 if (!string.IsNullOrEmpty(pokeDb))
                 {
                     Pokemon = JsonStringSerializer.Deserialize<Dictionary<string, PokemonInfo>>(pokeDb);
+                }
+            }
+
+            if (File.Exists(MovesetDatabaseFileName))
+            {
+                var movesDb = File.ReadAllText(MovesetDatabaseFileName);
+                if (!string.IsNullOrEmpty(movesDb))
+                {
+                    Movesets = JsonStringSerializer.Deserialize<Dictionary<string, Moveset>>(movesDb);
                 }
             }
         }

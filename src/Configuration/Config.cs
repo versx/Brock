@@ -55,6 +55,10 @@
         [JsonProperty("allowTeamAssignment")]
         public bool AllowTeamAssignment { get; set; }
 
+        [XmlElement("supporterRoleId")]
+        [JsonProperty("supporterRoleId")]
+        public ulong SupporterRoleId { get; set; }
+
         [XmlArray("teamRoles")]
         [XmlArrayItem("teamRole")]
         [JsonProperty("teamRoles")]
@@ -122,6 +126,10 @@
         [JsonProperty("nearbyNests")]
         public Dictionary<string, int> NearbyNests { get; set; }
 
+        [XmlElement("encounterList")]
+        [JsonProperty("encounterList")]
+        public List<uint> EncounterList { get; set; }
+
         [XmlElement("customCommands")]
         [JsonProperty("customCommands")]
         public Dictionary<string, string> CustomCommands { get; set; }
@@ -159,6 +167,7 @@
             CityRoles = new List<string>();
             CommandsPrefix = '.';
             CustomCommands = new Dictionary<string, string>();
+            EncounterList = new List<uint>();
             NearbyNests = new Dictionary<string, int>();
             NotifyMemberBanned = true;
             NotifyMemberUnbanned = true;

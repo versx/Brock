@@ -74,7 +74,7 @@
                 //Administrative Commands
                 bot.RegisterCommand<CreateRolesCommand>();
                 bot.RegisterCommand<DeleteRolesCommand>();
-                //bot.RegisterCommand<AssignRolesCommand>();
+                bot.RegisterCommand<AssignRolesCommand>();
                 bot.RegisterCommand<UptimeCommand>();
                 //bot.RegisterCommand<SetCommand>();
                 bot.RegisterCommand<SayCommand>();
@@ -95,8 +95,8 @@
 
         static void Log(LogType logType, string message)
         {
-            Console.WriteLine($"{logType.ToString().ToUpper()} >> {message}");
-            File.AppendAllText(Path.Combine(LogsFolder, DateTime.Now.ToString("yyyy-MM-dd") + ".log"), $"{logType.ToString().ToUpper()} >> {message}\r\n");
+            Console.WriteLine($"{DateTime.Now.ToLongTimeString()}: {logType.ToString().ToUpper()} >> {message}");
+            File.AppendAllText(Path.Combine(LogsFolder, DateTime.Now.ToString("yyyy-MM-dd") + ".log"), $"{DateTime.Now.ToLongTimeString()}: {logType.ToString().ToUpper()} >> {message}\r\n");
         }
 
         static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)

@@ -1,6 +1,7 @@
 ﻿namespace BrockBot.Commands
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
 
     using DSharpPlus;
@@ -58,13 +59,16 @@
             {
                 if (!server.RemoveAllPokemon(author))
                 {
-                    await message.RespondAsync($"An error occurred while removing all Pokemon notifications for {message.Author.Username}.");
+                    await message.RespondAsync($"Failed to remove all Pokemon notifications for {message.Author.Username}.");
                     return;
                 }
 
-                await message.RespondAsync($"{message.Author.Username} has unsubscribed from all Pokemon notifications.");
+                await message.RespondAsync($"{message.Author.Username} has unsubscribed from **all** Pokemon notifications.");
                 return;
             }
+
+            var notSubscribed = new List<string>();
+            var unsubscribed = new List<string>();
 
             var cmd = command.Args[0];
             foreach (var arg in cmd.Split(','))
@@ -82,14 +86,26 @@
                 {
                     if (server[author].Pokemon.Remove(unsubscribePokemon))
                     {
-                        await message.RespondAsync($"{message.Author.Username} has unsubscribed from {pokemon.Name} notifications.");
+                        //msg += $"**{pokemon.Name}**";
+                        unsubscribed.Add(pokemon.Name);
                     }
                 }
                 else
                 {
-                    await message.RespondAsync($"{message.Author.Username} is not subscribed to {pokemon.Name} notifications.");
+                    notSubscribed.Add(pokemon.Name);
+                    //await message.RespondAsync($"{message.Author.Username} is not subscribed to **{pokemon.Name}** notifications.");
                 }
             }
+
+            await message.RespondAsync
+            (
+                (unsubscribed.Count > 0
+                    ? $"{message.Author.Username} has unsubscribed from **{string.Join("**, **", unsubscribed)}** notifications."
+                    : string.Empty) +
+                (notSubscribed.Count > 0 
+                    ? $" {message.Author.Username} is not subscribed to {string.Join(", ", notSubscribed)} notifications." 
+                    : string.Empty)
+            );
         }
     }
 }
