@@ -1,6 +1,7 @@
 ﻿namespace BrockBot.Commands
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
 
     using DSharpPlus;
@@ -43,7 +44,15 @@
                 return;
             }
 
-            await message.RespondAsync("Current Pokemon info being scanned for:\r\n" + string.Join(Environment.NewLine, _config.EncounterList));
+            var pokemon = new List<string>();
+            foreach (var pkmn in _config.EncounterList)
+            {
+                if (!Db.Pokemon.ContainsKey(pkmn.ToString())) continue;
+
+                pokemon.Add(Db.Pokemon[pkmn.ToString()].Name);
+            }
+
+            await message.RespondAsync("**Current Pokemon CP/IV/Moveset info being scanned for:**\r\n" + string.Join(Environment.NewLine, pokemon));
         }
     }
 }

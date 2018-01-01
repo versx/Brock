@@ -6,7 +6,6 @@
     using System.Threading.Tasks;
     using Timer = System.Timers.Timer;
 
-    //using DSharpPlus;
     using DSharpPlus.Entities;
     using DSharpPlus.EventArgs;
 
@@ -657,6 +656,8 @@
                     Logger.Info($"Notifying user {discordUser.Username} that a {pokemon.Name} CP{pkmn.CP} {pkmn.IV}% IV has appeared...");
 
                     var embed = BuildEmbedPokemon(pkmn);
+                    if (embed == null) return;
+
                     Notify(subscribedPokemon, embed);
 
                     await _client.SendDirectMessage(discordUser, string.Empty, embed);
@@ -895,8 +896,15 @@
                 if (!_config.Advertisement.Enabled) return;
                 if (_config.Advertisement.ChannelId == 0) return;
 
-                var channel = await _client.GetChannel(_config.Advertisement.ChannelId);
-                if (channel == null)
+                var advertisementChannel = await _client.GetChannel(_config.Advertisement.ChannelId);
+                if (advertisementChannel == null)
+                {
+                    Logger.Error($"Failed to retrieve advertisement channel with id {_config.Advertisement.ChannelId}.");
+                    return;
+                }
+
+                var cmdChannel = await _client.GetChannel(_config.CommandsChannelId);
+                if (cmdChannel == null)
                 {
                     Logger.Error($"Failed to retrieve commands channel with id {_config.CommandsChannelId}.");
                     return;
@@ -907,15 +915,15 @@
                     var msg = (string.IsNullOrEmpty(_config.Advertisement.Message)
                         ? DefaultAdvertisementMessage
                         : _config.Advertisement.Message)
-                        .Replace("{server}", channel.Guild.Name)
-                        .Replace("{bot}", channel.Mention);
-                    var sentMessage = await channel.SendMessageAsync(msg);
+                        .Replace("{server}", advertisementChannel.Guild.Name)
+                        .Replace("{bot}", cmdChannel.Mention);
+                    var sentMessage = await advertisementChannel.SendMessageAsync(msg);
                     _config.Advertisement.LastMessageId = sentMessage.Id;
                     _config.Save();
                     return;
                 }
 
-                var messages = await channel.GetMessagesAsync();
+                var messages = await advertisementChannel.GetMessagesAsync();
                 if (messages != null)
                 {
                     var lastBotMessageIndex = -1;
@@ -929,14 +937,14 @@
 
                     if (lastBotMessageIndex > _config.Advertisement.MessageThreshold || lastBotMessageIndex == -1)
                     {
-                        var guild = await _client.GetGuildAsync(channel.GuildId);
+                        var guild = await _client.GetGuildAsync(advertisementChannel.GuildId);
                         if (guild == null)
                         {
                             Console.WriteLine($"Failed to retrieve guild from channel guild id.");
                             return;
                         }
 
-                        var message = await channel.GetMessage(_config.Advertisement.LastMessageId);
+                        var message = await advertisementChannel.GetMessage(_config.Advertisement.LastMessageId);
                         if (message != null)
                         {
                             await message.DeleteAsync();
@@ -947,9 +955,9 @@
                         var msg = (string.IsNullOrEmpty(_config.Advertisement.Message)
                             ? DefaultAdvertisementMessage
                             : _config.Advertisement.Message)
-                            .Replace("{server}", channel.Guild.Name)
-                            .Replace("{bot}", channel.Mention);
-                        var sentMessage = await channel.SendMessageAsync(msg);
+                            .Replace("{server}", advertisementChannel.Guild.Name)
+                            .Replace("{bot}", cmdChannel.Mention);
+                        var sentMessage = await advertisementChannel.SendMessageAsync(msg);
                         _config.Advertisement.LastMessageId = sentMessage.Id;
                         _config.Save();
                     }
@@ -982,9 +990,9 @@
                 Color = DiscordColor.Red
             };
 
-            eb.AddField($"{pkmn.Name} (#{raid.PokemonId})", $"Level {raid.Level} {raid.CP}CP");
-            eb.AddField("Started:", raid.StartTime.ToString("hh:mm:ss tt"));
-            eb.AddField("Available Until:", $"{raid.EndTime.ToString("hh:mm:ss tt")} ({raid.EndTime.Subtract(raid.StartTime).Minutes} minutes remaining)");
+            eb.AddField($"{pkmn.Name} (#{raid.PokemonId})", $"Level {raid.Level} ({raid.CP} CP)");
+            eb.AddField("Started:", raid.StartTime.ToLongTimeString());
+            eb.AddField("Available Until:", $"{raid.EndTime.ToLongTimeString()} ({GetRaidTimeRemaining(raid.EndTime)} remaining)");
 
             var fastMove = _db.Movesets.ContainsKey(raid.FastMove) ? _db.Movesets[raid.FastMove] : null;
             if (fastMove != null)
@@ -1082,6 +1090,14 @@
             var diff = now.Subtract(created);
             var isUp = diff.TotalMinutes < thresholdMinutes;
             return isUp;
+        }
+
+        private TimeSpan GetRaidTimeRemaining(DateTime end)
+        {
+            var start = DateTime.Now;
+            var remaining = end.Subtract(start);
+            var seconds = remaining.Seconds;
+            return seconds < 0 ? TimeSpan.FromSeconds(0) : TimeSpan.FromSeconds(seconds);
         }
     }
 

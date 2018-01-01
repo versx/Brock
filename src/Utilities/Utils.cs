@@ -121,5 +121,19 @@
         {
             await Task.Delay(timeoutMs);
         }
+
+        public static double ToUnix(DateTime dateTime)
+        {
+            var epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            var unixDateTime = (dateTime.ToUniversalTime() - epoch).TotalSeconds;
+            return unixDateTime;
+        }
+
+        public static DateTime FromUnix(double unixSeconds)
+        {
+            var timeSpan = TimeSpan.FromSeconds(unixSeconds);
+            var localDateTime = new DateTime(timeSpan.Ticks).ToLocalTime();
+            return localDateTime;
+        }
     }
 }

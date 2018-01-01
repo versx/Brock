@@ -9,6 +9,7 @@
 
     using BrockBot.Configuration;
     using BrockBot.Diagnostics;
+    using BrockBot.Utilities;
 
     public enum PokemonGender
     {
@@ -81,7 +82,7 @@
             }
             catch (Exception ex)
             {
-                Utilities.Utils.LogError(ex);
+                Utils.LogError(ex);
             }
             server.Start();
 
@@ -156,6 +157,8 @@
             }
             catch (Exception ex)
             {
+                Utils.LogError(ex);
+
                 _logger.Error(ex);
                 _logger.Info("{0}", Convert.ToString(data));
             }
@@ -266,7 +269,7 @@
                     move2,
                     height,
                     weight,
-                    new DateTime(TimeSpan.FromMilliseconds(disappearTime).Ticks), 
+                    Utils.FromUnix(disappearTime), 
                     TimeSpan.FromSeconds(secondsUntilDespawn)
                 );
                 OnPokemonReceived(pokemon);
@@ -276,6 +279,8 @@
             }
             catch (Exception ex)
             {
+                Utils.LogError(ex);
+
                 _logger.Error(ex);
                 _logger.Info("{0}", Convert.ToString(message));
             }
@@ -301,8 +306,8 @@
                 double latitude = Convert.ToDouble(Convert.ToString(message["latitude"]));
                 double longitude = Convert.ToDouble(Convert.ToString(message["longitude"]));
                 long spawn = Convert.ToInt64(Convert.ToString(message["spawn"]));
-                long start = Convert.ToInt64(Convert.ToString(message["raid_begin"]));
-                long end = Convert.ToInt64(Convert.ToString(message["raid_end"]));
+                long start = Convert.ToInt64(Convert.ToString(message["start"]));//"raid_begin"]));
+                long end = Convert.ToInt64(Convert.ToString(message["end"]));//"raid_end"]));
                 string level = Convert.ToString(message["level"] ?? "?");
 
                 if (message["pokemon_id"] == null)
@@ -342,13 +347,15 @@
                     move2,
                     latitude,
                     longitude,
-                    new DateTime(TimeSpan.FromMilliseconds(start).Ticks),
-                    new DateTime(TimeSpan.FromMilliseconds(end).Ticks)
+                    Utils.FromUnix(start),
+                    Utils.FromUnix(end)
                 );
                 OnRaidReceived(raid);
             }
             catch (Exception ex)
             {
+                Utils.LogError(ex);
+
                 _logger.Error(ex.StackTrace);
                 _logger.Info("{0}", Convert.ToString(message));
             }

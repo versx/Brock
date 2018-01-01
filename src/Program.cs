@@ -40,6 +40,7 @@
                 bot.RegisterCommand<PokemonLookupCommand>();
                 bot.RegisterCommand<MapCommand>();
                 bot.RegisterCommand<DonateCommand>();
+                bot.RegisterCommand<ScanListCommand>();
                 bot.RegisterCommand<VersionCommand>();
 
                 //Custom Commands
