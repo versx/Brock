@@ -82,6 +82,18 @@
 
         #region User Extensions
 
+        public static async Task<DiscordUser> GetUser(this DiscordClient client, ulong userId)
+        {
+            try
+            {
+                return await client.GetUserAsync(userId);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         public static async Task<DiscordMember> GetMemberFromUserId(this DiscordClient client, ulong userId)
         {
             foreach (var guild in client.Guilds)

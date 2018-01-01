@@ -135,5 +135,24 @@
             var localDateTime = new DateTime(timeSpan.Ticks).ToLocalTime();
             return localDateTime;
         }
+
+        public static Version GetPoGoApiVersion()
+        {
+            try
+            {
+                const string url = "https://pgorelease.nianticlabs.com/plfe/version";
+                using (var wc = new WebClient())
+                {
+                    var ver = wc.DownloadString(url);
+                    ver = ver.Trim('\0', '\r', '\n');
+
+                    return new Version(ver.Substring(1, ver.Length - 1));
+                }
+            }
+            catch
+            {
+                return new Version(0, 0);
+            }
+        }
     }
 }

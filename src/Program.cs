@@ -41,6 +41,7 @@
                 bot.RegisterCommand<MapCommand>();
                 bot.RegisterCommand<DonateCommand>();
                 bot.RegisterCommand<ScanListCommand>();
+                bot.RegisterCommand<CheckApiCommand>();
                 bot.RegisterCommand<VersionCommand>();
 
                 //Custom Commands

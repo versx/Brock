@@ -51,6 +51,10 @@
         [JsonProperty("sponsoredRaids")]
         public SponsoredRaidsConfig SponsoredRaids { get; set; }
 
+        [XmlElement("apiVersion")]
+        [JsonProperty("apiVersion")]
+        public Version ScannerApiVersion { get; set; }
+
         [XmlElement("allowTeamAssignment")]
         [JsonProperty("allowTeamAssignment")]
         public bool AllowTeamAssignment { get; set; }
@@ -174,6 +178,7 @@
             NotifyNewMemberJoined = true;
             NotifyMemberLeft = true;
             OwnerId = 0;
+            ScannerApiVersion = new Version(0, 87, 0);
             //SendStartupMessage = true;
             //StartupMessageWebHook = "";
             SendWelcomeMessage = true;

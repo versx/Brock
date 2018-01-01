@@ -610,7 +610,7 @@
                 {
                     if (!user.Enabled) continue;
 
-                    discordUser = await _client.GetUserAsync(user.UserId);
+                    discordUser = await _client.GetUser(user.UserId);
                     if (discordUser == null) continue;
 
                     if (!user.Pokemon.Exists(x => x.PokemonId == pkmn.PokemonId)) continue;
@@ -674,7 +674,7 @@
                 {
                     if (!user.Enabled) continue;
 
-                    discordUser = await _client.GetUserAsync(user.UserId);
+                    discordUser = await _client.GetUser(user.UserId);
                     if (discordUser == null) continue;
 
                     if (!user.Raids.Exists(x => x.PokemonId == raid.PokemonId)) continue;
@@ -990,9 +990,10 @@
                 Color = DiscordColor.Red
             };
 
-            eb.AddField($"{pkmn.Name} (#{raid.PokemonId})", $"Level {raid.Level} ({raid.CP} CP)");
+            var fixedEndTime = DateTime.Parse(raid.EndTime.ToLongTimeString());
+            eb.AddField($"{pkmn.Name} (#{raid.PokemonId})", $"Level {raid.Level} ({Convert.ToInt32(raid.CP ?? "0").ToString("N0")} CP)");
             eb.AddField("Started:", raid.StartTime.ToLongTimeString());
-            eb.AddField("Available Until:", $"{raid.EndTime.ToLongTimeString()} ({GetRaidTimeRemaining(raid.EndTime)} remaining)");
+            eb.AddField("Available Until:", $"{raid.EndTime.ToLongTimeString()} ({GetRaidTimeRemaining(fixedEndTime)} remaining)");
 
             var fastMove = _db.Movesets.ContainsKey(raid.FastMove) ? _db.Movesets[raid.FastMove] : null;
             if (fastMove != null)

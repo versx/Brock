@@ -123,6 +123,7 @@
     <Compile Include="Commands\Administrative\LeaveGuildCommand.cs" />
     <Compile Include="Commands\Administrative\Twitter\ListTwitterCommand.cs" />
     <Compile Include="Commands\Administrative\SayCommand.cs" />
+    <Compile Include="Commands\General\CheckApiCommand.cs" />
     <Compile Include="Commands\General\ScanListCommand.cs" />
     <Compile Include="Commands\RaidLobbies\CreateRaidLobbyCommand.cs" />
     <Compile Include="Commands\Administrative\CreateRolesCommand.cs" />
