@@ -11,6 +11,8 @@
     using BrockBot.Data.Models;
     using BrockBot.Extensions;
 
+    //TODO: Send subscriptions list to user in DM.
+
     [Command(
         Categories.Notifications, 
         "Shows your current notification subscriptions.",
@@ -66,11 +68,13 @@
                 msg = $"**{message.Author.Username}** is not subscribed to any Pokemon or Raid notifications.";
             }
 
-            var messages = ChunksUpto(msg, 2000);
-            foreach (var splitMessage in messages)
+            if (msg.Length > 2000)
             {
-                await message.RespondAsync(splitMessage);
+                await message.RespondAsync($"**{message.Author.Username}**'s subscription list is longer than the allowed Discord message character count, here is a partial list:");
+                await message.RespondAsync(msg.Substring(0, Math.Min(msg.Length, 2000)));
             }
+            else
+                await message.RespondAsync(msg);
         }
 
         private List<string> GetPokemonSubscriptionNames(Server server, ulong userId)

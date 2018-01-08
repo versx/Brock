@@ -64,6 +64,7 @@
             {
                 var sub = this[userId];
                 sub.Pokemon.Clear();
+                return true;
             }
 
             return false;

@@ -75,7 +75,6 @@
                 var guild = message.Channel.Guild;
                 var success = 0;
                 var errors = 0;
-                var added = new List<string>();
                 var failed = new List<string>();
 
                 await message.RespondAsync

@@ -134,6 +134,10 @@
         [JsonProperty("encounterList")]
         public List<uint> EncounterList { get; set; }
 
+        [XmlElement("feedStatus")]
+        [JsonProperty("feedStatus")]
+        public FeedStatusConfig FeedStatus { get; set; }
+
         [XmlElement("customCommands")]
         [JsonProperty("customCommands")]
         public Dictionary<string, string> CustomCommands { get; set; }
@@ -198,6 +202,7 @@
             SponsoredRaids = new SponsoredRaidsConfig();
             TwitterUpdates = new TwitterUpdatesConfig();
             Advertisement = new AdvertisementConfig();
+            FeedStatus = new FeedStatusConfig();
         }
 
         #endregion
@@ -303,5 +308,21 @@
         }
 
         #endregion
+    }
+
+    [JsonObject("feedStatus")]
+    public class FeedStatusConfig
+    {
+        [JsonProperty("channels")]
+        public List<ulong> Channels { get; set; }
+
+        [JsonProperty("enabled")]
+        public bool Enabled { get; set; }
+
+        public FeedStatusConfig()
+        {
+            Channels = new List<ulong>();
+            Enabled = true;
+        }
     }
 }

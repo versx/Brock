@@ -16,7 +16,7 @@
     [Command(Categories.General,
         "Assign yourself to a city feed's role.",
         "\tExample: `.feedme Upland,ontario,newport` (Joins a city)\r\n" +
-        "\tExample: `.feedme All` (Joins all cities)",
+        "\tExample: `.feedme all` (Joins all cities)",
         "feedme"//, "city"
     )]
     public class FeedMeCommand : ICustomCommand

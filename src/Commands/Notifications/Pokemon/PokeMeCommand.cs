@@ -88,6 +88,19 @@
                         if (!server[author].Pokemon.Exists(x => x.PokemonId == i))
                         {
                             server[author].Pokemon.Add(new Pokemon { PokemonId = i, MinimumIV = iv });
+                            subscribed.Add(pokemon.Name);
+                        }
+                        else
+                        {
+                            //Check if minimum IV value is different from value in database, if not add it to the already subscribed list.
+                            var subscribedPokemon = server[author].Pokemon.Find(x => x.PokemonId == i);
+                            if (iv != subscribedPokemon.MinimumIV)
+                            {
+                                subscribedPokemon.MinimumIV = iv;
+                                continue;
+                            }
+
+                            alreadySubscribed.Add(pokemon.Name);
                         }
                     }
                 }
@@ -108,7 +121,7 @@
                 var pokemon = Db.Pokemon[index.ToString()];
                 if (!server.SubscriptionExists(author))
                 {
-                    server.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon> { new Pokemon() { PokemonId = index, /*MinimumCP = cp,*/ MinimumIV = iv } }, new List<Pokemon>()));
+                    server.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon> { new Pokemon { PokemonId = index, /*MinimumCP = cp,*/ MinimumIV = iv } }, new List<Pokemon>()));
                     subscribed.Add(pokemon.Name);
                 }
                 else
@@ -121,6 +134,15 @@
                     }
                     else
                     {
+                        //Check if minimum IV value is different from value in database, if not add it to the already subscribed list.
+                        var subscribedPokemon = server[author].Pokemon.Find(x => x.PokemonId == index);
+                        if (iv != subscribedPokemon.MinimumIV)
+                        {
+                            subscribedPokemon.MinimumIV = iv;
+                            subscribed.Add(pokemon.Name);
+                            continue;
+                        }
+
                         alreadySubscribed.Add(pokemon.Name);
                     }
                 }

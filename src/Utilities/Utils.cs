@@ -3,9 +3,11 @@
     using System;
     using System.IO;
     using System.Net;
+    using System.Text;
     using System.Threading.Tasks;
 
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
 
     public static class Utils
     {
@@ -82,15 +84,15 @@
             }
         }
 
-        public static string ToReadableString(TimeSpan span)
+        public static string ToReadableString(TimeSpan span, bool shortForm = false)
         {
             string formatted = string.Format
             (
                 "{0}{1}{2}{3}",
-                span.Duration().Days > 0 ? string.Format("{0:0} day{1}, ", span.Days, span.Days == 1 ? "" : "s") : "",
-                span.Duration().Hours > 0 ? string.Format("{0:0} hour{1}, ", span.Hours, span.Hours == 1 ? "" : "s") : "",
-                span.Duration().Minutes > 0 ? string.Format("{0:0} minute{1}, ", span.Minutes, span.Minutes == 1 ? "" : "s") : "",
-                span.Duration().Seconds > 0 ? string.Format("{0:0} second{1}", span.Seconds, span.Seconds == 1 ? "" : "s") : ""
+                span.Duration().Days > 0 ? shortForm ? string.Format("{0:0}d:", span.Days) : string.Format("{0:0} day{1}, ", span.Days, span.Days == 1 ? "" : "s") : "",
+                span.Duration().Hours > 0 ? shortForm ? string.Format("{0:0}h:", span.Hours) : string.Format("{0:0} hour{1}, ", span.Hours, span.Hours == 1 ? "" : "s") : "",
+                span.Duration().Minutes > 0 ? shortForm ? string.Format("{0:0}m:", span.Minutes) : string.Format("{0:0} minute{1}, ", span.Minutes, span.Minutes == 1 ? "" : "s") : "",
+                span.Duration().Seconds > 0 ? shortForm ? string.Format("{0:0}s", span.Seconds) : string.Format("{0:0} second{1}", span.Seconds, span.Seconds == 1 ? "" : "s") : ""
             );
 
             if (formatted.EndsWith(", ", StringComparison.Ordinal))
@@ -152,6 +154,51 @@
             catch
             {
                 return new Version(0, 0);
+            }
+        }
+
+        public static Location GetGoogleAddress(double lat, double lng)
+        {
+            var url = $"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&sensor=true";
+            var request = (HttpWebRequest)WebRequest.Create(url);
+
+            try
+            {
+                var response = request.GetResponse();
+                using (var responseStream = response.GetResponseStream())
+                {
+                    var reader = new StreamReader(responseStream, Encoding.UTF8);
+                    var parseJson = JObject.Parse(reader.ReadToEnd());
+
+                    var jsonres = parseJson["results"][0];
+                    var json = jsonres["address_components"][0];
+                    var address = json["short_name"];
+
+                    var jsonres1 = parseJson["results"][1];
+                    var json1 = jsonres1["address_components"][1];
+                    var address1 = json1["long_name"];
+
+                    var components = jsonres1["address_components"][0];
+                    var city = Convert.ToString(components["short_name"]);
+
+                    var jsonres2 = parseJson["results"][1];
+                    var address2 = jsonres2["formatted_address"];
+
+                    var fullAddress = $"{address} {address1} {address2}";
+
+                    return new Location(fullAddress, city, lat, lng);
+                }
+            }
+            catch (WebException ex)
+            {
+                var errorResponse = ex.Response;
+                using (var rs = errorResponse.GetResponseStream())
+                {
+                    var sr = new StreamReader(rs, Encoding.GetEncoding("utf-8"));
+                    var errorText = sr.ReadToEnd();
+                    Console.WriteLine($"Error: {errorText}");
+                }
+                throw;
             }
         }
     }

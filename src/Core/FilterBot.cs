@@ -16,6 +16,7 @@
     using BrockBot.Diagnostics;
     using BrockBot.Extensions;
     using BrockBot.Net;
+    using BrockBot.Services;
     using BrockBot.Utilities;
 
     using DSharpPlus;
@@ -29,7 +30,6 @@
     //TODO: Loop through all arguments for the .feed command. Check if first arg is == remove, if not then assume all arguments are city roles?
     //TODO: Add scanning pokemon list command.
     //TODO: Add rate limiter to prevent spam.
-    //TODO: Add reminders?
     //TODO: Add .interested command or something similar.
     //TODO: Notify via SMS or Email or Twilio or w/e.
     //TODO: Add support for pokedex # or name for Pokemon and Raid subscriptions.
@@ -52,6 +52,8 @@
         private Timer _adTimer;
         private IFilteredStream _twitterStream;
 
+        private ReminderService _reminderService;
+
         #endregion
 
         #region Properties
@@ -72,6 +74,12 @@
             Commands = new CommandList();
 
             _db = Database.Load();
+            if (_db == null)
+            {
+                Utils.LogError(new Exception("Failed to load database, exiting..."));
+                Environment.Exit(-1);
+            }
+
             _config = File.Exists(Config.ConfigFilePath) ? Config.Load() : Config.CreateDefaultConfig(true);
             _rand = new Random();
 
@@ -94,6 +102,8 @@
             _client.GuildBanAdded += Client_GuildBanAdded;
             _client.GuildBanRemoved += Client_GuildBanRemoved;
 
+            _reminderService = new ReminderService(_client, _db);
+
             //var pokemon = new List<Pokemon>();
             //for (int i = 1; i < 350; i++)
             //{
@@ -104,6 +114,11 @@
             //_db.Servers[0].Subscriptions.Add(new Subscription<Pokemon>(00, pokemon, new List<Pokemon> { new Pokemon { PokemonId = 359, PokemonName = "Absol" } }));
             //_db.Save();
             //Environment.Exit(0);
+
+            //var reminder = new ReminderService();
+            //reminder.SetReminder(000, "to do nothing in 25 seconds.");
+            //reminder.GetReminders(000);
+            //reminder.DeleteReminder(000, 2);
         }
 
         #endregion
@@ -417,6 +432,8 @@
                         args.Add(_db);
                     else if (typeof(Config) == pi.ParameterType)
                         args.Add(_config);
+                    else if (typeof(ReminderService) == pi.ParameterType)
+                        args.Add(_reminderService);
                     else
                     {
                         foreach (var obj in optionalParameters)
@@ -618,6 +635,7 @@
 
                     if (!_db.Pokemon.ContainsKey(subscribedPokemon.PokemonId.ToString())) continue;
                     var pokemon = _db.Pokemon[subscribedPokemon.PokemonId.ToString()];
+                    if (pokemon == null) continue;
 
                     //if (ignoreMissingCPIV && (pkmn.CP == "?" || pkmn.IV == "?") && subscribedPokemon.MinimumIV > 0) continue;
 
@@ -656,11 +674,12 @@
                     Logger.Info($"Notifying user {discordUser.Username} that a {pokemon.Name} CP{pkmn.CP} {pkmn.IV}% IV has appeared...");
 
                     var embed = BuildEmbedPokemon(pkmn);
-                    if (embed == null) return;
+                    if (embed == null) continue;
 
                     Notify(subscribedPokemon, embed);
 
                     await _client.SendDirectMessage(discordUser, string.Empty, embed);
+                    await Utils.Wait(100);
                 }
             }
         }
@@ -682,15 +701,19 @@
 
                     if (!_db.Pokemon.ContainsKey(subscribedRaid.PokemonId.ToString())) continue;
                     var pokemon = _db.Pokemon[subscribedRaid.PokemonId.ToString()];
+                    if (pokemon == null) continue;
 
                     if (subscribedRaid.PokemonId != raid.PokemonId) continue;
 
                     Console.WriteLine($"Notifying user {discordUser.Username} that a {pokemon.Name} raid is available...");
 
                     var embed = BuildEmbedRaid(raid);
+                    if (embed == null) continue;
+
                     Notify(subscribedRaid, embed);
 
                     await _client.SendDirectMessage(discordUser, string.Empty, embed);
+                    await Utils.Wait(100);
                 }
             }
         }
@@ -980,9 +1003,10 @@
                 return null;
             }
 
+            var loc = Utils.GetGoogleAddress(raid.Latitude, raid.Longitude);
             var eb = new DiscordEmbedBuilder
             {
-                Title = "DIRECTIONS",
+                Title = string.IsNullOrEmpty(loc.City) ? "DIRECTIONS" : loc.City,
                 Description = $"{pkmn.Name} raid is available!",
                 Url = string.Format(HttpServer.GoogleMaps, raid.Latitude, raid.Longitude),
                 ImageUrl = string.Format(HttpServer.GoogleMapsImage, raid.Latitude, raid.Longitude),
@@ -991,9 +1015,10 @@
             };
 
             var fixedEndTime = DateTime.Parse(raid.EndTime.ToLongTimeString());
+            var remaining = GetRaidTimeRemaining(fixedEndTime).Minutes;
             eb.AddField($"{pkmn.Name} (#{raid.PokemonId})", $"Level {raid.Level} ({Convert.ToInt32(raid.CP ?? "0").ToString("N0")} CP)");
             eb.AddField("Started:", raid.StartTime.ToLongTimeString());
-            eb.AddField("Available Until:", $"{raid.EndTime.ToLongTimeString()} ({GetRaidTimeRemaining(fixedEndTime)} remaining)");
+            eb.AddField("Available Until:", $"{raid.EndTime.ToLongTimeString()} ({remaining} minutes left)");
 
             var fastMove = _db.Movesets.ContainsKey(raid.FastMove) ? _db.Movesets[raid.FastMove] : null;
             if (fastMove != null)
@@ -1008,6 +1033,7 @@
             }
 
             eb.AddField("Location:", $"{raid.Latitude},{raid.Longitude}");
+            eb.AddField("Address:", loc.Address);
             eb.WithImageUrl(string.Format(HttpServer.GoogleMapsImage, raid.Latitude, raid.Longitude));
             var embed = eb.Build();
 
@@ -1023,10 +1049,11 @@
                 return null;
             }
 
+            var loc = Utils.GetGoogleAddress(pokemon.Latitude, pokemon.Longitude);
             var eb = new DiscordEmbedBuilder
             {
-                Title = "DIRECTIONS",
-                Description = $"{pkmn.Name} {pokemon.CP}CP {pokemon.IV} has spawned!",
+                Title = string.IsNullOrEmpty(loc.City) ? "DIRECTIONS" : loc.City,
+                Description = $"{pkmn.Name} {pokemon.CP}CP {pokemon.IV} LV{pokemon.PlayerLevel} has spawned!",
                 Url = string.Format(HttpServer.GoogleMaps, pokemon.Latitude, pokemon.Longitude),
                 ImageUrl = string.Format(HttpServer.GoogleMapsImage, pokemon.Latitude, pokemon.Longitude),
                 ThumbnailUrl = string.Format(HttpServer.PokemonImage, pokemon.PokemonId),
@@ -1035,6 +1062,7 @@
 
             eb.AddField($"{pkmn.Name} (#{pokemon.PokemonId}, {pokemon.Gender})", $"CP: {pokemon.CP} IV: {pokemon.IV} (Sta: {pokemon.Stamina}/Atk: {pokemon.Attack}/Def: {pokemon.Defense}) LV: {pokemon.PlayerLevel}");
             eb.AddField("Available Until:", $"{pokemon.DespawnTime.ToLongTimeString()} ({pokemon.SecondsLeft} remaining)");
+            eb.AddField("Address:", loc.Address);
             eb.AddField("Location:", $"{pokemon.Latitude},{pokemon.Longitude}");
             eb.WithImageUrl(string.Format(HttpServer.GoogleMapsImage, pokemon.Latitude, pokemon.Longitude));
             var embed = eb.Build();
@@ -1046,20 +1074,15 @@
 
         private async Task CheckFeedStatus()
         {
-            //TODO: Add config options to configure this instead of hard coding.
-            var channels = new List<ulong>
+            if (!_config.FeedStatus.Enabled) return;
+            if (_config.FeedStatus.Channels.Count == 0) return;
+
+            for (int i = 0; i < _config.FeedStatus.Channels.Count; i++)
             {
-                392114719911182337, //Upland
-                392114983825178624, //Ontario
-                392115502044020736, //Pomona
-                //392115669535162410 //EastLA
-            };
-            for (int i = 0; i < channels.Count; i++)
-            {
-                var channel = await _client.GetChannel(channels[i]);
+                var channel = await _client.GetChannel(_config.FeedStatus.Channels[i]);
                 if (channel == null)
                 {
-                    Logger.Error($"Failed to find Discord channel with id {channels[i]}.");
+                    Logger.Error($"Failed to find Discord channel with id {_config.FeedStatus.Channels[i]}.");
                     continue;
                 }
 
@@ -1076,13 +1099,15 @@
                 var owner = await _client.GetUserAsync(_config.OwnerId);
                 if (owner == null)
                 {
-                    Console.WriteLine($"Failed to find owner with id {_config.OwnerId}.");
+                    Logger.Error($"Failed to find owner with id {_config.OwnerId}.");
                     continue;
                 }
 
-                await _client.SendDirectMessage(owner, $"DISCORD FEED {channel.Name} IS DOWN!", null);
-                await Utils.Wait(5000);
+                await _client.SendDirectMessage(owner, $"DISCORD FEED **{channel.Name}** IS DOWN!", null);
+                await Utils.Wait(200);
             }
+
+            await Utils.Wait(5000);
         }
 
         private bool IsFeedUp(DateTime created, int thresholdMinutes = 15)
@@ -1093,12 +1118,12 @@
             return isUp;
         }
 
-        private TimeSpan GetRaidTimeRemaining(DateTime end)
+        private TimeSpan GetRaidTimeRemaining(DateTime endTime)
         {
             var start = DateTime.Now;
-            var remaining = end.Subtract(start);
-            var seconds = remaining.Seconds;
-            return seconds < 0 ? TimeSpan.FromSeconds(0) : TimeSpan.FromSeconds(seconds);
+            var end = DateTime.Parse(endTime.ToLongTimeString());
+            var remaining = TimeSpan.FromTicks(end.Ticks - start.Ticks);
+            return remaining;
         }
     }
 

@@ -159,6 +159,9 @@
     <Compile Include="Commands\Notifications\Pokemon\PokeMeNotCommand.cs" />
     <Compile Include="Commands\Administrative\UptimeCommand.cs" />
     <Compile Include="Commands\General\VersionCommand.cs" />
+    <Compile Include="Commands\Reminders\DeleteReminderCommand.cs" />
+    <Compile Include="Commands\Reminders\GetRemindersCommand.cs" />
+    <Compile Include="Commands\Reminders\SetReminderCommand.cs" />
     <Compile Include="Configuration\AdvertisementConfig.cs" />
     <Compile Include="Configuration\Config.cs" />
     <Compile Include="Configuration\SponsoredRaidsConfig.cs" />
@@ -169,6 +172,7 @@
     <Compile Include="Core\CommandPermissionAttribute.cs" />
     <Compile Include="Core\CommandPermissionLevel.cs" />
     <Compile Include="Core\FilterBot.cs" />
+    <Compile Include="Core\Location.cs" />
     <Compile Include="Core\Pokemon.cs" />
     <Compile Include="Core\Roles.cs" />
     <Compile Include="Data\Database.cs" />
@@ -195,6 +199,7 @@
     <Compile Include="Core\Command.cs" />
     <Compile Include="Serialization\JsonStringSerializer.cs" />
     <Compile Include="Serialization\XmlStringSerializer.cs" />
+    <Compile Include="Services\ReminderService.cs" />
     <Compile Include="Utilities\AssemblyUtils.cs" />
     <Compile Include="Utilities\Utils.cs" />
   </ItemGroup>

@@ -1,6 +1,7 @@
 ﻿namespace BrockBot.Data
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.IO;
     using System.Xml.Serialization;
@@ -9,18 +10,25 @@
 
     using BrockBot.Data.Models;
     using BrockBot.Serialization;
+    using BrockBot.Services;
 
     [XmlRoot("database")]
     [JsonObject("database")]
     public class Database : IDatabase
     {
         /// <summary>
-        /// The default config file name with extension.
+        /// Default main database file name with extension.
         /// </summary>
         public const string DefaultDatabaseFileName = "database.json";
 
+        /// <summary>
+        /// Default Pokemon database file name with extension.
+        /// </summary>
         public const string PokemonDatabaseFileName = "pokemon.json";
 
+        /// <summary>
+        /// Default Pokemon moveset database file name with extension.
+        /// </summary>
         public const string MovesetDatabaseFileName = "moves.json";
 
         #region Properties
@@ -29,6 +37,9 @@
         [XmlArray("servers")]
         [JsonProperty("servers")]
         public List<Server> Servers { get; set; }
+
+        [JsonProperty("reminders")]
+        public ConcurrentDictionary<ulong, List<Reminder>> Reminders { get; set; }
 
         [XmlIgnore]
         [JsonIgnore]
@@ -75,6 +86,7 @@
         public Database()
         {
             Servers = new List<Server>();
+            Reminders = new ConcurrentDictionary<ulong, List<Reminder>>();
 
             if (File.Exists(PokemonDatabaseFileName))
             {

@@ -67,6 +67,11 @@
                 bot.RegisterCommand<RaidLobbyCancelCommand>();
                 bot.RegisterCommand<RaidLobbyListUsersCommand>();
 
+                //Reminder Commands
+                bot.RegisterCommand<GetRemindersCommand>();
+                bot.RegisterCommand<SetReminderCommand>();
+                bot.RegisterCommand<DeleteReminderCommand>();
+
                 //Twitter Commands
                 bot.RegisterCommand<ListTwitterCommand>();
                 bot.RegisterCommand<AddTwitterCommand>();

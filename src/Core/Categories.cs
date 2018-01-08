@@ -10,6 +10,8 @@
 
         public const string Notifications = "Notifications";
 
+        public const string Reminders = "Reminders";
+
         public const string RaidLobby = "Raid Lobby";
 
         public const string CustomCommands = "Custom Commands";
