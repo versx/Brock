@@ -8,6 +8,7 @@
 
     using BrockBot.Configuration;
     using BrockBot.Data;
+    using BrockBot.Diagnostics;
     using BrockBot.Extensions;
 
     [Command(
@@ -19,9 +20,11 @@
     )]
     public class SayCommand : ICustomCommand
     {
+        private readonly IEventLogger _logger;
+
         #region Properties
 
-        public bool AdminCommand => true;
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Admin;
 
         public DiscordClient Client { get; }
 
@@ -33,11 +36,12 @@
 
         #region Constructor
 
-        public SayCommand(DiscordClient client, IDatabase db, Config config)
+        public SayCommand(DiscordClient client, IDatabase db, Config config, IEventLogger logger)
         {
             Client = client;
             Db = db;
             Config = config;
+            _logger = logger;
         }
 
         #endregion
@@ -56,9 +60,17 @@
                 await message.RespondAsync($"Failed to lookup channel {channelName}.");
                 return;
             }
-
-            var msg = command.Args[1];
-            await channel.SendMessageAsync(msg);
+            
+            try
+            {
+                var msg = command.Args[1];
+                await channel.SendMessageAsync(msg);
+                //await Client.SendMessageAsync(channel, msg);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex);
+            }
         }
     }
 }

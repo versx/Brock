@@ -7,6 +7,7 @@
     using DSharpPlus.Entities;
 
     using BrockBot.Data;
+    using BrockBot.Diagnostics;
     using BrockBot.Utilities;
 
     [Command(
@@ -17,16 +18,19 @@
     )]
     public class DeleteReminderCommand : ICustomCommand
     {
-        public bool AdminCommand => false;
+        private readonly IEventLogger _logger;
+
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
 
         public DiscordClient Client { get; }
 
         public IDatabase Db { get; }
 
-        public DeleteReminderCommand(DiscordClient client, IDatabase db)
+        public DeleteReminderCommand(DiscordClient client, IDatabase db, IEventLogger logger)
         {
             Client = client;
             Db = db;
+            _logger = logger;
         }
 
         public async Task Execute(DiscordMessage message, Command command)
@@ -36,7 +40,10 @@
 
             if (!int.TryParse(command.Args[0], out int index))
             {
+                await message.RespondAsync("Invalid message number specified, try again.");
+                return;
             }
+
             await DeleteReminder(message, index);
         }
 
@@ -46,13 +53,13 @@
             {
                 if (!Db.Reminders.ContainsKey(message.Author.Id))
                 {
-                    await message.RespondAsync($":no_entry_sign: {message.Author.Username} does not have any reminders set.");
+                    await message.RespondAsync($":no_entry_sign: {message.Author.Mention} does not have any reminders set.");
                     return;
                 }
 
                 if (Db.Reminders.Count < 1)
                 {
-                    await message.RespondAsync($":no_entry_sign: {message.Author.Username} does not have any reminders set.");
+                    await message.RespondAsync($":no_entry_sign: {message.Author.Mention} does not have any reminders set.");
                     return;
                 }
 
@@ -67,13 +74,13 @@
 
                 if (index > (Db.Reminders[message.Author.Id].Count + 1) || index < 1)
                 {
-                    await message.RespondAsync($":no_entry_sign: {message.Author.Username} provided an invalid reminder number.");
+                    await message.RespondAsync($":no_entry_sign: {message.Author.Mention} provided an invalid reminder number.");
                     return;
                 }
 
                 if (index == Db.Reminders[message.Author.Id].Count)
                 {
-                    await message.RespondAsync($":no_entry_sign: Action cancelled by user {message.Author.Username}.");
+                    await message.RespondAsync($":no_entry_sign: Action cancelled by user {message.Author.Mention}.");
                     return;
                 }
 
@@ -82,11 +89,11 @@
                 Db.Reminders[message.Author.Id].RemoveAt(index);
                 Db.Save();
 
-                await message.RespondAsync($":white_check_mark: Successfully removed reminder: '{msgToRemove}' for {message.Author.Username}.");
+                await message.RespondAsync($":white_check_mark: Successfully removed reminder: '{msgToRemove}' for {message.Author.Mention}.");
             }
             catch (Exception ex)
             {
-                Utils.LogError(ex);
+                _logger.Error(ex);
             }
         }
     }

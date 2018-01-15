@@ -17,7 +17,7 @@
     )]
     public class ListCmdCommand : ICustomCommand
     {
-        public bool AdminCommand => false;
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Supporter;
 
         public DiscordClient Client { get; }
 

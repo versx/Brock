@@ -13,9 +13,9 @@
         [JsonProperty("pokemonId")]
         public uint PokemonId { get; set; }
 
-        [XmlAttribute("pokemonName")]
-        [JsonProperty("pokemonName")]
-        public string PokemonName { get; set; }
+        //[XmlAttribute("pokemonName")]
+        //[JsonProperty("pokemonName")]
+        //public string PokemonName { get; set; }
 
         [XmlAttribute("minimumCP")]
         [JsonProperty("minimumCP")]

@@ -90,7 +90,7 @@
 //                    {
 //                        if (!_config.CityRoles.Exists(x => string.Compare(city, x, true) == 0))
 //                        {
-//                            await message.RespondAsync($"{message.Author.Username} has entered an incorrect city name, please enter one of the following: {(string.Join(",", _config.CityRoles))}, or {FeedAll}.");
+//                            await message.RespondAsync($"{message.Author.Mention} has entered an incorrect city name, please enter one of the following: {(string.Join(",", _config.CityRoles))}, or {FeedAll}.");
 //                            continue;
 //                        }
 
@@ -114,14 +114,14 @@
 //                        if (alreadyAssigned)
 //                        {
 //                            if (!string.IsNullOrEmpty(msg)) msg += "\r\n";
-//                            msg += $"{message.Author.Username} is already assigned to city feed {cityRole.Name}. ";
+//                            msg += $"{message.Author.Mention} is already assigned to city feed {cityRole.Name}. ";
 //                            continue;
 //                        }
 
 //                        await message.Channel.Guild.GrantRoleAsync(member, cityRole, reason);
 
 //                        if (!string.IsNullOrEmpty(msg)) msg += "\r\n";
-//                        msg += $"{message.Author.Username} has joined city feed {cityRole.Name}. ";
+//                        msg += $"{message.Author.Mention} has joined city feed {cityRole.Name}. ";
 //                    }
 
 //                    await message.RespondAsync(msg);
@@ -155,7 +155,7 @@
 //                    {
 //                        if (!_config.CityRoles.Exists(x => string.Compare(city, x, true) == 0))
 //                        {
-//                            await message.RespondAsync($"{message.Author.Username} has entered an incorrect city name, please enter one of the following: {(string.Join(",", _config.CityRoles))}, or {FeedAll}.");
+//                            await message.RespondAsync($"{message.Author.Mention} has entered an incorrect city name, please enter one of the following: {(string.Join(",", _config.CityRoles))}, or {FeedAll}.");
 //                            continue;
 //                        }
 
@@ -177,7 +177,7 @@
 //                            if (string.Compare(role.Name, cityRole.Name, true) == 0)
 //                            {
 //                                if (!string.IsNullOrEmpty(msg)) msg += "\r\n";
-//                                msg += $"{member.Username} has been removed from city feed {cityRole.Name}. ";
+//                                msg += $"{member.Mention} has been removed from city feed {cityRole.Name}. ";
 //                                await member.RevokeRoleAsync(cityRole, reason);
 //                                continue;
 //                            }
@@ -185,7 +185,7 @@
 
 //                        if (!alreadyAssigned)
 //                        {
-//                            await message.RespondAsync($"{member.Username} is not assigned to city feed {cityRole.Name}.");
+//                            await message.RespondAsync($"{member.Mention} is not assigned to city feed {cityRole.Name}.");
 //                            continue;
 //                        }
 //                    }
@@ -215,7 +215,7 @@
 //                await member.GrantRoleAsync(cityRole, reason);
 //            }
 
-//            await message.RespondAsync($"{member.Username} was assigned all default city feed roles.");
+//            await message.RespondAsync($"{member.Mention} was assigned all default city feed roles.");
 //        }
 
 //        private async Task RemoveAllDefaultFeedRoles(DiscordMessage message, DiscordMember member)
@@ -234,7 +234,7 @@
 //                await member.RevokeRoleAsync(cityRole, reason);
 //            }
 
-//            await message.RespondAsync($"{member.Username} was unassigned all default city feed roles.");
+//            await message.RespondAsync($"{member.Mention} was unassigned all default city feed roles.");
 //        }
 //    }
 //}

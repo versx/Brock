@@ -7,7 +7,7 @@
     using DSharpPlus.Entities;
 
     using BrockBot.Data;
-    using BrockBot.Utilities;
+    using BrockBot.Diagnostics;
 
     [Command(
         Categories.Administrative,
@@ -17,9 +17,11 @@
     )]
     public class DeleteRolesCommand : ICustomCommand
     {
+        private readonly IEventLogger _logger;
+
         #region Properties
 
-        public bool AdminCommand => true;
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Admin;
 
         public DiscordClient Client { get; }
 
@@ -29,10 +31,11 @@
 
         #region Constructor
 
-        public DeleteRolesCommand(DiscordClient client, IDatabase db)
+        public DeleteRolesCommand(DiscordClient client, IDatabase db, IEventLogger logger)
         {
             Client = client;
             Db = db;
+            _logger = logger;
         }
 
         #endregion
@@ -53,7 +56,7 @@
             }
             catch (Exception ex)
             {
-                Utils.LogError(ex);
+                _logger.Error(ex);
                 await message.RespondAsync("Failed to delete one or more team roles.");
             }
         }

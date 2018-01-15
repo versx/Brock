@@ -24,7 +24,11 @@
     {
         #region Properties
 
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Supporter;
+
         public bool AdminCommand => false;
+
+        public bool SupporterCommand => true;
 
         public DiscordClient Client { get; }
 
@@ -47,11 +51,7 @@
             if (!command.HasArgs) return;
             if (command.Args.Count > 2) return;
 
-            await message.IsDirectMessageSupported();
-
-            var server = Db[message.Channel.GuildId];
-            if (server == null) return;
-            //TODO: If command was from a DM, look through all servers.
+            //await message.IsDirectMessageSupported();
 
             var author = message.Author.Id;
             var cmd = command.Args[0];
@@ -78,22 +78,22 @@
                 for (uint i = 1; i < 390; i++)
                 {
                     var pokemon = Db.Pokemon[i.ToString()];
-                    if (!server.SubscriptionExists(author))
+                    if (!Db.SubscriptionExists(author))
                     {
-                        server.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon> { new Pokemon() { PokemonId = i, /*MinimumCP = cp,*/ MinimumIV = iv } }, new List<Pokemon>()));
+                        Db.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon> { new Pokemon() { PokemonId = i, /*MinimumCP = cp,*/ MinimumIV = iv } }, new List<Pokemon>()));
                     }
                     else
                     {
                         //User has already subscribed before, check if their new requested sub already exists.
-                        if (!server[author].Pokemon.Exists(x => x.PokemonId == i))
+                        if (!Db[author].Pokemon.Exists(x => x.PokemonId == i))
                         {
-                            server[author].Pokemon.Add(new Pokemon { PokemonId = i, MinimumIV = iv });
+                            Db[author].Pokemon.Add(new Pokemon { PokemonId = i, MinimumIV = iv });
                             subscribed.Add(pokemon.Name);
                         }
                         else
                         {
                             //Check if minimum IV value is different from value in database, if not add it to the already subscribed list.
-                            var subscribedPokemon = server[author].Pokemon.Find(x => x.PokemonId == i);
+                            var subscribedPokemon = Db[author].Pokemon.Find(x => x.PokemonId == i);
                             if (iv != subscribedPokemon.MinimumIV)
                             {
                                 subscribedPokemon.MinimumIV = iv;
@@ -105,7 +105,7 @@
                     }
                 }
 
-                await message.RespondAsync($"{message.Author.Username} subscribed to all Pokemon notifications with a minimum IV of {iv}%.");
+                await message.RespondAsync($"{message.Author.Mention} subscribed to all Pokemon notifications with a minimum IV of {iv}%.");
                 return;
             }
 
@@ -119,23 +119,23 @@
                 }
 
                 var pokemon = Db.Pokemon[index.ToString()];
-                if (!server.SubscriptionExists(author))
+                if (!Db.SubscriptionExists(author))
                 {
-                    server.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon> { new Pokemon { PokemonId = index, /*MinimumCP = cp,*/ MinimumIV = iv } }, new List<Pokemon>()));
+                    Db.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon> { new Pokemon { PokemonId = index, /*MinimumCP = cp,*/ MinimumIV = iv } }, new List<Pokemon>()));
                     subscribed.Add(pokemon.Name);
                 }
                 else
                 {
                     //User has already subscribed before, check if their new requested sub already exists.
-                    if (!server[author].Pokemon.Exists(x => x.PokemonId == index))
+                    if (!Db[author].Pokemon.Exists(x => x.PokemonId == index))
                     {
-                        server[author].Pokemon.Add(new Pokemon { PokemonId = index, MinimumIV = iv });
+                        Db[author].Pokemon.Add(new Pokemon { PokemonId = index, MinimumIV = iv });
                         subscribed.Add(pokemon.Name);
                     }
                     else
                     {
                         //Check if minimum IV value is different from value in database, if not add it to the already subscribed list.
-                        var subscribedPokemon = server[author].Pokemon.Find(x => x.PokemonId == index);
+                        var subscribedPokemon = Db[author].Pokemon.Find(x => x.PokemonId == index);
                         if (iv != subscribedPokemon.MinimumIV)
                         {
                             subscribedPokemon.MinimumIV = iv;
@@ -151,10 +151,10 @@
             await message.RespondAsync
             (
                 (subscribed.Count > 0
-                    ? $"{message.Author.Username} has subscribed to **{string.Join("**, **", subscribed)}** notifications with a minimum IV of {iv}%."
+                    ? $"{message.Author.Mention} has subscribed to **{string.Join("**, **", subscribed)}** notifications with a minimum IV of {iv}%."
                     : string.Empty) +
                 (alreadySubscribed.Count > 0
-                    ? $" {message.Author.Username} is already subscribed to **{string.Join("**, **", alreadySubscribed)}** notifications."
+                    ? $" {message.Author.Mention} is already subscribed to **{string.Join("**, **", alreadySubscribed)}** notifications with a minimum IV of {iv}%."
                     : string.Empty)
             );
         }

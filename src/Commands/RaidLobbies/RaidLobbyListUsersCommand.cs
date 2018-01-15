@@ -19,7 +19,7 @@
     {
         #region Properties
 
-        public bool AdminCommand => false;
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
 
         public DiscordClient Client { get; }
 
@@ -41,10 +41,7 @@
         {
             await message.IsDirectMessageSupported();
 
-            var server = Db[message.Channel.GuildId];
-            if (server == null) return;
-
-            var lobby = server.Lobbies.Find(x => x.ChannelId == message.Channel.Id);
+            var lobby = Db.Lobbies.Find(x => x.ChannelId == message.Channel.Id);
             if (lobby == null)
             {
                 await message.RespondAsync("Failed to find lobby.");

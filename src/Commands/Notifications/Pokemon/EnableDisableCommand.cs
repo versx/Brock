@@ -22,7 +22,7 @@
 
         #region Properties
 
-        public bool AdminCommand => false;
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
 
         public DiscordClient Client { get; }
 
@@ -45,18 +45,16 @@
         {
             await message.IsDirectMessageSupported();
 
-            var server = Db[message.Channel.GuildId];
-            if (server == null) return;
-
             var author = message.Author.Id;
-            if (!server.SubscriptionExists(author))
+            if (!Db.SubscriptionExists(author))
             {
-                await message.RespondAsync($"{message.Author.Username} is not currently subscribed to any Pokemon or Raid notifications.");
+                await message.RespondAsync($"{message.Author.Mention} is not currently subscribed to any Pokemon or Raid notifications.");
                 return;
             }
 
-            server[author].Enabled = _enable;
-            await message.RespondAsync($"{message.Author.Username} has **{(_enable ? "en" : "dis")}abled** Pokemon and Raid notifications.");
+            Db[author].Enabled = _enable;
+            Db.Save();
+            await message.RespondAsync($"{message.Author.Mention} has **{(_enable ? "en" : "dis")}abled** Pokemon and Raid notifications.");
         }
     }
 }

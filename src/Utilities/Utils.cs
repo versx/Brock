@@ -1,6 +1,7 @@
 ﻿namespace BrockBot.Utilities
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Net;
     using System.Text;
@@ -157,49 +158,67 @@
             }
         }
 
-        public static Location GetGoogleAddress(double lat, double lng)
+        public static Location GetGoogleAddress(double lat, double lng, string gmapsKey)
         {
-            var url = $"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&sensor=true";
-            var request = (HttpWebRequest)WebRequest.Create(url);
+            var url = $"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&sensor=true&key={gmapsKey}";
 
             try
             {
+                var request = (HttpWebRequest)WebRequest.Create(url);
                 var response = request.GetResponse();
                 using (var responseStream = response.GetResponseStream())
                 {
                     var reader = new StreamReader(responseStream, Encoding.UTF8);
-                    var parseJson = JObject.Parse(reader.ReadToEnd());
+                    var data = reader.ReadToEnd();
+                    var parseJson = JObject.Parse(data);
+
+                    if (Convert.ToString(parseJson["status"]) != "OK") return null;
 
                     var jsonres = parseJson["results"][0];
-                    var json = jsonres["address_components"][0];
-                    var address = json["short_name"];
+                    var address = Convert.ToString(jsonres["formatted_address"]);
+                    var addrComponents = jsonres["address_components"];
+                    var city = "Unknown";
 
-                    var jsonres1 = parseJson["results"][1];
-                    var json1 = jsonres1["address_components"][1];
-                    var address1 = json1["long_name"];
+                    var items = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(addrComponents.ToString());
 
-                    var components = jsonres1["address_components"][0];
-                    var city = Convert.ToString(components["short_name"]);
+                    foreach (var item in items)
+                    {
+                        foreach (var key in item)
+                        {
+                            if (key.Key == "types")
+                            {
+                                if (key.Value is JArray types)
+                                {
+                                    foreach (var type in types)
+                                    {
+                                        var t = type.ToString();
+                                        if (string.Compare(t, "locality", true) == 0)
+                                        {
+                                            city = Convert.ToString(item["short_name"]);
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
 
-                    var jsonres2 = parseJson["results"][1];
-                    var address2 = jsonres2["formatted_address"];
+                            if (city != "Unknown") break;
+                        }
 
-                    var fullAddress = $"{address} {address1} {address2}";
+                        if (city != "Unknown") break;
+                    }
 
-                    return new Location(fullAddress, city, lat, lng);
+                    Console.WriteLine($"Address: {address}");
+                    Console.WriteLine($"City: {city}");
+
+                    return new Location(address, city, lat, lng);
                 }
             }
-            catch (WebException ex)
+            catch (Exception ex)
             {
-                var errorResponse = ex.Response;
-                using (var rs = errorResponse.GetResponseStream())
-                {
-                    var sr = new StreamReader(rs, Encoding.GetEncoding("utf-8"));
-                    var errorText = sr.ReadToEnd();
-                    Console.WriteLine($"Error: {errorText}");
-                }
-                throw;
+                LogError(ex);
             }
+
+            return null;
         }
     }
 }

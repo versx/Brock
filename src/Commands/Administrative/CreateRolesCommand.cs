@@ -8,22 +8,24 @@
 
     using BrockBot.Configuration;
     using BrockBot.Data;
+    using BrockBot.Diagnostics;
     using BrockBot.Extensions;
-    using BrockBot.Utilities;
 
     [Command(
         Categories.Administrative,
         "Creates the required team roles to be assigned when users type the team assignment commmand.",
-        null,
+        "\tExample: `.create_roles`",
         "create_roles"
     )]
     public class CreateRolesCommand : ICustomCommand
     {
         public const string DefaultParentChannel = "DISCUSSIONS";
 
+        private readonly IEventLogger _logger;
+
         #region Properties
 
-        public bool AdminCommand => true;
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Admin;
 
         public DiscordClient Client { get; }
 
@@ -35,11 +37,12 @@
 
         #region Constructor
 
-        public CreateRolesCommand(DiscordClient client, IDatabase db, Config config)
+        public CreateRolesCommand(DiscordClient client, IDatabase db, Config config, IEventLogger logger)
         {
             Client = client;
             Db = db;
             Config = config;
+            _logger = logger;
         }
 
         #endregion
@@ -62,14 +65,14 @@
                     var newRole = await message.Channel.Guild.CreateRoleAsync(team, message.Channel.Guild.EveryoneRole.Permissions, roleColor, null, true);
                     if (newRole == null)
                     {
-                        Utils.LogError(new Exception($"Failed to create team role {team}"));
+                        _logger.Error($"Failed to create team role {team}");
                         return;
                     }
 
                     var parentChannel = Client.GetChannelByName(DefaultParentChannel);
                     if (parentChannel == null)
                     {
-                        Utils.LogError(new Exception($"Failed to find parent channel '{DefaultParentChannel}'."));
+                        _logger.Error($"Failed to find parent channel '{DefaultParentChannel}'.");
                         return;
                         //TODO: Create parent channel category if it doesn't exist?
                     }
@@ -77,7 +80,7 @@
                     var newChannel = await message.Channel.Guild.CreateChannelAsync($"team_{team.ToLower()}", ChannelType.Text, parentChannel);
                     if (newChannel == null)
                     {
-                        Utils.LogError(new Exception($"Failed to create team channel team_{team.ToLower()}"));
+                        _logger.Error($"Failed to create team channel team_{team.ToLower()}");
                         return;
                     }
 
@@ -86,7 +89,7 @@
                 }
                 catch (Exception ex)
                 {
-                    Utils.LogError(ex);
+                    _logger.Error(ex);
                     await message.RespondAsync($"Failed to create team role {team}, it might already exist or I do not have the correct permissions to manage roles.");
                 }
             }
@@ -106,13 +109,13 @@
                     var role = await message.Channel.Guild.CreateRoleAsync(city, message.Channel.Guild.EveryoneRole.Permissions, null, null, true);
                     if (role == null)
                     {
-                        Utils.LogError(new Exception($"Failed to create team role {city}"));
+                        _logger.Error($"Failed to create team role {city}");
                         return;
                     }
                 }
                 catch (Exception ex)
                 {
-                    Utils.LogError(ex);
+                    _logger.Error(ex);
                     await message.RespondAsync($"Failed to create team role {city}, it might already exist or I do not have the correct permissions to manage roles.");
                 }
             }

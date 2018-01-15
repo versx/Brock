@@ -22,7 +22,7 @@
     {
         #region Properties
 
-        public bool AdminCommand => false;
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
 
         public DiscordClient Client { get; }
 
@@ -42,23 +42,20 @@
 
         public async Task Execute(DiscordMessage message, Command command)
         {
-            await message.IsDirectMessageSupported();
-
-            var server = Db[message.Channel.GuildId];
-            if (server == null) return;
+            //await message.IsDirectMessageSupported();
 
             var author = message.Author.Id;
 
-            if (!server.SubscriptionExists(author))
+            if (!Db.SubscriptionExists(author))
             {
-                await message.RespondAsync($"{message.Author.Username} is not subscribed to any raid notifications.");
+                await message.RespondAsync($"{message.Author.Mention} is not subscribed to any raid notifications.");
                 return;
             }
 
             if (!command.HasArgs)
             {
-                server.RemoveAllRaids(author);
-                await message.RespondAsync($"{message.Author.Username} has unsubscribed from **all** raid notifications!");
+                Db.RemoveAllRaids(author);
+                await message.RespondAsync($"{message.Author.Mention} has unsubscribed from **all** raid notifications!");
                 return;
             }
 
@@ -78,10 +75,10 @@
                 }
 
                 var pokemon = Db.Pokemon[pokeId.ToString()];
-                var unsubscribePokemon = server[author].Raids.Find(x => x.PokemonId == pokeId);
+                var unsubscribePokemon = Db[author].Raids.Find(x => x.PokemonId == pokeId);
                 if (unsubscribePokemon != null)
                 {
-                    if (server[author].Raids.Remove(unsubscribePokemon))
+                    if (Db[author].Raids.Remove(unsubscribePokemon))
                     {
                         unsubscribed.Add(pokemon.Name);
                         continue;
@@ -94,10 +91,10 @@
             await message.RespondAsync
             (
                 (unsubscribed.Count > 0
-                    ? $"{message.Author.Username} has unsubscribed from **{string.Join("**, **", unsubscribed)}** raid notifications."
+                    ? $"{message.Author.Mention} has unsubscribed from **{string.Join("**, **", unsubscribed)}** raid notifications."
                     : string.Empty) +
                 (notSubscribed.Count > 0
-                    ? $" {message.Author.Username} is not subscribed to {string.Join(",", notSubscribed)} raid notifications."
+                    ? $" {message.Author.Mention} is not subscribed to {string.Join(",", notSubscribed)} raid notifications."
                     : string.Empty)
             );
         }

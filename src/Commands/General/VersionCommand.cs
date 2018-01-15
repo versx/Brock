@@ -18,7 +18,7 @@
     {
         #region Properties
 
-        public bool AdminCommand => false;
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
 
         public DiscordClient Client { get; }
 
@@ -43,39 +43,24 @@
 
         public DiscordEmbed CreateEmbed()
         {
-            var eb = new DiscordEmbedBuilder
-            {
-                //Title = AssemblyUtils.AssemblyName
-            };
-
+            var eb = new DiscordEmbedBuilder();
             eb.AddField
             (
                 $"About {FilterBot.BotName} Bot",
                 $"{FilterBot.BotName} Bot is a simple Discord bot that allows you to assign yourself to your Pokemon team, create Raid Lobbies, filter sponsor raids, Pokemon spawn notifier and more."
             );
-
-            eb.AddField
-            (
-                "Developer",
-                "versx#8151"
-            );
-
-            eb.AddField
-            (
-                "Company",
-                AssemblyUtils.CompanyName
-            );
-
+            eb.AddField("Developer", "versx#8151");
+            eb.AddField("Company", AssemblyUtils.CompanyName);
             eb.AddField
             (
                 "GitHub Repository",
                 "https://github.com/versx/Brock\n\nTo make a suggestion or report a bug regarding Brock, " +
                 "go to the GitHub repository and use the issue tab to create an issue or mesage me on Discord @ versx#8151."
             );
-
             eb.WithFooter(AssemblyUtils.Copyright + ", Version " + AssemblyUtils.AssemblyVersion);
 
-            return eb.Build();
+            var embed = eb.Build();
+            return embed;
         }
     }
 }

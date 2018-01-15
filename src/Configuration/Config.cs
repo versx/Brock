@@ -77,6 +77,10 @@
         [JsonProperty("authToken")]
         public string AuthToken { get; set; }
 
+        [XmlElement("gmapsKey")]
+        [JsonProperty("gmapsKey")]
+        public string GmapsKey { get; set; }
+
         [XmlElement("webHookPort")]
         [JsonProperty("webHookPort")]
         public ushort WebHookPort { get; set; }
@@ -137,6 +141,10 @@
         [XmlElement("feedStatus")]
         [JsonProperty("feedStatus")]
         public FeedStatusConfig FeedStatus { get; set; }
+
+        [XmlElement("supporters")]
+        [JsonProperty("supporters")]
+        public Dictionary<ulong, Donator> Supporters { get; set; }
 
         [XmlElement("customCommands")]
         [JsonProperty("customCommands")]

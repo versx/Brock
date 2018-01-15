@@ -33,10 +33,14 @@
 
         #region Properties
 
-        [XmlArrayItem("server")]
-        [XmlArray("servers")]
-        [JsonProperty("servers")]
-        public List<Server> Servers { get; set; }
+        [XmlArrayItem("lobby")]
+        [XmlArray("lobbies")]
+        [JsonProperty("lobbies")]
+        public List<RaidLobby> Lobbies { get; set; }
+
+        [XmlElement("subscriptions")]
+        [JsonProperty("subscriptions")]
+        public List<Subscription<Pokemon>> Subscriptions { get; set; }
 
         [JsonProperty("reminders")]
         public ConcurrentDictionary<ulong, List<Reminder>> Reminders { get; set; }
@@ -66,17 +70,11 @@
             }
         }
 
-        public Server this[ulong guildId]
+        [XmlIgnore]
+        [JsonIgnore]
+        public Subscription<Pokemon> this[ulong userId]
         {
-            get
-            {
-                if (ContainsKey(guildId))
-                {
-                    return Servers.Find(x => x.GuildId == guildId);
-                }
-
-                return null;
-            }
+            get { return Subscriptions.Find(x => x.UserId == userId); }
         }
 
         #endregion
@@ -85,8 +83,8 @@
 
         public Database()
         {
-            Servers = new List<Server>();
             Reminders = new ConcurrentDictionary<ulong, List<Reminder>>();
+            Subscriptions = new List<Subscription<BrockBot.Pokemon>>();
 
             if (File.Exists(PokemonDatabaseFileName))
             {
@@ -111,6 +109,34 @@
 
         #region Public Methods
 
+        public bool SubscriptionExists(ulong userId)
+        {
+            return this[userId] != null;
+        }
+
+        public bool RemoveAllPokemon(ulong userId)
+        {
+            if (SubscriptionExists(userId))
+            {
+                var sub = this[userId];
+                sub.Pokemon.Clear();
+                return true;
+            }
+
+            return false;
+        }
+
+        public bool RemoveAllRaids(ulong userId)
+        {
+            if (SubscriptionExists(userId))
+            {
+                var sub = this[userId];
+                sub.Raids.Clear();
+            }
+
+            return false;
+        }
+
         public uint PokemonIdFromName(string name)
         {
             foreach (var poke in Pokemon)
@@ -133,10 +159,10 @@
             return null;
         }
 
-        public bool ContainsKey(ulong guildId)
-        {
-            return Servers.Exists(x => x.GuildId == guildId);
-        }
+        //public bool ContainsKey(ulong guildId)
+        //{
+        //    return Servers.Exists(x => x.GuildId == guildId);
+        //}
 
         /// <summary>
         /// Saves the configuration file to the default path.

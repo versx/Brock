@@ -13,14 +13,14 @@
     [Command(
         Categories.Administrative,
         "Restarts " + FilterBot.BotName + ".",
-        null,    
+        "\tExample: `.restart`",    
         "restart"
     )]
     public class RestartCommand : ICustomCommand
     {
         #region Properties
 
-        public bool AdminCommand => true;
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Admin;
 
         public DiscordClient Client { get; }
 

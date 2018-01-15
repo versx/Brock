@@ -3,7 +3,7 @@
     public enum CommandPermissionLevel
     {
         User,
-        Moderator,
+        Supporter,
         Admin
     }
 }

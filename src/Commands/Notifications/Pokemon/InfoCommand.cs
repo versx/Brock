@@ -8,83 +8,86 @@
     using DSharpPlus.Entities;
 
     using BrockBot.Data;
-    using BrockBot.Data.Models;
+    using BrockBot.Diagnostics;
     using BrockBot.Extensions;
-
-    //TODO: Send subscriptions list to user in DM.
 
     [Command(
         Categories.Notifications, 
-        "Shows your current notification subscriptions.",
+        "Shows your current Pokemon and Raid notification subscriptions.",
         "\tExample: `.info`", 
         "info"
     )]
     public class InfoCommand : ICustomCommand
     {
-        public bool AdminCommand => false;
+        private readonly IEventLogger _logger;
+
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
 
         public DiscordClient Client { get; }
 
         public IDatabase Db { get; }
 
-        public InfoCommand(DiscordClient client, IDatabase db)
+        public InfoCommand(DiscordClient client, IDatabase db, IEventLogger logger)
         {
             Client = client;
             Db = db;
+            _logger = logger;
         }
 
         public async Task Execute(DiscordMessage message, Command command)
         {
-            await message.IsDirectMessageSupported();
-
-            var server = Db[message.Channel.GuildId];
-            if (server == null) return;
+            //await message.IsDirectMessageSupported();
 
             var author = message.Author.Id;
-            var isSubbed = server.SubscriptionExists(author);
-            var hasPokemon = isSubbed && server[author].Pokemon.Count > 0;
-            var hasRaids = isSubbed && server[author].Raids.Count > 0;
+            var isSubbed = Db.SubscriptionExists(author);
+            var hasPokemon = isSubbed && Db[author].Pokemon.Count > 0;
+            var hasRaids = isSubbed && Db[author].Raids.Count > 0;
             var msg = string.Empty;
 
             if (hasPokemon)
             {
+                var pokemon = Db[author].Pokemon;
+                pokemon.Sort((x, y) => x.PokemonId.CompareTo(y.PokemonId));
+
                 msg = $"**{message.Author.Username} Pokemon Subscriptions:**\r\n";
-                foreach (var sub in server[author].Pokemon)
+                foreach (var sub in pokemon)
                 {
-                    msg += $"{sub.PokemonId}: {sub.PokemonName} {sub.MinimumIV}%+\r\n";
+                    if (!Db.Pokemon.ContainsKey(sub.PokemonId.ToString()))
+                    {
+                        _logger.Error($"Failed to find Pokemon with id {sub.PokemonId} in the Pokemon database, skipping...");
+                        continue;
+                    }
+
+                    var pkmn = Db.Pokemon[sub.PokemonId.ToString()];
+                    msg += $"{sub.PokemonId}: {pkmn.Name} {sub.MinimumIV}%+\r\n";
                 }
-                //msg += string.Join(", "/*Environment.NewLine*/, GetPokemonSubscriptionNames(server, author));
                 msg += Environment.NewLine + Environment.NewLine;
             }
 
             if (hasRaids)
             {
                 msg += $"**{message.Author.Username} Raid Subscriptions:**\r\n";
-                msg += string.Join(", "/*Environment.NewLine*/, GetRaidSubscriptionNames(server, author));
+                msg += string.Join(", ", GetRaidSubscriptionNames(author));
             }
 
             if (string.IsNullOrEmpty(msg))
             {
-                msg = $"**{message.Author.Username}** is not subscribed to any Pokemon or Raid notifications.";
+                msg = $"**{message.Author.Mention}** is not subscribed to any Pokemon or Raid notifications.";
             }
 
             if (msg.Length > 2000)
-            {
-                await message.RespondAsync($"**{message.Author.Username}**'s subscription list is longer than the allowed Discord message character count, here is a partial list:");
-                await message.RespondAsync(msg.Substring(0, Math.Min(msg.Length, 2000)));
-            }
+                await Client.SendDirectMessage(message.Author, $"**{message.Author.Mention}**'s subscription list is longer than the allowed Discord message character count, here is a partial list:\r\n{msg.Substring(0, Math.Min(msg.Length, 1500))}", null);
             else
-                await message.RespondAsync(msg);
+                await Client.SendDirectMessage(message.Author, msg, null);
         }
 
-        private List<string> GetPokemonSubscriptionNames(Server server, ulong userId)
+        private List<string> GetPokemonSubscriptionNames(ulong userId)
         {
             var list = new List<string>();
-            if (server.SubscriptionExists(userId))
+            if (Db.SubscriptionExists(userId))
             {
-                var subscribedPokemon = server[userId].Pokemon;
+                var subscribedPokemon = Db[userId].Pokemon;
                 subscribedPokemon.Sort((x, y) => x.PokemonId.CompareTo(y.PokemonId));
-                //subscribedPokemon.Sort();
 
                 foreach (var poke in subscribedPokemon)
                 {
@@ -99,12 +102,12 @@
             return list;
         }
 
-        private List<string> GetRaidSubscriptionNames(Server server, ulong userId)
+        private List<string> GetRaidSubscriptionNames(ulong userId)
         {
             var list = new List<string>();
-            if (server.SubscriptionExists(userId))
+            if (Db.SubscriptionExists(userId))
             {
-                var subscribedRaids = server[userId].Raids;
+                var subscribedRaids = Db[userId].Raids;
                 subscribedRaids.Sort((x, y) => x.PokemonId.CompareTo(y.PokemonId));
 
                 foreach (var poke in subscribedRaids)
@@ -118,14 +121,6 @@
                 }
             }
             return list;
-        }
-
-        private IEnumerable<string> ChunksUpto(string str, int maxChunkSize)
-        {
-            for (int i = 0; i < str.Length; i += maxChunkSize)
-            {
-                yield return str.Substring(i, Math.Min(maxChunkSize, str.Length - i));
-            }
         }
     }
 }

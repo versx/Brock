@@ -9,8 +9,8 @@
 
     using BrockBot.Configuration;
     using BrockBot.Data;
+    using BrockBot.Diagnostics;
     using BrockBot.Extensions;
-    using BrockBot.Utilities;
 
     [Command(Categories.Administrative,
         "Assigns the default city roles to all guild members.",
@@ -21,10 +21,11 @@
     public class AssignRolesCommand : ICustomCommand
     {
         private readonly Config _config;
+        private readonly IEventLogger _logger;
 
         #region Properties
 
-        public bool AdminCommand => true;
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Admin;
 
         public DiscordClient Client { get; }
 
@@ -34,11 +35,12 @@
 
         #region Constructor
 
-        public AssignRolesCommand(DiscordClient client, IDatabase db, Config config)
+        public AssignRolesCommand(DiscordClient client, IDatabase db, Config config, IEventLogger logger)
         {
             Client = client;
             Db = db;
             _config = config;
+            _logger = logger;
         }
 
         #endregion
@@ -94,12 +96,12 @@
                             if (discordRole == null)
                             {
                                 //Failed to find role.
-                                Utils.LogError(new Exception($"Failed to find city role {role}, please make sure it exists."));
+                                _logger.Error($"Failed to find city role {role}, please make sure it exists.");
                                 continue;
                             }
 
                             await member.GrantRoleAsync(discordRole, $"{discordRole.Name} role assignment.");
-                            Console.WriteLine($"Assigned {member.Username} to role {discordRole.Name}.");
+                            _logger.Info($"Assigned {member.Username} to role {discordRole.Name}.");
                         }
                         success++;
                     }
@@ -107,11 +109,11 @@
                     {
                         errors++;
                         failed.Add(member.Username);
-                        Utils.LogError(ex);
+                        _logger.Error(ex);
                     }
                 }
 
-                Console.WriteLine($"Finished assigning {string.Join(",", roles)} roles.");
+                _logger.Info($"Finished assigning {string.Join(",", roles)} roles.");
 
                 await message.RespondAsync
                 (

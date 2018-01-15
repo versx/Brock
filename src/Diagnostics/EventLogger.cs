@@ -2,7 +2,7 @@
 {
     using System;
 
-    public class EventLogger
+    public class EventLogger: IEventLogger
     {
         #region Properties
 

@@ -171,6 +171,7 @@
     <Compile Include="Core\CommandList.cs" />
     <Compile Include="Core\CommandPermissionAttribute.cs" />
     <Compile Include="Core\CommandPermissionLevel.cs" />
+    <Compile Include="Core\Donator.cs" />
     <Compile Include="Core\FilterBot.cs" />
     <Compile Include="Core\Location.cs" />
     <Compile Include="Core\Pokemon.cs" />
@@ -188,6 +189,7 @@
     <Compile Include="Data\Models\Server.cs" />
     <Compile Include="Data\Models\Subscription.cs" />
     <Compile Include="Diagnostics\EventLogger.cs" />
+    <Compile Include="Diagnostics\IEventLogger.cs" />
     <Compile Include="Diagnostics\LogType.cs" />
     <Compile Include="Extensions\DiscordExtensions.cs" />
     <Compile Include="Extensions\TypeExtensions.cs" />

@@ -19,7 +19,7 @@
     {
         #region Properties
 
-        public bool AdminCommand => false;
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
 
         public DiscordClient Client { get; }
 
@@ -51,10 +51,7 @@
                 return;
             }
 
-            var server = Db[message.Channel.GuildId];
-            if (server == null) return;
-
-            var lobby = server.Lobbies.Find(x => string.Compare(x.LobbyName, lobbyName, true) == 0);
+            var lobby = Db.Lobbies.Find(x => string.Compare(x.LobbyName, lobbyName, true) == 0);
             if (lobby == null)
             {
                 await message.RespondAsync($"Lobby {lobbyName} does not exist.");

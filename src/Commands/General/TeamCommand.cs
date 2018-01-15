@@ -8,6 +8,7 @@
 
     using BrockBot.Configuration;
     using BrockBot.Data;
+    using BrockBot.Diagnostics;
     using BrockBot.Extensions;
     using BrockBot.Utilities;
 
@@ -33,10 +34,11 @@
     public class TeamCommand : ICustomCommand
     {
         private readonly Config _config;
+        private readonly IEventLogger _logger;
 
         #region Properties
 
-        public bool AdminCommand => false;
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
 
         public DiscordClient Client { get; }
 
@@ -46,11 +48,12 @@
 
         #region Constructor
 
-        public TeamCommand(DiscordClient client, IDatabase db, Config config)
+        public TeamCommand(DiscordClient client, IDatabase db, Config config, IEventLogger logger)
         {
             Client = client;
             Db = db;
             _config = config;
+            _logger = logger;
         }
 
         #endregion
@@ -73,6 +76,8 @@
 
             try
             {
+                await message.IsDirectMessageSupported();
+
                 if (message.Channel.Guild == null)
                 {
                     //TODO: Ask what server to assign to.
@@ -98,14 +103,14 @@
                     if ((_config.TeamRoles.Exists(x => string.Compare(role.Name, x, true) == 0)) && !alreadyAssigned)
                     {
                         await message.Channel.Guild.RevokeRoleAsync(member, role, reason);
-                        msg += $"{message.Author.Username} has left team {role.Name}. ";
+                        msg += $"{message.Author.Mention} has left team {role.Name}. ";
                     }
                 }
 
                 if (teamRole != null && !alreadyAssigned)
                 {
                     await message.Channel.Guild.GrantRoleAsync(member, teamRole, reason);
-                    msg += $"{message.Author.Username} has joined team {teamRole.Name}.";
+                    msg += $"{message.Author.Mention} has joined team {teamRole.Name}.";
                 }
 
                 if (alreadyAssigned)
@@ -120,7 +125,7 @@
             }
             catch (Exception ex)
             {
-                Utils.LogError(ex);
+                _logger.Error(ex);
             }
         }
     }

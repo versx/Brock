@@ -22,7 +22,7 @@
     {
         #region Properties
 
-        public bool AdminCommand => false;
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
 
         public DiscordClient Client { get; }
 
@@ -45,10 +45,7 @@
             if (!command.HasArgs) return;
             if (command.Args.Count != 1) return;
 
-            await message.IsDirectMessageSupported();
-
-            var server = Db[message.Channel.GuildId];
-            if (server == null) return;
+            //await message.IsDirectMessageSupported();
 
             var author = message.Author.Id;
             var cmd = command.Args[0];
@@ -66,18 +63,18 @@
                 }
 
                 var pokemon = Db.Pokemon[pokeId.ToString()];
-                if (!server.SubscriptionExists(author))
+                if (!Db.SubscriptionExists(author))
                 {
-                    server.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon>(), new List<Pokemon> { new Pokemon { PokemonId = pokeId } }));
+                    Db.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon>(), new List<Pokemon> { new Pokemon { PokemonId = pokeId } }));
                     subscribed.Add(pokemon.Name);
                     continue;
                 }
 
                 //User has already subscribed before, check if their new requested sub already exists.
-                var subs = server[author];
+                var subs = Db[author];
                 if (!subs.Raids.Exists(x => x.PokemonId == pokeId))
                 {
-                    subs.Raids.Add(new Pokemon { PokemonId = pokeId, PokemonName = pokemon.Name });
+                    subs.Raids.Add(new Pokemon { PokemonId = pokeId });
                     subscribed.Add(pokemon.Name);
                     continue;
                 }
@@ -88,10 +85,10 @@
             await message.RespondAsync
             (
                 (subscribed.Count > 0
-                    ? $"{message.Author.Username} has subscribed to **{string.Join("**, **", subscribed)}** raid notifications."
+                    ? $"{message.Author.Mention} has subscribed to **{string.Join("**, **", subscribed)}** raid notifications."
                     : string.Empty) +
                 (alreadySubscribed.Count > 0
-                    ? $" {message.Author.Username} is already subscribed to {string.Join(",", alreadySubscribed)} raid notifications."
+                    ? $" {message.Author.Mention} is already subscribed to {string.Join(",", alreadySubscribed)} raid notifications."
                     : string.Empty)
             );
         }

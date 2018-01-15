@@ -8,8 +8,8 @@
     using DSharpPlus.Entities;
 
     using BrockBot.Data;
+    using BrockBot.Diagnostics;
     using BrockBot.Services;
-    using BrockBot.Utilities;
 
     [Command(
         Categories.Reminders,
@@ -19,7 +19,9 @@
     )]
     public class GetRemindersCommand : ICustomCommand
     {
-        public bool AdminCommand => false;
+        private readonly IEventLogger _logger;
+
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
 
         public DiscordClient Client { get; }
 
@@ -27,11 +29,12 @@
 
         public ReminderService ReminderSvc { get; }
 
-        public GetRemindersCommand(DiscordClient client, IDatabase db, ReminderService reminderSvc)
+        public GetRemindersCommand(DiscordClient client, IDatabase db, ReminderService reminderSvc, IEventLogger logger)
         {
             Client = client;
             Db = db;
             ReminderSvc = reminderSvc;
+            _logger = logger;
         }
 
         public async Task Execute(DiscordMessage message, Command command)
@@ -47,13 +50,13 @@
             {
                 if (!Db.Reminders.ContainsKey(message.Author.Id))
                 {
-                    await message.RespondAsync($":no_entry_sign: {message.Author.Username} does not have any reminders set.");
+                    await message.RespondAsync($":no_entry_sign: {message.Author.Mention} does not have any reminders set.");
                     return;
                 }
 
                 if (Db.Reminders.Count < 1)
                 {
-                    await message.RespondAsync($":no_entry_sign: {message.Author.Username} does not have any reminders set.");
+                    await message.RespondAsync($":no_entry_sign: {message.Author.Mention} does not have any reminders set.");
                     return;
                 }
 
@@ -63,19 +66,15 @@
                 {
                     Color = new DiscordColor(4, 97, 247),
                     ThumbnailUrl = message.Author.AvatarUrl,
-                    Title = $"{message.Author.Username}, your reminders are the following:"
+                    Title = $"{message.Author.Mention}, your reminders are the following:"
                 };
 
                 for (int i = 0; i < orderedReminders.Count && i < 10; i++)
                 {
-                    Console.Write($"Reminder #{i + 1} in {ReminderSvc.ConvertTime(orderedReminders[i].Time.Subtract(DateTime.UtcNow).TotalSeconds)}: ");
-                    Console.WriteLine(orderedReminders[i].Message);
-                    eb.AddField
-                    (
-                        $"Reminder #{i + 1} in {ReminderSvc.ConvertTime(orderedReminders[i].Time.Subtract(DateTime.UtcNow).TotalSeconds)}",
-                        $"{orderedReminders[i].Message}",
-                        false
-                    );
+                    var msg = $"Reminder #{i + 1} in {ReminderSvc.ConvertTime(orderedReminders[i].Time.Subtract(DateTime.UtcNow).TotalSeconds)}";
+                    _logger.Debug($"{msg}: {orderedReminders[i].Message}");
+
+                    eb.AddField(msg, $"{orderedReminders[i].Message}");
                 }
 
                 var embed = eb.Build();
@@ -85,7 +84,7 @@
             }
             catch (Exception ex)
             {
-                Utils.LogError(ex);
+                _logger.Error(ex);
             }
         }
     }

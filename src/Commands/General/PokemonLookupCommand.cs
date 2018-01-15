@@ -7,18 +7,22 @@
     using DSharpPlus.Entities;
 
     using BrockBot.Data;
+    using BrockBot.Data.Models;
+    using BrockBot.Net;
 
     [Command(
         Categories.General,
         "Simple Pokemon stats lookup.",
-        "\tExample: `.poke 25`",
+        "\tExample: `.poke 25`\r\n" +
+        "\tExample: `.poke larvit`\r\n" +
+        "\tExample: `.poke mewtwo`",
         "poke"
     )]
     public class PokemonLookupCommand : ICustomCommand
     {
         #region Properties
 
-        public bool AdminCommand => false;
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
 
         public DiscordClient Client { get; }
 
@@ -41,42 +45,64 @@
             if (!command.HasArgs) return;
             if (command.Args.Count != 1) return;
 
-            var pokeId = Convert.ToInt32(command.Args[0]);
-            if (!Db.Pokemon.ContainsKey(pokeId.ToString()))
+            var cmd = command.Args[0];
+            PokemonInfo pkmn = null;
+
+            if (!int.TryParse(cmd, out int pokeId))
             {
-                await message.RespondAsync($"Failed to lookup Pokemon with id {pokeId}.");
+                Console.WriteLine($"Failed to parse Pokemon index {cmd}, searching by Pokemon name now...");
+
+                foreach (var poke in Db.Pokemon)
+                {
+                    if (poke.Value.Name.ToLower().Contains(cmd))
+                    {
+                        pokeId = Convert.ToInt32(poke.Key);
+                        pkmn = poke.Value;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                if (!Db.Pokemon.ContainsKey(pokeId.ToString()))
+                {
+                    await message.RespondAsync($"Failed to lookup Pokemon with id {pokeId}.");
+                    return;
+                }
+
+                pkmn = Db.Pokemon[pokeId.ToString()];
             }
 
-            var pokemon = Db.Pokemon[pokeId.ToString()];
+            var types = pkmn.Types.Count > 1 ? pkmn.Types[0].Type + "/" + pkmn.Types[1].Type : pkmn.Types[0].Type;
+            var evolutions = (pkmn.Evolutions == null || pkmn.Evolutions.Count == 0 ? string.Empty : string.Join(", ", pkmn.Evolutions));
 
-            var types = pokemon.Types.Count > 1 ? pokemon.Types[0].Type + "/" + pokemon.Types[1].Type : pokemon.Types[0].Type;
-            var evolutions = (pokemon.Evolutions == null || pokemon.Evolutions.Count == 0 ? string.Empty : string.Join(", ", pokemon.Evolutions));
-
-            var eb = new DiscordEmbedBuilder();
-            eb.AddField(pokemon.Name, $"ID: {pokeId}, Gen: {pokemon.BaseStats.Generation}{(pokemon.BaseStats.Legendary ? " Legendary" : "")}");
-            eb.AddField("IV Statistics:", $"Stamina: {pokemon.BaseStats.Stamina}, Attack: {pokemon.BaseStats.Attack}, Defense: {pokemon.BaseStats.Defense}");
-            eb.AddField("Rarity:", pokemon.Rarity);
-            eb.AddField("Spawn Rate:", pokemon.SpawnRate);
-            eb.AddField("Gender Ratio:", $"{pokemon.GenderRatio.Male}% Male/{pokemon.GenderRatio.Female}% Female");
+            var eb = new DiscordEmbedBuilder
+            {
+                Author = new DiscordEmbedBuilder.EmbedAuthor
+                {
+                    Name = $"{pkmn.Name} (Id: {pokeId}, Gen: {pkmn.BaseStats.Generation}{(pkmn.BaseStats.Legendary ? " Legendary" : "")})"
+                }
+            };
+            //eb.AddField(pkmn.Name, $"ID: {pokeId}, Gen: {pkmn.BaseStats.Generation}{(pkmn.BaseStats.Legendary ? " Legendary" : "")}", true);
+            eb.AddField("IV Statistics:", $"Atk: {pkmn.BaseStats.Attack}, Def: {pkmn.BaseStats.Defense}, Sta: {pkmn.BaseStats.Stamina}", true);
+            if (!string.IsNullOrEmpty(pkmn.Rarity))
+            {
+                eb.AddField("Rarity:", pkmn.Rarity, true);
+            }
+            if (!string.IsNullOrEmpty(pkmn.SpawnRate))
+            {
+                eb.AddField("Spawn Rate:", pkmn.SpawnRate, true);
+            }
+            eb.AddField("Gender Ratio:", $"{pkmn.GenderRatio.Male}% Male/{pkmn.GenderRatio.Female}% Female", true);
             if (!string.IsNullOrEmpty(evolutions))
             {
-                eb.AddField("Evolutions:", evolutions);
+                eb.AddField("Evolutions:", evolutions, true);
             }
-            eb.AddField("Type:", types);
+            eb.AddField("Type:", types, true);
+            eb.ImageUrl = string.Format(HttpServer.PokemonImage, pokeId);
             var embed = eb.Build();
 
             await message.RespondAsync(string.Empty, false, embed);
-
-            //await message.RespondAsync
-            //(
-            //    $"{pokemon.Name} (ID: {pokeId}, Gen: {pokemon.BaseStats.Generation}{(pokemon.BaseStats.Legendary ? " Legendary" : "")})\r\n" +
-            //    $"Stamina: {pokemon.BaseStats.Stamina}, Attack: {pokemon.BaseStats.Attack}, Defense: {pokemon.BaseStats.Defense}\r\n" +
-            //    $"Rarity: {pokemon.Rarity}\r\n" +
-            //    $"Spawn Rate: {pokemon.SpawnRate}\r\n" +
-            //    $"Gender Ratio: {pokemon.GenderRatio.Male} Male/{pokemon.GenderRatio.Female}Female\r\n" +
-            //    evolutions +
-            //    $"Type: {types}"
-            //);
         }
     }
 }

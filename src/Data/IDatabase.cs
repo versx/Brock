@@ -9,11 +9,22 @@
 
     public interface IDatabase
     {
-        Server this[ulong guildId] { get; }
+        List<RaidLobby> Lobbies { get; }
+
+        List<Subscription<Pokemon>> Subscriptions { get; }
 
         Dictionary<string, PokemonInfo> Pokemon { get; }
 
         ConcurrentDictionary<ulong, List<Reminder>> Reminders { get; }
+
+        Subscription<Pokemon> this[ulong userId] { get; }
+
+
+        bool SubscriptionExists(ulong userId);
+
+        bool RemoveAllPokemon(ulong userId);
+
+        bool RemoveAllRaids(ulong userId);
 
         void Save();
     }

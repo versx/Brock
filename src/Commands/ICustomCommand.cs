@@ -9,7 +9,7 @@
 
     public interface ICustomCommand
     {
-        bool AdminCommand { get; }
+        CommandPermissionLevel PermissionLevel { get; }
 
         DiscordClient Client { get; }
 

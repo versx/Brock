@@ -17,7 +17,7 @@
     )]
     public class DeleteTwitterCommand : ICustomCommand
     {
-        public bool AdminCommand => true;
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Admin;
 
         public DiscordClient Client { get; }
 
@@ -45,7 +45,7 @@
 
             if (!Config.TwitterUpdates.TwitterUsers.Contains(result))
             {
-                await message.RespondAsync($"You are not current subscribed to {result} Twitter notifications.");
+                await message.RespondAsync($"{message.Author.Mention} is not current subscribed to {result} Twitter notifications.");
                 return;
             }
 

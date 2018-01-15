@@ -37,7 +37,7 @@
 
         #region Properties
 
-        public bool AdminCommand => false;
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
 
         public DiscordClient Client { get; }
 
@@ -116,12 +116,9 @@ Charge Move: Fire Blast (DPS: 33.33, Damage: 140)
                 StartTime = expireTime - TimeSpan.FromMinutes(45),
             };
 
-            var server = Db[message.Channel.GuildId];
-            if (server == null) return;
-
-            if (!server.Lobbies.Contains(lobby))
+            if (!Db.Lobbies.Contains(lobby))
             {
-                server.Lobbies.Add(lobby);
+                Db.Lobbies.Add(lobby);
             }
 
             await message.RespondAsync($"Raid lobby {lobbyName} was created successfully.");

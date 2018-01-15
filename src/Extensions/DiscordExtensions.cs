@@ -22,13 +22,13 @@
             }
         }
 
-        public static DiscordChannel GetChannelByName(this DiscordClient client, string channelName)
+        public static DiscordChannel GetChannelByName(this DiscordClient client, string channelName, bool isTextChannel = true)
         {
             foreach (var guild in client.Guilds)
             {
                 foreach (var channel in guild.Value.Channels)
                 {
-                    if (string.Compare(channel.Name, channelName, true) == 0)
+                    if (string.Compare(channel.Name, channelName, true) == 0 && (channel.IsCategory && !isTextChannel || !channel.IsCategory && isTextChannel))
                     {
                         return channel;
                     }
@@ -78,6 +78,41 @@
             }
         }
 
+        public static async Task<bool> RemoveRole(this DiscordClient client, ulong userId, ulong guildId, ulong roleId)
+        {
+            try
+            {
+                var member = await client.GetMemberFromUserId(userId);
+                if (member == null)
+                {
+                    Utils.LogError(new Exception($"Failed to find member with id {userId}."));
+                    return false;
+                }
+
+                var guild = await client.GetGuildAsync(guildId);
+                if (guild == null)
+                {
+                    Utils.LogError(new Exception($"Failed to find guild with id {guildId}."));
+                    return false;
+                }
+
+                var role = guild.GetRole(roleId);
+                if (role == null)
+                {
+                    Utils.LogError(new Exception($"Failed to find role with id {roleId}."));
+                    return false;
+                }
+
+                await guild.RevokeRoleAsync(member, role, "Supporter status expired.");
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         #endregion
 
         #region User Extensions
@@ -108,6 +143,18 @@
             return null;
         }
 
+        public static async Task<bool> HasSupporterRole(this DiscordClient client, ulong userId, ulong supporterRoleId)
+        {
+            var member = await client.GetMemberFromUserId(userId);
+            if (member == null)
+            {
+                Console.WriteLine($"Failed to get user with id {userId}.");
+                return false;
+            }
+
+            return member.HasSupporterRole(supporterRoleId);
+        }
+
         public static bool HasSupporterRole(this DiscordMember member, ulong supporterRoleId)
         {
             foreach (var role in member.Roles)
@@ -119,6 +166,27 @@
             }
 
             return false;
+        }
+
+        public static async Task<bool> IsSupporterStatusExpired(this DiscordClient client, Configuration.Config config, ulong userId)
+        {
+            var user = await client.GetUser(userId);
+            if (user == null)
+            {
+                Utils.LogError(new Exception($"User with id {userId} does not exist..."));
+                return true;
+            }
+
+            if (!config.Supporters.ContainsKey(userId))
+            {
+                Utils.LogError(new Exception($"User with id {userId} does not exist in the supporters list..."));
+                return true;
+            }
+
+            var supporter = config.Supporters[userId];
+            var diff = DateTime.Now.Subtract(supporter.DateDonated);
+
+            return diff.Days > 0 || diff.Hours > 0;
         }
 
         #endregion
@@ -207,11 +275,11 @@
 
                 if (lobbyUser.IsCheckedIn && !lobbyUser.IsOnTheWay)
                 {
-                    lobbyUserStatus += $"{user.Username} **checked-in** at {lobbyUser.CheckInTime.ToLongTimeString()} and is ready to start.\r\n";
+                    lobbyUserStatus += $"{user.Mention} **checked-in** at {lobbyUser.CheckInTime.ToLongTimeString()} and is ready to start.\r\n";
                 }
                 else
                 {
-                    lobbyUserStatus += $"{user.Username} was **on the way** at **{lobbyUser.OnTheWayTime.ToLongTimeString()}** with {lobbyUser.UserCount} participants and an ETA of {lobbyUser.ETA}.\r\n";
+                    lobbyUserStatus += $"{user.Mention} was **on the way** at **{lobbyUser.OnTheWayTime.ToLongTimeString()}** with {lobbyUser.UserCount} participants and an ETA of {lobbyUser.ETA}.\r\n";
                 }
 
                 lobbyUserStatus += 
@@ -269,17 +337,11 @@
 
             foreach (var channel in guild.Channels)
             {
-                try
+                var message = await channel.GetMessage(messageId);
+                if (message != null)
                 {
-                    var message = await channel.GetMessageAsync(messageId);
-                    if (message != null)
-                    {
-                        return message;
-                    }
+                    return message;
                 }
-#pragma warning disable RECS0022
-                catch { }
-#pragma warning restore RECS0022
             }
 
             return null;
@@ -327,24 +389,38 @@
         {
             if (string.IsNullOrEmpty(message) && embed == null) return;
 
-            var dm = await client.CreateDmAsync(user);
-            if (dm != null)
+            try
             {
-                await dm.SendMessageAsync(message, false, embed);
+                var dm = await client.CreateDmAsync(user);
+                if (dm != null)
+                {
+                    await dm.SendMessageAsync(message, false, embed);
+                }
+            }
+            catch (Exception ex)
+            {
+                Utils.LogError(ex);
             }
         }
 
         public static async Task SendWelcomeMessage(this DiscordClient client, DiscordUser user, string welcomeMessage)
         {
-            await client.SendDirectMessage
-            (
-                user,
-                ReplaceInfo(welcomeMessage, user),
-                //$"Hello {user.Username}, and welcome to versx's discord server!\r\n" +
-                //"I am here to help you with certain things if you require them such as notifications of Pokemon that have spawned as well as setting up Raid Lobbies.\r\n\r\n" +
-                //"To see a full list of my available commands please send me a direct message containing `.help`.",
-                null
-            );
+            try
+            {
+                await client.SendDirectMessage
+                (
+                    user,
+                    ReplaceInfo(welcomeMessage, user),
+                    //$"Hello {user.Username}, and welcome to versx's discord server!\r\n" +
+                    //"I am here to help you with certain things if you require them such as notifications of Pokemon that have spawned as well as setting up Raid Lobbies.\r\n\r\n" +
+                    //"To see a full list of my available commands please send me a direct message containing `.help`.",
+                    null
+                );
+            }
+            catch (Exception ex)
+            {
+                Utils.LogError(ex);
+            }
         }
 
         private static string ReplaceInfo(string message, DiscordUser user)
@@ -357,5 +433,19 @@
         }
 
         #endregion
+
+        public static async Task SetDefaultRaidReactions(this DiscordClient client, DiscordMessage message, bool deleteExisting = true)
+        {
+            if (client == null) return;
+
+            if (deleteExisting)
+            {
+                await message.DeleteAllReactionsAsync();
+            }
+
+            await message.CreateReactionAsync(DiscordEmoji.FromName(client, ":arrow_right:"));
+            await message.CreateReactionAsync(DiscordEmoji.FromName(client, ":white_check_mark:"));
+            await message.CreateReactionAsync(DiscordEmoji.FromName(client, ":x:"));
+        }
     }
 }

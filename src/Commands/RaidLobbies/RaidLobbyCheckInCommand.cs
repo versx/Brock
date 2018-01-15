@@ -21,7 +21,7 @@
     {
         #region Properties
 
-        public bool AdminCommand => false;
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
 
         public DiscordClient Client { get; }
 
@@ -47,9 +47,6 @@
 
             await message.IsDirectMessageSupported();
 
-            var server = Db[message.Channel.GuildId];
-            if (server == null) return;
-
             var lobbyName = command.Args[0];
             if (string.IsNullOrEmpty(lobbyName))
             {
@@ -57,7 +54,7 @@
                 return;
             }
 
-            var lobby = server.Lobbies.Find(x => string.Compare(x.LobbyName, lobbyName, true) == 0);
+            var lobby = Db.Lobbies.Find(x => string.Compare(x.LobbyName, lobbyName, true) == 0);
             if (lobby == null)
             {
                 await message.RespondAsync($"Lobby {lobbyName} does not exist.");

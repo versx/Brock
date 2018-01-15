@@ -9,6 +9,7 @@
     using DSharpPlus.Entities;
 
     using BrockBot.Data;
+    using BrockBot.Diagnostics;
     using BrockBot.Services;
     using BrockBot.Utilities;
 
@@ -20,7 +21,9 @@
     )]
     public class SetReminderCommand : ICustomCommand
     {
-        public bool AdminCommand => false;
+        private readonly IEventLogger _logger;
+
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
 
         public DiscordClient Client { get; }
 
@@ -28,11 +31,12 @@
 
         public ReminderService ReminderSvc { get; }
 
-        public SetReminderCommand(DiscordClient client, IDatabase db, ReminderService reminderSvc)
+        public SetReminderCommand(DiscordClient client, IDatabase db, ReminderService reminderSvc, IEventLogger logger)
         {
             Client = client;
             Db = db;
             ReminderSvc = reminderSvc;
+            _logger = logger;
         }
 
         public async Task Execute(DiscordMessage message, Command command)
@@ -79,11 +83,11 @@
                 Db.Reminders.AddOrUpdate(userId, reminders, (key, oldValue) => reminders);
                 ReminderSvc.ChangeToClosestInterval();
                 Db.Save();
-                await message.RespondAsync($":white_check_mark: Successfully set reminder. I will remind {message.Author.Username} to `{data.Message}` in `{reminder.Substring(reminder.LastIndexOf(seperator, StringComparison.Ordinal) + seperator.Length)}`!");
+                await message.RespondAsync($":white_check_mark: Successfully set reminder. I will remind {message.Author.Mention} to `{data.Message}` in `{reminder.Substring(reminder.LastIndexOf(seperator, StringComparison.Ordinal) + seperator.Length)}`!");
             }
             catch (Exception ex)
             {
-                Utils.LogError(ex);
+                _logger.Error(ex);
             }
         }
 
@@ -113,13 +117,13 @@
                     var captures = regex[i].Groups;
                     if (captures.Count < 3)
                     {
-                        Console.WriteLine("CAPTURES COUNT LESS THEN 3");
+                        _logger.Error("Captures count is less than 3");
                         return 0;
                     }
 
                     if (!double.TryParse(captures[1].ToString(), out double amount))
                     {
-                        Console.WriteLine($"COULD NOT PARSE DOUBLE : {captures[1].ToString()}");
+                        _logger.Error($"Failed to parse double: {captures[1].ToString()}");
                         return 0;
                     }
 
@@ -158,9 +162,9 @@
                 }
                 return timeToAdd;
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Console.WriteLine(e);
+                _logger.Error(ex);
             }
             return 0;
         }
@@ -188,9 +192,9 @@
 
                 return true;
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Console.WriteLine(e);
+                _logger.Error(ex);
             }
             return false;
         }

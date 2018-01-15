@@ -13,14 +13,14 @@
     [Command(
         Categories.Administrative,
         "Displays how long " + FilterBot.BotName + " has been online for.",
-        null,
+        "\tExample: `.uptime`",
         "uptime"
     )]
     public class UptimeCommand : ICustomCommand
     {
         #region Properties
 
-        public bool AdminCommand => true;
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Admin;
 
         public DiscordClient Client { get; }
 
