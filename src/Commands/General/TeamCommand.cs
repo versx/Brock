@@ -70,7 +70,7 @@
             var team = command.Args[0];
             if (!_config.TeamRoles.Exists(x => string.Compare(team, x, true) == 0 || string.Compare(team, "None", true) == 0))
             {
-                await message.RespondAsync($"You have entered an incorrect team name, please enter one of the following: {(string.Join(", ", _config.TeamRoles))}, or None.");
+                await message.RespondAsync($"{message.Author.Mention} has entered an incorrect team name, please enter one of the following: {(string.Join(", ", _config.TeamRoles))}, or None.");
                 return;
             }
 
@@ -115,7 +115,7 @@
 
                 if (alreadyAssigned)
                 {
-                    msg = $"You are already assigned to team {teamRole.Name}.";
+                    msg = $"{message.Author.Mention} is already assigned to team {teamRole.Name}.";
                 }
 
                 if (!string.IsNullOrEmpty(msg))

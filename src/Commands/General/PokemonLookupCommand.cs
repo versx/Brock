@@ -1,6 +1,7 @@
 ﻿namespace BrockBot.Commands
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
 
     using DSharpPlus;
@@ -99,6 +100,25 @@
                 eb.AddField("Evolutions:", evolutions, true);
             }
             eb.AddField("Type:", types, true);
+
+            var strengths = new List<string>();
+            var weaknesses = new List<string>();
+            foreach (var type in types.Split('/'))
+            {
+                strengths.AddRange(Helpers.GetStrengths(type));
+                weaknesses.AddRange(Helpers.GetWeaknesses(type));
+            }
+
+            if (strengths.Count > 0)
+            {
+                eb.AddField("Strengths:", string.Join(", ", strengths));
+            }
+
+            if (weaknesses.Count > 0)
+            {
+                eb.AddField("Weaknesses:", string.Join(", ", weaknesses));
+            }
+
             eb.ImageUrl = string.Format(HttpServer.PokemonImage, pokeId);
             var embed = eb.Build();
 

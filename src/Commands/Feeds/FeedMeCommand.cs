@@ -18,7 +18,7 @@
         "Assign yourself to a city feed's role.",
         "\tExample: `.feedme Upland,ontario,newport` (Joins a city)\r\n" +
         "\tExample: `.feedme all` (Joins all cities)",
-        "feedme"//, "city"
+        "feedme"
     )]
     public class FeedMeCommand : ICustomCommand
     {
@@ -152,7 +152,7 @@
                 await member.GrantRoleAsync(cityRole, reason);
             }
 
-            await message.RespondAsync($"{member.Mention} was assigned all default city feed roles.");
+            await message.RespondAsync($"{member.Mention} was assigned all city feed roles.");
         }
     }
 }

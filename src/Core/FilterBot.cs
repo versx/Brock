@@ -39,8 +39,10 @@
     {
         public const string BotName = "Brock";
         public static string DefaultAdvertisementMessage;
-        public const int DefaultAdvertisementMessageDifference = 8;
+        public const int DefaultAdvertisementMessageDifference = 10;
         public const int OneMinute = 60 * 1000;
+        public const int OneHour = OneMinute * 60;
+        public const string UnauthorizedAttemptsFileName = "unauthorized_attempts.txt";
 
         #region Variables
 
@@ -69,8 +71,6 @@
         public FilterBot()
         {
             Logger = new EventLogger();
-            //Logger.Trace($"FilterBot::FilterBot");
-            //Logger.Info($"Logging started for {AssemblyUtils.AssemblyName} v{AssemblyUtils.AssemblyVersion} by {AssemblyUtils.CompanyName}...");
             Commands = new CommandList();
 
             _db = Database.Load();
@@ -150,6 +150,8 @@
             Logger.Trace($"FilterBot::Client_Ready [{e.Client.CurrentUser.Username}]");
 
             //await DisplaySettings();
+
+            await _client.UpdateStatusAsync(new DiscordGame($"v{AssemblyUtils.AssemblyVersion}"));
 
             if (_config.SendStartupMessage)
             {
@@ -250,24 +252,10 @@
                 await channel.SendMessageAsync($"Everyone let's welcome {e.Member.Mention} to the server! We've been waiting for you!");
             }
 
-#pragma warning disable RECS0165
-            new System.Threading.Thread(async x =>
-#pragma warning restore RECS0165
+            if (_config.AssignNewMembersCityRoles)
             {
-                foreach (var city in _config.CityRoles)
-                {
-                    var cityRole = _client.GetRoleFromName(city);
-                    if (cityRole == null)
-                    {
-                        //Failed to find role.
-                        Logger.Error($"Failed to find city role {city}, please make sure it exists.");
-                        continue;
-                    }
-
-                    await e.Member.GrantRoleAsync(cityRole, "Default city role assignment initialization.");
-                }
-            })
-            { IsBackground = true }.Start();
+                _client.AssignMemberRoles(e.Member, _config.CityRoles);
+            }
 
             if (_config.SendWelcomeMessage)
             {
@@ -339,6 +327,24 @@
             //    case "white_check_mark":
             //        break;
             //    case "x":
+            //        var raidLobbiesChannel = await _client.GetChannel(raidLobbiesChannelId);
+            //        if (raidLobbiesChannel == null)
+            //        {
+            //            Logger.Error($"Failed to retrieve the raid lobbies channel with id {raidLobbiesChannelId}.");
+            //            return;
+            //        }
+
+            //        var raidLobbyMessage = await raidLobbiesChannel.GetMessage(raidLobbyMessageId);
+            //        if (raidLobbyMessage != null)
+            //        {
+            //            await raidLobbyMessage.DeleteAsync();
+            //            raidLobbyMessage = null;
+            //        }
+
+            //        if (raidLobbyMessage == null)
+            //        {
+            //            raidLobbyMessage = await raidLobbiesChannel.SendMessageAsync(msg, false, embed);
+            //        }
             //        break;
             //}
         }
@@ -554,7 +560,7 @@
         {
             var channel = await _client.GetChannel(_config.CommandsChannelId);
             if (channel == null) return;
-            DefaultAdvertisementMessage = $":arrows_counterclockwise: Welcome to **{channel.Guild.Name}**'s server! To assign or unassign yourself to or from a city feed or team please review the pinned messages in the {channel.Mention} channel or type `.help`.";
+            DefaultAdvertisementMessage = $":arrows_counterclockwise: Welcome to **{channel.Guild.Name}**'s server! To assign or unassign yourself to or from a city feed or team please review the pinned messages in the {channel.Mention} channel or type `.help`. Please also read the #faq channel if you have any questions, otherwise post them.";
             //":arrows_counterclockwise: Welcome to versx's server, in order to see a city feed you will need to assign yourself to a city role using the .feed command followed by one or more of the available cities separated by a comma (,): {0}, or None.";
         }
 
@@ -652,12 +658,27 @@
 
         private async Task CheckSponsoredRaids(DiscordMessage message)
         {
-            if (!_config.SponsoredRaids.ChannelPool.Contains(message.Channel.Id)) return;
+            //TODO: Add whittier raids and legendary raids channel ids.
+            //TODO: Add whittier sponsored raids channel webhook.
+            //if (!_config.SponsoredRaids.ChannelPool.Contains(message.ChannelId)) return;
 
             //await _client.SetDefaultRaidReactions(message);
 
             foreach (var embed in message.Embeds)
             {
+                //foreach (var sponsored in _config.SponsoredRaids)
+                //{
+                //    if (!sponsored.ChannelPool.Contains(message.ChannelId)) continue;
+
+                //    foreach (var keyword in sponsored.Keywords)
+                //    {
+                //        if (embed.Description.Contains(keyword))
+                //        {
+                //            await _client.SendMessage(sponsored.WebHook, string.Empty, embed);
+                //        }
+                //    }
+                //}
+
                 foreach (var keyword in _config.SponsoredRaids.Keywords)
                 {
                     if (embed.Description.Contains(keyword))
@@ -728,12 +749,12 @@
                 if (!matchesIV) continue;
                 //if (!matchesIV || !matchesCP) continue;
 
-                Logger.Info($"Notifying user {discordUser.Username} that a {pokemon.Name} CP{pkmn.CP} {pkmn.IV}% IV has appeared...");
+                Logger.Info($"Notifying user {discordUser.Username} that a {pokemon.Name} CP{pkmn.CP} {pkmn.IV}% IV has spawned...");
 
-                var embed = BuildEmbedPokemon(pkmn);
+                var embed = await BuildEmbedPokemon(pkmn, user.UserId);
                 if (embed == null) continue;
 
-                Notify(subscribedPokemon, embed);
+                Notify(pokemon.Name, embed);
 
                 await _client.SendDirectMessage(discordUser, string.Empty, embed);
                 await Utils.Wait(10);
@@ -767,10 +788,10 @@
 
                 Logger.Info($"Notifying user {discordUser.Username} that a {pokemon.Name} raid is available...");
 
-                var embed = BuildEmbedRaid(raid);
+                var embed = await BuildEmbedRaid(raid, user.UserId);
                 if (embed == null) continue;
 
-                Notify(subscribedRaid, embed);
+                Notify(pokemon.Name, embed);
 
                 await _client.SendDirectMessage(discordUser, string.Empty, embed);
                 await Utils.Wait(10);
@@ -829,9 +850,9 @@
             Console.WriteLine($"Startup Message WebHook: {_config.StartupMessageWebHook}");
             Console.WriteLine($"Send Welcome Message: {_config.SendWelcomeMessage}");
             Console.WriteLine($"Welcome Message: {_config.WelcomeMessage}");
-            Console.WriteLine($"Sponsored Raid Channel Pool: {string.Join(", ", _config.SponsoredRaids.ChannelPool)}");
-            Console.WriteLine($"Sponsored Raid Keywords: {string.Join(", ", _config.SponsoredRaids.Keywords)}");
-            Console.WriteLine($"Sponsored Raids WebHook: {_config.SponsoredRaids.WebHook}");
+            //Console.WriteLine($"Sponsored Raid Channel Pool: {string.Join(", ", _config.SponsoredRaids.ChannelPool)}");
+            //Console.WriteLine($"Sponsored Raid Keywords: {string.Join(", ", _config.SponsoredRaids.Keywords)}");
+            //Console.WriteLine($"Sponsored Raids WebHook: {_config.SponsoredRaids.WebHook}");
             Console.WriteLine();
             Console.WriteLine($"Twitter Notification Settings:");
             Console.WriteLine($"Post Twitter Updates: {_config.TwitterUpdates.PostTwitterUpdates}");
@@ -913,12 +934,12 @@
             Console.WriteLine($"**************************************");
         }
 
-        private void Notify(Pokemon pokemon, DiscordEmbed embed)
+        private void Notify(string pokemon, DiscordEmbed embed)
         {
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine();
             Console.WriteLine("***********************************");
-            Console.WriteLine($"********** {pokemon.PokemonId} FOUND **********");
+            Console.WriteLine($"********** {pokemon} FOUND **********");
             Console.WriteLine("***********************************");
             Console.WriteLine(DateTime.Now.ToString());
             //Console.WriteLine("Title: \t\t{0}", embed.Title); //DIRECTIONS
@@ -959,7 +980,14 @@
 
         private void LogUnauthorizedAccess(DiscordUser user)
         {
-            File.AppendAllText("unauthorized_attempts.txt", $"{user.Username}:{user.Id}\r\n");
+            try
+            {
+                File.AppendAllText(UnauthorizedAttemptsFileName, $"{user.Username}:{user.Id}\r\n");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex);
+            }
         }
 
         private async Task SendTwitterNotification(long ownerId, string url)
@@ -972,89 +1000,14 @@
 
         private async void AdvertisementTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            try
-            {
-                if (!_config.Advertisement.Enabled) return;
-                if (_config.Advertisement.ChannelId == 0) return;
-
-                var advertisementChannel = await _client.GetChannel(_config.Advertisement.ChannelId);
-                if (advertisementChannel == null)
-                {
-                    Logger.Error($"Failed to retrieve advertisement channel with id {_config.Advertisement.ChannelId}.");
-                    return;
-                }
-
-                var cmdChannel = await _client.GetChannel(_config.CommandsChannelId);
-                if (cmdChannel == null)
-                {
-                    Logger.Error($"Failed to retrieve commands channel with id {_config.CommandsChannelId}.");
-                    return;
-                }
-
-                if (_config.Advertisement.LastMessageId == 0)
-                {
-                    var msg = (string.IsNullOrEmpty(_config.Advertisement.Message)
-                        ? DefaultAdvertisementMessage
-                        : _config.Advertisement.Message)
-                        .Replace("{server}", advertisementChannel.Guild.Name)
-                        .Replace("{bot}", cmdChannel.Mention);
-                    var sentMessage = await advertisementChannel.SendMessageAsync(msg);
-                    _config.Advertisement.LastMessageId = sentMessage.Id;
-                    _config.Save();
-                    return;
-                }
-
-                var messages = await advertisementChannel.GetMessagesAsync();
-                if (messages != null)
-                {
-                    var lastBotMessageIndex = -1;
-                    for (int i = 0; i < messages.Count; i++)
-                    {
-                        if (messages[i].Id == _config.Advertisement.LastMessageId && messages[i].Author.IsBot)
-                        {
-                            lastBotMessageIndex = i;
-                        }
-                    }
-
-                    if (lastBotMessageIndex > _config.Advertisement.MessageThreshold || lastBotMessageIndex == -1)
-                    {
-                        var guild = await _client.GetGuildAsync(advertisementChannel.GuildId);
-                        if (guild == null)
-                        {
-                            Logger.Error($"Failed to retrieve guild from channel guild id.");
-                            return;
-                        }
-
-                        var message = await advertisementChannel.GetMessage(_config.Advertisement.LastMessageId);
-                        if (message != null)
-                        {
-                            await message.DeleteAsync();
-                            //Console.WriteLine($"Failed to retrieve last advertisement message with id {_config.Advertisement.LastMessageId}.");
-                            //return;
-                        }
-
-                        var msg = (string.IsNullOrEmpty(_config.Advertisement.Message)
-                            ? DefaultAdvertisementMessage
-                            : _config.Advertisement.Message)
-                            .Replace("{server}", advertisementChannel.Guild.Name)
-                            .Replace("{bot}", cmdChannel.Mention);
-                        var sentMessage = await advertisementChannel.SendMessageAsync(msg);
-                        _config.Advertisement.LastMessageId = sentMessage.Id;
-                        _config.Save();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex);
-            }
+            await CheckFeedStatus();
 
             //await CheckSupporterStatus(_client.Guilds[0].Id);
 
-            await CheckFeedStatus();
+            await PostAdvertisement();
         }
 
-        private DiscordEmbed BuildEmbedRaid(RaidData raid)
+        private async Task<DiscordEmbed> BuildEmbedRaid(RaidData raid, ulong userId)
         {
             var pkmn = _db.Pokemon[raid.PokemonId.ToString()];
             if (pkmn == null)
@@ -1064,6 +1017,22 @@
             }
 
             var loc = Utils.GetGoogleAddress(raid.Latitude, raid.Longitude, _config.GmapsKey);
+            var user = await _client.GetMemberFromUserId(userId);
+            if (user == null)
+            {
+                Logger.Error($"Failed to get discord member object from user id {userId}.");
+                return null;
+            }
+
+            if (loc != null)
+            {
+                if (!_client.HasRole(user, loc.City.Replace("Rancho Cucamonga", "Upland")))
+                {
+                    Logger.Debug($"Skipping notification for user {user.DisplayName} ({user.Id}) for Pokemon {pkmn.Name} because they do not have the city role.");
+                    return null;
+                }
+            }
+
             var eb = new DiscordEmbedBuilder
             {
                 Title = loc == null || string.IsNullOrEmpty(loc.City) ? "DIRECTIONS" : loc.City,
@@ -1103,7 +1072,7 @@
             return embed;
         }
 
-        private DiscordEmbed BuildEmbedPokemon(PokemonData pokemon)
+        private async Task<DiscordEmbed> BuildEmbedPokemon(PokemonData pokemon, ulong userId)
         {
             var pkmn = _db.Pokemon[pokemon.PokemonId.ToString()];
             if (pkmn == null)
@@ -1113,6 +1082,22 @@
             }
 
             var loc = Utils.GetGoogleAddress(pokemon.Latitude, pokemon.Longitude, _config.GmapsKey);
+            var user = await _client.GetMemberFromUserId(userId);
+            if (user == null)
+            {
+                Logger.Error($"Failed to get discord member object from user id {userId}.");
+                return null;
+            }
+
+            if (loc != null)
+            {
+                if (!_client.HasRole(user, loc.City.Replace("Rancho Cucamonga", "Upland")))
+                {
+                    Logger.Debug($"Skipping notification for user {user.DisplayName} ({user.Id}) for Pokemon {pkmn.Name} because they do not have the city role.");
+                    return null;
+                }
+            }
+
             var eb = new DiscordEmbedBuilder
             {
                 Title = loc == null || string.IsNullOrEmpty(loc.City) ? "DIRECTIONS" : loc.City,
@@ -1138,15 +1123,13 @@
 
         private DiscordColor BuildColor(string iv)
         {
-            if (iv.Contains("?")) return DiscordColor.White;
-
-            if (!int.TryParse(iv.Replace("%", null), out int result))
+            if (int.TryParse(iv.Substring(0, iv.Length - 1), out int result))
             {
                 if (result == 100)
                     return DiscordColor.Green;
-                else if (result > 90 && result < 100)
+                else if (result >= 90 && result < 100)
                     return DiscordColor.Orange;
-                else if (result <= 90)
+                else if (result < 90)
                     return DiscordColor.Yellow;
             }
 
@@ -1169,7 +1152,7 @@
                     continue;
                 }
 
-                var mostRecent = await channel.GetMessageAsync(channel.LastMessageId);
+                var mostRecent = await channel.GetMessage(channel.LastMessageId);
                 if (mostRecent == null)
                 {
                     Logger.Error($"Failed to retrieve last message for channel {channel.Name}.");
@@ -1238,6 +1221,101 @@
                         Logger.Debug($"Successfully removed supporter role from user {member.Id}.");
                     }
                 }
+            }
+        }
+
+        private async Task PostAdvertisement()
+        {
+            if (!_config.Advertisement.Enabled) return;
+            if (_config.Advertisement.ChannelId == 0) return;
+
+            try
+            {
+                var advertisementChannel = await _client.GetChannel(_config.Advertisement.ChannelId);
+                if (advertisementChannel == null)
+                {
+                    Logger.Error($"Failed to retrieve advertisement channel with id {_config.Advertisement.ChannelId}.");
+                    return;
+                }
+
+                var cmdChannel = await _client.GetChannel(_config.CommandsChannelId);
+                if (cmdChannel == null)
+                {
+                    Logger.Error($"Failed to retrieve commands channel with id {_config.CommandsChannelId}.");
+                    return;
+                }
+
+                if (_config.Advertisement.LastMessageId == 0)
+                {
+                    var msg = (string.IsNullOrEmpty(_config.Advertisement.Message)
+                        ? DefaultAdvertisementMessage
+                        : _config.Advertisement.Message)
+                        .Replace("{server}", advertisementChannel.Guild.Name)
+                        .Replace("{bot}", cmdChannel.Mention);
+                    var sentMessage = await advertisementChannel.SendMessageAsync(msg);
+                    _config.Advertisement.LastMessageId = sentMessage.Id;
+                    _config.Save();
+                    return;
+                }
+
+                var messages = await advertisementChannel.GetMessagesAsync();
+                if (messages == null)
+                {
+                    Logger.Error($"Failed to retrieve the list of messages from the advertisement channel {advertisementChannel.Name}.");
+                    return;
+                }
+
+                var lastBotMessageIndex = -1;
+                for (int i = 0; i < messages.Count; i++)
+                {
+                    if (messages[i].Id == _config.Advertisement.LastMessageId && messages[i].Author.IsBot)
+                    {
+                        lastBotMessageIndex = i;
+                    }
+                }
+
+                if (lastBotMessageIndex > _config.Advertisement.MessageThreshold || lastBotMessageIndex == -1)
+                {
+                    var guild = await _client.GetGuildAsync(advertisementChannel.GuildId);
+                    if (guild == null)
+                    {
+                        Logger.Error($"Failed to retrieve guild from channel guild id.");
+                        return;
+                    }
+
+                    var latestMessage = await advertisementChannel.GetMessage(advertisementChannel.LastMessageId);
+                    if (latestMessage == null)
+                    {
+                        Logger.Error($"Failed to retrieve the latest message from the advertisement channel {advertisementChannel.Name} with message id {advertisementChannel.LastMessageId}.");
+                        return;
+                    }
+
+                    //Check if it's been at least 5 minutes since someone wrote a message in order to not be intrusive.
+                    var canPost = false;
+                    var ts = DateTime.Now.Subtract(new DateTime(latestMessage.Timestamp.Ticks));
+                    if (ts.Minutes > 5) canPost = true;
+
+                    if (!canPost) return;
+
+                    var message = await advertisementChannel.GetMessage(_config.Advertisement.LastMessageId);
+                    if (message != null)
+                    {
+                        await message.DeleteAsync();
+                    }
+
+                    var msg = (string.IsNullOrEmpty(_config.Advertisement.Message)
+                        ? DefaultAdvertisementMessage
+                        : _config.Advertisement.Message)
+                        .Replace("{server}", advertisementChannel.Guild.Name)
+                        .Replace("{bot}", cmdChannel.Mention);
+                    var sentMessage = await advertisementChannel.SendMessageAsync(msg);
+                    _config.Advertisement.LastMessageId = sentMessage.Id;
+                    _config.Save();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex);
             }
         }
     }
@@ -1369,7 +1447,7 @@
             return stats.BaseStats.Stamina;
         }
 
-        public List<string> GetStrengths(string type)
+        public static List<string> GetStrengths(string type)
         {
             var types = new string[0];
             switch (type.ToLower())
@@ -1377,118 +1455,118 @@
                 case "normal":
                     break;
                 case "fighting":
-                    types = new string[] { "normal", "rock", "steel", "ice", "dark" };
+                    types = new string[] { "Normal", "Rock", "Steel", "Ice", "Dark" };
                     break;
                 case "flying":
-                    types = new string[] { "fighting", "bug", "grass" };
+                    types = new string[] { "Fighting", "Bug", "Grass" };
                     break;
                 case "poison":
-                    types = new string[] { "grass", "fairy" };
+                    types = new string[] { "Grass", "Fairy" };
                     break;
                 case "ground":
-                    types = new string[] { "poison", "rock", "steel", "fire", "electric" };
+                    types = new string[] { "Poison", "Rock", "Steel", "Fire", "Electric" };
                     break;
                 case "rock":
-                    types = new string[] { "flying", "bug", "fire", "ice" };
+                    types = new string[] { "Flying", "Bug", "Fire", "Ice" };
                     break;
                 case "bug":
-                    types = new string[] { "grass", "psychic", "dark" };
+                    types = new string[] { "Grass", "Psychic", "Dark" };
                     break;
                 case "ghost":
-                    types = new string[] { "ghost", "psychic" };
+                    types = new string[] { "Ghost", "Psychic" };
                     break;
                 case "steel":
-                    types = new string[] { "rock", "ice" };
+                    types = new string[] { "Rock", "Ice" };
                     break;
                 case "fire":
-                    types = new string[] { "bug", "steel", "grass", "ice" };
+                    types = new string[] { "Bug", "Steel", "Grass", "Ice" };
                     break;
                 case "water":
-                    types = new string[] { "ground", "rock", "fire" };
+                    types = new string[] { "Ground", "Rock", "Fire" };
                     break;
                 case "grass":
-                    types = new string[] { "ground", "rock", "water" };
+                    types = new string[] { "Ground", "Rock", "Water" };
                     break;
                 case "electric":
-                    types = new string[] { "flying", "water" };
+                    types = new string[] { "Flying", "Water" };
                     break;
                 case "psychic":
-                    types = new string[] { "fighting", "poison" };
+                    types = new string[] { "Fighting", "Poison" };
                     break;
                 case "ice":
-                    types = new string[] { "flying", "ground", "grass", "dragon" };
+                    types = new string[] { "Flying", "Ground", "Grass", "Dragon" };
                     break;
                 case "dragon":
-                    types = new string[] { "dragon" };
+                    types = new string[] { "Dragon" };
                     break;
                 case "dark":
-                    types = new string[] { "ghost", "psychic" };
+                    types = new string[] { "Ghost", "Psychic" };
                     break;
                 case "fairy":
-                    types = new string[] { "fighting", "dragon", "dark" };
+                    types = new string[] { "Fighting", "Dragon", "Dark" };
                     break;
             }
             return new List<string>(types);
         }
 
-        public List<string> GetWeaknesses(string type)
+        public static List<string> GetWeaknesses(string type)
         {
             var types = new string[0];
             switch (type.ToLower())
             {
                 case "normal":
-                    types = new string[] { "fighting" };
+                    types = new string[] { "Fighting" };
                     break;
                 case "fighting":
-                    types = new string[] { "flying", "psychic", "fairy" };
+                    types = new string[] { "Flying", "Psychic", "Fairy" };
                     break;
                 case "flying":
-                    types = new string[] { "rock", "electric", "ice" };
+                    types = new string[] { "Rock", "Electric", "Ice" };
                     break;
                 case "poison":
-                    types = new string[] { "ground", "psychic" };
+                    types = new string[] { "Ground", "Psychic" };
                     break;
                 case "ground":
-                    types = new string[] { "water", "grass", "ice" };
+                    types = new string[] { "Water", "Grass", "Ice" };
                     break;
                 case "rock":
-                    types = new string[] { "fighting", "ground", "steel", "water", "grass" };
+                    types = new string[] { "Fighting", "Ground", "Steel", "Water", "Grass" };
                     break;
                 case "bug":
-                    types = new string[] { "flying", "rock", "fire" };
+                    types = new string[] { "Flying", "Rock", "Fire" };
                     break;
                 case "ghost":
-                    types = new string[] { "ghost", "dark" };
+                    types = new string[] { "Ghost", "Dark" };
                     break;
                 case "steel":
-                    types = new string[] { "fighting", "ground", "fire" };
+                    types = new string[] { "Fighting", "Ground", "Fire" };
                     break;
                 case "fire":
-                    types = new string[] { "ground", "rock", "water" };
+                    types = new string[] { "Ground", "Rock", "Water" };
                     break;
                 case "water":
-                    types = new string[] { "grass", "electric" };
+                    types = new string[] { "Grass", "Electric" };
                     break;
                 case "grass":
-                    types = new string[] { "flying", "poison", "bug", "fire", "ice" };
+                    types = new string[] { "Flying", "Poison", "Bug", "Fire", "Ice" };
                     break;
                 case "electric":
-                    types = new string[] { "ground" };
+                    types = new string[] { "Ground" };
                     break;
                 case "psychic":
-                    types = new string[] { "bug", "ghost", "dark" };
+                    types = new string[] { "Bug", "Ghost", "Dark" };
                     break;
                 case "ice":
-                    types = new string[] { "fighting", "rock", "steel", "fire" };
+                    types = new string[] { "Fighting", "Rock", "Steel", "Fire" };
                     break;
                 case "dragon":
-                    types = new string[] { "ice", "dragon", "fairy" };
+                    types = new string[] { "Ice", "Dragon", "Fairy" };
                     break;
                 case "dark":
-                    types = new string[] { "fighting", "bug", "fairy" };
+                    types = new string[] { "Fighting", "Bug", "Fairy" };
                     break;
                 case "fairy":
-                    types = new string[] { "poison", "steel" };
+                    types = new string[] { "Poison", "Steel" };
                     break;
             }
             return new List<string>(types);

@@ -18,7 +18,7 @@
         "Unassign yourself from a city feed's role.",
         "\tExample: `.feedmenot Ontario` (Leaves specified city)\r\n" +
         "\tExample: `.feedmenot all` (Leaves all cities)",
-        "feedmenot"//, "city"
+        "feedmenot"
     )]
     public class FeedMeNotCommand : ICustomCommand
     {
@@ -92,7 +92,7 @@
                     {
                         if (!_config.CityRoles.Exists(x => string.Compare(city, x, true) == 0))
                         {
-                            await message.RespondAsync($"{message.Author.Mention} has entered an incorrect city name, please enter one of the following: {(string.Join(",", _config.CityRoles))}, or {FeedAll}.");
+                            await message.RespondAsync($"{message.Author.Mention} has entered an incorrect city feed name, please enter one of the following: {(string.Join(",", _config.CityRoles))}, or {FeedAll}.");
                             continue;
                         }
 
@@ -152,7 +152,7 @@
                 await member.RevokeRoleAsync(cityRole, reason);
             }
 
-            await message.RespondAsync($"{member.Mention} was unassigned all default city feed roles.");
+            await message.RespondAsync($"{member.Mention} was unassigned all city feed roles.");
         }
     }
 }

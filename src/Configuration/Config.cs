@@ -68,6 +68,10 @@
         [JsonProperty("teamRoles")]
         public List<string> TeamRoles { get; set; }
 
+        [XmlElement("assignNewMembersCityRoles")]
+        [JsonProperty("autoAssignNewMembersCityRoles")]
+        public bool AssignNewMembersCityRoles { get; set; }
+
         [XmlArray("cityRoles")]
         [XmlArrayItem("cityRole")]
         [JsonProperty("cityRoles")]
@@ -180,6 +184,7 @@
             //    "Mystic",
             //    "Instinct"
             //};
+            //AssignNewMembersCityRoles = true;
             CityRoles = new List<string>();
             CommandsPrefix = '.';
             CustomCommands = new Dictionary<string, string>();
@@ -207,6 +212,7 @@
             //};
             WebHookPort = 8008;
             WelcomeMessage = DefaultWelcomeMessage;
+            //SponsoredRaids = new List<SponsoredRaidsConfig>();
             SponsoredRaids = new SponsoredRaidsConfig();
             TwitterUpdates = new TwitterUpdatesConfig();
             Advertisement = new AdvertisementConfig();

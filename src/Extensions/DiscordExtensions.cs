@@ -1,6 +1,7 @@
 ﻿namespace BrockBot.Extensions
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
 
     using DSharpPlus;
@@ -58,7 +59,7 @@
         {
             foreach (var guild in client.Guilds)
             {
-                foreach (var role in ((DiscordGuild)guild.Value).Roles)
+                foreach (var role in guild.Value.Roles)
                 {
                     if (string.Compare(role.Name, roleName, true) == 0)
                     {
@@ -143,6 +144,28 @@
             return null;
         }
 
+        public static void AssignMemberRoles(this DiscordClient client, DiscordMember member, List<string> roles)
+        {
+#pragma warning disable RECS0165
+            new System.Threading.Thread(async x =>
+#pragma warning restore RECS0165
+            {
+                foreach (var city in roles)
+                {
+                    var cityRole = client.GetRoleFromName(city);
+                    if (cityRole == null)
+                    {
+                        //Failed to find role.
+                        Utils.LogError(new Exception($"Failed to find city role {city}, please make sure it exists."));
+                        continue;
+                    }
+
+                    await member.GrantRoleAsync(cityRole, "Default city role assignment initialization.");
+                }
+            })
+            { IsBackground = true }.Start();
+        }
+
         public static async Task<bool> HasSupporterRole(this DiscordClient client, ulong userId, ulong supporterRoleId)
         {
             var member = await client.GetMemberFromUserId(userId);
@@ -157,15 +180,28 @@
 
         public static bool HasSupporterRole(this DiscordMember member, ulong supporterRoleId)
         {
+            return HasRole(member, supporterRoleId);
+        }
+
+        public static bool HasRole(this DiscordMember member, ulong roleId)
+        {
             foreach (var role in member.Roles)
             {
-                if (role.Id == supporterRoleId)
+                if (role.Id == roleId)
                 {
                     return true;
                 }
             }
 
             return false;
+        }
+
+        public static bool HasRole(this DiscordClient client, DiscordMember member, string roleName)
+        {
+            var role = client.GetRoleFromName(roleName);
+            if (role == null) return false;
+
+            return HasRole(member, role.Id);
         }
 
         public static async Task<bool> IsSupporterStatusExpired(this DiscordClient client, Configuration.Config config, ulong userId)
@@ -410,7 +446,7 @@
                 await client.SendDirectMessage
                 (
                     user,
-                    ReplaceInfo(welcomeMessage, user),
+                    ReplaceInfo(client, welcomeMessage, user),
                     //$"Hello {user.Username}, and welcome to versx's discord server!\r\n" +
                     //"I am here to help you with certain things if you require them such as notifications of Pokemon that have spawned as well as setting up Raid Lobbies.\r\n\r\n" +
                     //"To see a full list of my available commands please send me a direct message containing `.help`.",
@@ -423,13 +459,15 @@
             }
         }
 
-        private static string ReplaceInfo(string message, DiscordUser user)
+        private static string ReplaceInfo(DiscordClient client, string message, DiscordUser user)
         {
+            if (message == null) return null;
+
             return message
                 .Replace("{username}", user.Username)
                 .Replace("{mention}", user.Mention)
-                .Replace("{server}", user.Presence.Guild.Name)
-                .Replace("{users}", user.Presence.Guild.MemberCount.ToString("N0"));
+                .Replace("{server}", client.Guilds[0].Name)
+                .Replace("{users}", client.Guilds[0].MemberCount.ToString("N0"));
         }
 
         #endregion

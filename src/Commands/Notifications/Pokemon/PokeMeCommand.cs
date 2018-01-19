@@ -24,7 +24,7 @@
     {
         #region Properties
 
-        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Supporter;
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
 
         public bool AdminCommand => false;
 
