@@ -446,10 +446,7 @@
                 await client.SendDirectMessage
                 (
                     user,
-                    ReplaceInfo(client, welcomeMessage, user),
-                    //$"Hello {user.Username}, and welcome to versx's discord server!\r\n" +
-                    //"I am here to help you with certain things if you require them such as notifications of Pokemon that have spawned as well as setting up Raid Lobbies.\r\n\r\n" +
-                    //"To see a full list of my available commands please send me a direct message containing `.help`.",
+                    ReplaceInfo(welcomeMessage, user),
                     null
                 );
             }
@@ -459,15 +456,13 @@
             }
         }
 
-        private static string ReplaceInfo(DiscordClient client, string message, DiscordUser user)
+        private static string ReplaceInfo(string message, DiscordUser user)
         {
             if (message == null) return null;
 
             return message
                 .Replace("{username}", user.Username)
-                .Replace("{mention}", user.Mention)
-                .Replace("{server}", client.Guilds[0].Name)
-                .Replace("{users}", client.Guilds[0].MemberCount.ToString("N0"));
+                .Replace("{mention}", user.Mention);
         }
 
         #endregion

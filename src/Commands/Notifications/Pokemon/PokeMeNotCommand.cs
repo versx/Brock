@@ -44,9 +44,6 @@
         {
             //await message.IsDirectMessageSupported();
 
-            var server = Db[Client.Guilds[0].Id]; //Db[message.Channel.GuildId];
-            if (server == null) return;
-
             var author = message.Author.Id;
 
             if (!Db.SubscriptionExists(author))

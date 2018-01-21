@@ -66,7 +66,7 @@
 
             if (!int.TryParse(ivArg, out int iv))
             {
-                await message.RespondAsync($"'{ivArg}' is not a valid value for IV.");
+                await message.RespondAsync($"{message.Author.Mention}, '{ivArg}' is not a valid value for IV.");
                 return;
             }
 
@@ -75,6 +75,12 @@
 
             if (cmd == "*" || string.Compare(cmd.ToLower(), "all", true) == 0)
             {
+                if (iv < 80)
+                {
+                    await message.RespondAsync($"{message.Author.Mention} may not subscribe to all Pokemon with a minimum IV less than 80, please set something higher.");
+                    return;
+                }
+
                 for (uint i = 1; i < 390; i++)
                 {
                     var pokemon = Db.Pokemon[i.ToString()];

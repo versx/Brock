@@ -40,7 +40,8 @@
         public const string BotName = "Brock";
         public static string DefaultAdvertisementMessage;
         public const int DefaultAdvertisementMessageDifference = 10;
-        public const int OneMinute = 60 * 1000;
+        public const int OneSecond = 1000;
+        public const int OneMinute = OneSecond * 60;
         public const int OneHour = OneMinute * 60;
         public const string UnauthorizedAttemptsFileName = "unauthorized_attempts.txt";
 
@@ -163,7 +164,7 @@
                 Console.WriteLine($"User: {user.Key}: {user.Value.User.Username}");
             }
 
-            await Utils.Wait(10000);
+            await Utils.Wait(3 * OneSecond);
             await Init();
 
             _adTimer = new Timer { Interval = _config.Advertisement.PostInterval * OneMinute };
@@ -560,8 +561,19 @@
         {
             var channel = await _client.GetChannel(_config.CommandsChannelId);
             if (channel == null) return;
-            DefaultAdvertisementMessage = $":arrows_counterclockwise: Welcome to **{channel.Guild.Name}**'s server! To assign or unassign yourself to or from a city feed or team please review the pinned messages in the {channel.Mention} channel or type `.help`. Please also read the #faq channel if you have any questions, otherwise post them.";
+            //DefaultAdvertisementMessage = $":arrows_counterclockwise: Welcome to **{(channel.Guild == null ? "versx" : channel.Guild.Name)}**'s server! To assign or unassign yourself to or from a city feed or team please review the pinned messages in the {channel.Mention} channel or type `.help`. Please also read the #faq channel if you have any questions, otherwise post them.";
             //":arrows_counterclockwise: Welcome to versx's server, in order to see a city feed you will need to assign yourself to a city role using the .feed command followed by one or more of the available cities separated by a comma (,): {0}, or None.";
+            DefaultAdvertisementMessage = @"Hello {username}, welcome to **versx**'s server!
+My name is Brock and I'm here to assist you with certain things. Most commands that you'll send me will need to be sent to the #bot channel in the server but I can also process some commands via direct message.
+
+First things first you might want to set your team, there are three available teams: Valor, Mystic, and Instinct. To set your team you'll want to use the `.team Valor/Mystic/Instinct` command, although this is optional. For more details please read the pinned message in the #bot channel titled Team Assignment.
+Next you'll need to assign youself to some city feeds to see Pokemon spawns and Raids. Quickest way is to type the `.feedme all` command, otherwise please read the pinned message in the #bot channel titled City Feeds for more details.
+Lastly if you'd like to get direct messages from me when a certain Pokemon with a specific IV percentage or raid appears, to do so please read the pinned message in the #bot channel titled Pokemon Notifications.
+
+I will only send you direct message notifications of Pokemon or raids for city feeds that you are assigned to.
+**To see a full list of my available commands please send me a direct message containing `.help`.**
+
+Once you've completed the above steps you'll be all set to go catch those elusive monsters, be safe and have fun!";
         }
 
         private async Task ParseCommand(DiscordMessage message)
@@ -660,7 +672,7 @@
         {
             //TODO: Add whittier raids and legendary raids channel ids.
             //TODO: Add whittier sponsored raids channel webhook.
-            //if (!_config.SponsoredRaids.ChannelPool.Contains(message.ChannelId)) return;
+            if (!_config.SponsoredRaids.ChannelPool.Contains(message.ChannelId)) return;
 
             //await _client.SetDefaultRaidReactions(message);
 
@@ -1101,7 +1113,7 @@
             var eb = new DiscordEmbedBuilder
             {
                 Title = loc == null || string.IsNullOrEmpty(loc.City) ? "DIRECTIONS" : loc.City,
-                Description = $"{pkmn.Name} {pokemon.CP}CP {pokemon.IV} LV{pokemon.PlayerLevel} has spawned!",
+                Description = $"{pkmn.Name}{Helpers.GetPokemonGender(pokemon.Gender)} {pokemon.CP}CP {pokemon.IV} LV{pokemon.PlayerLevel} has spawned!",
                 Url = string.Format(HttpServer.GoogleMaps, pokemon.Latitude, pokemon.Longitude),
                 ImageUrl = string.Format(HttpServer.GoogleMapsImage, pokemon.Latitude, pokemon.Longitude),
                 ThumbnailUrl = string.Format(HttpServer.PokemonImage, pokemon.PokemonId),
@@ -1352,6 +1364,20 @@
             }
 
             return 0;
+        }
+
+        public static string GetPokemonGender(PokemonGender gender)
+        {
+            switch (gender)
+            {
+                case PokemonGender.Male:
+                    return "\u2642";
+                case PokemonGender.Female:
+                    return "\u2640";
+                default:
+                    return "?";
+
+            }
         }
 
         public string GetSize(IDatabase db, int id, float height, float weight)

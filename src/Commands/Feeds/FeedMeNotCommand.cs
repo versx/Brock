@@ -127,6 +127,12 @@
                         }
                     }
 
+                    if (string.IsNullOrEmpty(msg))
+                    {
+                        _logger.Error($"FeedMeNot command response message was empty.");
+                        return;
+                    }
+
                     await message.RespondAsync(msg);
                 }
             }
