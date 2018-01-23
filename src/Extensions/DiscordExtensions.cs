@@ -132,13 +132,20 @@
 
         public static async Task<DiscordMember> GetMemberFromUserId(this DiscordClient client, ulong userId)
         {
-            foreach (var guild in client.Guilds)
+            try
             {
-                var user = await guild.Value.GetMemberAsync(userId);
-                if (user != null)
+                foreach (var guild in client.Guilds)
                 {
-                    return user;
+                    var user = await guild.Value.GetMemberAsync(userId);
+                    if (user != null)
+                    {
+                        return user;
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                Utils.LogError(ex);
             }
 
             return null;
@@ -300,7 +307,7 @@
 
             foreach (var lobbyUser in lobby.UserCheckInList)
             {
-                var user = await client.GetUserAsync(lobbyUser.UserId);
+                var user = await client.GetUser(lobbyUser.UserId);
                 if (user == null)
                 {
                     Utils.LogError(new Exception($"Failed to find user {lobbyUser.UserId}"));

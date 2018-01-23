@@ -7,6 +7,7 @@
 
     using Newtonsoft.Json;
 
+    using BrockBot.Data.Models;
     using BrockBot.Serialization;
     using BrockBot.Utilities;
 

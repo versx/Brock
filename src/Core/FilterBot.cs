@@ -3,11 +3,9 @@
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Threading.Tasks;
     using Timer = System.Timers.Timer;
-
-    using DSharpPlus.Entities;
-    using DSharpPlus.EventArgs;
 
     using BrockBot.Commands;
     using BrockBot.Configuration;
@@ -19,21 +17,72 @@
     using BrockBot.Utilities;
 
     using DSharpPlus;
+    using DSharpPlus.Entities;
+    using DSharpPlus.EventArgs;
+    using DSharpPlus.CommandsNext;
+    using DSharpPlus.CommandsNext.Attributes;
+    using DSharpPlus.CommandsNext.Converters;
+    using DSharpPlus.CommandsNext.Entities;
 
     using Stream = Tweetinvi.Stream;
     using Tweetinvi;
     using Tweetinvi.Models;
     using Tweetinvi.Streaming;
     using Tweetinvi.Streaming.Parameters;
-
-    //TODO: Loop through all arguments for the .feed command. Check if first arg is == remove, if not then assume all arguments are city roles?
-    //TODO: Add scanning pokemon list command.
+    
     //TODO: Add rate limiter to prevent spam.
-    //TODO: Add .interested command or something similar.
+    //TODO: Finish raid lobby system update.
     //TODO: Notify via SMS or Email or Twilio or w/e.
     //TODO: Add support for pokedex # or name for Pokemon and Raid subscriptions.
-    //TODO: Subscribe to all Pokemon/Raids/Default.
     //TODO: Keep track of supporters, have a command to check if a paypal email etc or username rather has donated.
+    //TODO: Finish multiple sponsored raids setup.
+
+    //[Group("tests", CanInvokeWithoutSubcommand = false)] // this makes the class a group, but with a twist; the class now needs an ExecuteGroupAsync method
+    //[Description("Contains some memes. When invoked without subcommand, returns a random one.")]
+    //[Aliases("copypasta")]
+    public class TestModule : BaseModule
+    {
+        private DiscordClient _client;
+
+        // commands in this group need to be executed as 
+        // <prefix>memes [command] or <prefix>copypasta [command]
+
+        // this is the group's command; unlike with other commands, 
+        // any attributes on this one are ignored, but like other
+        // commands, it can take arguments
+        public async Task ExecuteGroupAsync(CommandContext ctx)
+        {
+            // let's give them a random meme
+            //var rnd = new Random();
+            //var nxt = rnd.Next(0, 2);
+
+            //switch (nxt)
+            //{
+            //    case 0:
+                    await Pepe(ctx);
+            //        return;
+            //}
+        }
+
+        [DSharpPlus.CommandsNext.Attributes.Command("test"), Aliases("test2"), Description("Feels bad, man.")]
+        public async Task Pepe(CommandContext ctx)
+        {
+            await ctx.TriggerTypingAsync();
+
+            // wrap it into an embed
+            var embed = new DiscordEmbedBuilder
+            {
+                Title = "Pepe",
+                ImageUrl = "http://i.imgur.com/44SoSqS.jpg"
+            };
+            await ctx.RespondAsync(embed: embed);
+        }
+
+        protected override void Setup(DiscordClient client)
+        {
+            _client = client;
+        }
+    }
 
     public class FilterBot
     {
@@ -47,7 +96,8 @@
 
         #region Variables
 
-        private DiscordClient _client;
+        private readonly DiscordClient _client;
+        //private readonly CommandsNextModule _cmdNext;
         private readonly Config _config;
         private readonly Database _db;
         private readonly Random _rand;
@@ -55,7 +105,7 @@
         private Timer _adTimer;
         private IFilteredStream _twitterStream;
 
-        private ReminderService _reminderService;
+        private readonly ReminderService _reminderService;
 
         #endregion
 
@@ -94,6 +144,24 @@
                     TokenType = TokenType.Bot
                 }
             );
+
+            var cmdCfg = new CommandsNextConfiguration
+            {
+                CaseSensitive = false,
+                //CustomPrefixPredicate
+                //DefaultHelpChecks
+                //Dependencies
+                EnableDefaultHelp = true,
+                EnableDms = true,
+                //EnableMentionPrefix = true,
+                IgnoreExtraArguments = true,
+                SelfBot = false,
+                StringPrefix = "!"
+            };
+            var cmdNext = _client.UseCommandsNext(cmdCfg);
+            _client.AddModule(new TestModule());
+
+            cmdNext.RegisterCommands<TestModule>();
 
             _client.MessageCreated += Client_MessageCreated;
             _client.Ready += Client_Ready;
@@ -170,7 +238,7 @@
             _adTimer = new Timer { Interval = _config.Advertisement.PostInterval * OneMinute };
             _adTimer.Elapsed += AdvertisementTimer_Elapsed;
             _adTimer.Start();
-            AdvertisementTimer_Elapsed(this, null);
+            //AdvertisementTimer_Elapsed(this, null);
         }
 
         private async Task Client_MessageCreated(MessageCreateEventArgs e)
@@ -189,7 +257,7 @@
             else if (e.Message.Channel.Id == _config.CommandsChannelId ||
                      e.Message.Channel.Id == _config.AdminCommandsChannelId ||
                      _db.Lobbies.Exists(x => string.Compare(x.LobbyName, e.Message.Channel.Name, true) == 0))
-                     //_db.Servers.Exists(server => server.Lobbies.Exists(x => string.Compare(x.LobbyName, e.Message.Channel.Name, true) == 0)))
+            //_db.Servers.Exists(server => server.Lobbies.Exists(x => string.Compare(x.LobbyName, e.Message.Channel.Name, true) == 0)))
             {
                 await ParseCommand(e.Message);
             }
@@ -400,20 +468,20 @@
                     {
                         //foreach (var server in _db.Servers)
                         //{
-                            foreach (var lobby in _db.Lobbies)
+                        foreach (var lobby in _db.Lobbies)
+                        {
+                            if (lobby.IsExpired)
                             {
-                                if (lobby.IsExpired)
+                                var channel = await _client.GetChannel(lobby.ChannelId);
+                                if (channel == null)
                                 {
-                                    var channel = await _client.GetChannel(lobby.ChannelId);
-                                    if (channel == null)
-                                    {
-                                        Logger.Error($"Failed to delete expired raid lobby channel because channel {lobby.LobbyName} ({lobby.ChannelId}) does not exist.");
-                                        continue;
-                                    }
-                                    //await channel.DeleteAsync($"Raid lobby {lobby.LobbyName} ({lobby.ChannelId}) no longer needed.");
+                                    Logger.Error($"Failed to delete expired raid lobby channel because channel {lobby.LobbyName} ({lobby.ChannelId}) does not exist.");
+                                    continue;
                                 }
-                                await _client.UpdateLobbyStatus(lobby);
+                                //await channel.DeleteAsync($"Raid lobby {lobby.LobbyName} ({lobby.ChannelId}) no longer needed.");
                             }
+                            await _client.UpdateLobbyStatus(lobby);
+                        }
                         //}
 
                         //_db.Servers.ForEach(server => server.Lobbies.RemoveAll(lobby => lobby.IsExpired));
@@ -436,12 +504,10 @@
             _twitterStream.Credentials = creds;
             _twitterStream.StallWarnings = true;
             _twitterStream.FilterLevel = StreamFilterLevel.None;
-            _twitterStream.StreamStarted += (sender, e) => Console.WriteLine("Successfully started.");
+            _twitterStream.StreamStarted += (sender, e) => Logger.Info("Successfully started.");
             _twitterStream.StreamStopped += (sender, e) => Console.WriteLine($"Stream stopped.\r\n{e.Exception}\r\n{e.DisconnectMessage}");
             _twitterStream.DisconnectMessageReceived += (sender, e) => Console.WriteLine($"Disconnected.\r\n{e.DisconnectMessage}");
             _twitterStream.WarningFallingBehindDetected += (sender, e) => Console.WriteLine($"Warning Falling Behind Detected: {e.WarningMessage}");
-            //stream.AddFollow(2839430431);
-            //stream.AddFollow(358652328);
             CheckTwitterFollows();
             await _twitterStream.StartStreamMatchingAllConditionsAsync();
 
@@ -460,9 +526,13 @@
 
             Logger.Info($"Shutting down {AssemblyUtils.AssemblyName}...");
 
-            await _client.DisconnectAsync();
-            _client.Dispose();
-            _client = null;
+            if (_client != null)
+            {
+                await _client.DisconnectAsync();
+
+                _client.Dispose();
+                //_client = null;
+            }
         }
 
         public bool RegisterCommand<T>(params object[] optionalParameters)
@@ -521,12 +591,12 @@
                 if (!Commands.ContainsKey(cmds) && !Commands.ContainsValue(command))
                 {
                     Commands.Add(cmds, command);
-                    Logger.Info($"Command(s) {string.Join(", ", cmds)} was successfully registered.");
+                    Logger.Info($"Command{(cmds.Length > 1 ? "s" : null)} {string.Join(", ", cmds)} registered.");
 
                     return true;
                 }
 
-                Logger.Error($"Failed to register command(s) {string.Join(", ", cmds)}");
+                Logger.Error($"Failed to register command{(cmds.Length > 1 ? "s" : null)} {string.Join(", ", cmds)}");
             }
             catch (Exception ex)
             {
@@ -551,6 +621,18 @@
                 Logger.Error($"Failed to unregister command {string.Join(", ", cmdNames)}");
                 return;
             }
+        }
+
+        public async Task AlertOwnerOfCrash()
+        {
+            var owner = await _client.GetUser(_config.OwnerId);
+            if (owner == null)
+            {
+                Logger.Error($"Failed to find owner with owner id {_config.OwnerId}...");
+                return;
+            }
+
+            await _client.SendDirectMessage(owner, "I JUST CRASHED!", null);
         }
 
         #endregion
@@ -627,7 +709,7 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
         private async Task ParseHelpCommand(DiscordMessage message, Command command)
         {
             var eb = new DiscordEmbedBuilder();
-            eb.WithTitle("Help Command Information (Type ");
+            eb.WithTitle("Help Command Information");
 
             var categories = GetCommandsByCategory();
             if (command.HasArgs && command.Args.Count == 1)
@@ -639,7 +721,7 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
                     return;
                 }
 
-                eb.AddField(category, "|");
+                eb.AddField(category, "-");
                 foreach (var cmd in categories[category])
                 {
                     var isOwner = message.Author.Id == _config.OwnerId;
@@ -713,8 +795,9 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
             }
 
             DiscordUser discordUser;
-            foreach (var user in _db.Subscriptions)
+            for (int i = 0; i < _db.Subscriptions.Count; i++)
             {
+                var user = _db.Subscriptions[i];
                 if (!user.Enabled) continue;
 
                 discordUser = await _client.GetUser(user.UserId);
@@ -753,6 +836,18 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
                 //    matchesCP |= resultCP >= subscribedPokemon.MinimumCP;
                 //}
 
+                var matchesLvl = false;
+                if (pkmn.PlayerLevel != "?")
+                {
+                    if (!int.TryParse(pkmn.PlayerLevel, out int resultLvl))
+                    {
+                        Logger.Error($"Failed to parse pokemon level value '{pkmn.PlayerLevel}', skipping filter check.");
+                        continue;
+                    }
+
+                    matchesLvl |= resultLvl >= subscribedPokemon.MinimumLevel;
+                }
+
                 if (pkmn.IV == "?" && subscribedPokemon.MinimumIV == 0)
                 {
                     matchesIV = true;
@@ -782,8 +877,9 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
             }
 
             DiscordUser discordUser;
-            foreach (var user in _db.Subscriptions)
+            for (int i = 0; i < _db.Subscriptions.Count; i++)
             {
+                var user = _db.Subscriptions[i];
                 if (!user.Enabled) continue;
 
                 discordUser = await _client.GetUser(user.UserId);
@@ -844,7 +940,7 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
             Logger.Trace($"FilterBot::DisplaySettings");
 
             Console.WriteLine($"********** Current Settings **********");
-            var owner = await _client.GetUserAsync(_config.OwnerId);
+            var owner = await _client.GetUser(_config.OwnerId);
             Console.WriteLine($"Owner: {owner?.Username} ({_config.OwnerId})");
             Console.WriteLine($"Authentication Token: {_config.AuthToken}");
             Console.WriteLine($"Commands Channel Id: {_config.CommandsChannelId}");
@@ -884,64 +980,64 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
             //foreach (var server in _db.Servers)
             //{
             //    Console.WriteLine($"Guild Id: {server.GuildId}");
-                Console.WriteLine("Subscriptions:");
-                Console.WriteLine();
-                foreach (var sub in _db.Subscriptions)
+            Console.WriteLine("Subscriptions:");
+            Console.WriteLine();
+            foreach (var sub in _db.Subscriptions)
+            {
+                var user = await _client.GetUser(sub.UserId);
+                if (user != null)
                 {
-                    var user = await _client.GetUserAsync(sub.UserId);
-                    if (user != null)
+                    Console.WriteLine($"Username: {user.Username}, Enabled: {(sub.Enabled ? "Yes" : "No")}");
+                    Console.WriteLine($"Pokemon Subscriptions:");
+                    foreach (var poke in sub.Pokemon)
                     {
-                        Console.WriteLine($"Username: {user.Username}, Enabled: {(sub.Enabled ? "Yes" : "No")}");
-                        Console.WriteLine($"Pokemon Subscriptions:");
-                        foreach (var poke in sub.Pokemon)
-                        {
-                            if (!_db.Pokemon.ContainsKey(poke.PokemonId.ToString())) continue;
-                            Console.WriteLine(_db.Pokemon[poke.PokemonId.ToString()].Name + $" (Id: {poke.PokemonId}, Minimum CP: {poke.MinimumCP}, Minimum IV: {poke.MinimumIV})");
-                        }
-                        Console.WriteLine();
-                        Console.WriteLine($"Raid Subscriptions:");
-                        foreach (var raid in sub.Raids)
-                        {
-                            if (!_db.Pokemon.ContainsKey(raid.PokemonId.ToString())) continue;
-                            Console.WriteLine(_db.Pokemon[raid.PokemonId.ToString()].Name + $" (Id: {raid.PokemonId})");
-                        }
-                        Console.WriteLine();
-                        Console.WriteLine();
-                    }
-                }
-                Console.WriteLine();
-                Console.WriteLine("Raid Lobbies:");
-                Console.WriteLine();
-                foreach (var lobby in _db.Lobbies)
-                {
-                    Console.WriteLine($"Lobby Name: {lobby.LobbyName}");
-                    Console.WriteLine($"Raid Boss: {lobby.PokemonName}");
-                    Console.WriteLine($"Gym Name: {lobby.GymName}");
-                    Console.WriteLine($"Address: {lobby.Address}");
-                    Console.WriteLine($"Start Time: {lobby.StartTime}");
-                    Console.WriteLine($"Expire Time: {lobby.ExpireTime}");
-                    Console.WriteLine($"Minutes Left: {lobby.MinutesLeft}");
-                    Console.WriteLine($"Is Expired: {lobby.IsExpired}");
-                    Console.WriteLine($"# Users Checked-In: {lobby.NumUsersCheckedIn}");
-                    Console.WriteLine($"# Users On The Way: {lobby.NumUsersOnTheWay}");
-                    Console.WriteLine($"Original Raid Message Id: {lobby.OriginalRaidMessageId}");
-                    Console.WriteLine($"Pinned Raid Message Id{lobby.PinnedRaidMessageId}");
-                    Console.WriteLine($"Channel Id: {lobby.ChannelId}");
-                    Console.WriteLine($"Raid Lobby User List:");
-                    foreach (var lobbyUser in lobby.UserCheckInList)
-                    {
-                        Console.WriteLine($"User Id: {lobbyUser.UserId}");
-                        Console.WriteLine($"Is OnTheWay: {lobbyUser.IsOnTheWay}");
-                        Console.WriteLine($"OnTheWay Time: {lobbyUser.OnTheWayTime}");
-                        Console.WriteLine($"Is Checked-In: {lobbyUser.IsCheckedIn}");
-                        Console.WriteLine($"Check-In Time: {lobbyUser.CheckInTime}");
-                        Console.WriteLine($"User Count: {lobbyUser.UserCount}");
-                        Console.WriteLine($"ETA: {lobbyUser.ETA}");
+                        if (!_db.Pokemon.ContainsKey(poke.PokemonId.ToString())) continue;
+                        Console.WriteLine(_db.Pokemon[poke.PokemonId.ToString()].Name + $" (Id: {poke.PokemonId}, Minimum CP: {poke.MinimumCP}, Minimum IV: {poke.MinimumIV})");
                     }
                     Console.WriteLine();
+                    Console.WriteLine($"Raid Subscriptions:");
+                    foreach (var raid in sub.Raids)
+                    {
+                        if (!_db.Pokemon.ContainsKey(raid.PokemonId.ToString())) continue;
+                        Console.WriteLine(_db.Pokemon[raid.PokemonId.ToString()].Name + $" (Id: {raid.PokemonId})");
+                    }
+                    Console.WriteLine();
+                    Console.WriteLine();
+                }
+            }
+            Console.WriteLine();
+            Console.WriteLine("Raid Lobbies:");
+            Console.WriteLine();
+            foreach (var lobby in _db.Lobbies)
+            {
+                Console.WriteLine($"Lobby Name: {lobby.LobbyName}");
+                Console.WriteLine($"Raid Boss: {lobby.PokemonName}");
+                Console.WriteLine($"Gym Name: {lobby.GymName}");
+                Console.WriteLine($"Address: {lobby.Address}");
+                Console.WriteLine($"Start Time: {lobby.StartTime}");
+                Console.WriteLine($"Expire Time: {lobby.ExpireTime}");
+                Console.WriteLine($"Minutes Left: {lobby.MinutesLeft}");
+                Console.WriteLine($"Is Expired: {lobby.IsExpired}");
+                Console.WriteLine($"# Users Checked-In: {lobby.NumUsersCheckedIn}");
+                Console.WriteLine($"# Users On The Way: {lobby.NumUsersOnTheWay}");
+                Console.WriteLine($"Original Raid Message Id: {lobby.OriginalRaidMessageId}");
+                Console.WriteLine($"Pinned Raid Message Id{lobby.PinnedRaidMessageId}");
+                Console.WriteLine($"Channel Id: {lobby.ChannelId}");
+                Console.WriteLine($"Raid Lobby User List:");
+                foreach (var lobbyUser in lobby.UserCheckInList)
+                {
+                    Console.WriteLine($"User Id: {lobbyUser.UserId}");
+                    Console.WriteLine($"Is OnTheWay: {lobbyUser.IsOnTheWay}");
+                    Console.WriteLine($"OnTheWay Time: {lobbyUser.OnTheWayTime}");
+                    Console.WriteLine($"Is Checked-In: {lobbyUser.IsCheckedIn}");
+                    Console.WriteLine($"Check-In Time: {lobbyUser.CheckInTime}");
+                    Console.WriteLine($"User Count: {lobbyUser.UserCount}");
+                    Console.WriteLine($"ETA: {lobbyUser.ETA}");
                 }
                 Console.WriteLine();
-                Console.WriteLine();
+            }
+            Console.WriteLine();
+            Console.WriteLine();
             //}
             Console.WriteLine($"**************************************");
         }
@@ -1052,7 +1148,7 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
                 Url = string.Format(HttpServer.GoogleMaps, raid.Latitude, raid.Longitude),
                 ImageUrl = string.Format(HttpServer.GoogleMapsImage, raid.Latitude, raid.Longitude),
                 ThumbnailUrl = string.Format(HttpServer.PokemonImage, raid.PokemonId),
-                Color = DiscordColor.Red
+                Color = BuildRaidColor(Convert.ToInt32(raid.Level))
             };
 
             var fixedEndTime = DateTime.Parse(raid.EndTime.ToLongTimeString());
@@ -1148,7 +1244,24 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
             return DiscordColor.White;
         }
 
-        #endregion
+        private DiscordColor BuildRaidColor(int level)
+        {
+            switch (level)
+            {
+                case 1:
+                    return DiscordColor.HotPink;
+                case 2:
+                    return DiscordColor.HotPink;
+                case 3:
+                    return DiscordColor.Yellow;
+                case 4:
+                    return DiscordColor.Yellow;
+                case 5:
+                    return DiscordColor.Purple;
+            }
+
+            return DiscordColor.White;
+        }
 
         private async Task CheckFeedStatus()
         {
@@ -1174,7 +1287,7 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
                 if (IsFeedUp(mostRecent.CreationTimestamp.DateTime))
                     continue;
 
-                var owner = await _client.GetUserAsync(_config.OwnerId);
+                var owner = await _client.GetUser(_config.OwnerId);
                 if (owner == null)
                 {
                     Logger.Error($"Failed to find owner with id {_config.OwnerId}.");
@@ -1330,6 +1443,8 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
                 Logger.Error(ex);
             }
         }
+
+        #endregion
     }
 
     public class Helpers

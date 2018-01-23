@@ -70,7 +70,7 @@
                 var pokeId = Helpers.PokemonIdFromName(Db, arg);
                 if (pokeId == 0)
                 {
-                    await message.RespondAsync($"Failed to find raid Pokemon {arg}.");
+                    await message.RespondAsync($"{message.Author.Mention}, failed to find raid Pokemon {arg}.");
                     return;
                 }
 

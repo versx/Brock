@@ -18,8 +18,6 @@
     )]
     public class EnableDisableCommand : ICustomCommand
     {
-        private readonly bool _enable;
-
         #region Properties
 
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
@@ -32,11 +30,10 @@
 
         #region Constructor
 
-        public EnableDisableCommand(DiscordClient client, IDatabase db, bool enable)
+        public EnableDisableCommand(DiscordClient client, IDatabase db)
         {
             Client = client;
             Db = db;
-            _enable = enable;
         }
 
         #endregion
@@ -52,9 +49,11 @@
                 return;
             }
 
-            Db[author].Enabled = _enable;
+            var enabled = string.Compare(command.Name, "enable", true) == 0;
+            Db[author].Enabled = enabled;
             Db.Save();
-            await message.RespondAsync($"{message.Author.Mention} has **{(_enable ? "en" : "dis")}abled** Pokemon and Raid notifications.");
+
+            await message.RespondAsync($"{message.Author.Mention} has **{command.Name}d** Pokemon and Raid notifications.");
         }
     }
 }

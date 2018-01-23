@@ -42,10 +42,10 @@
 
         public async Task Execute(DiscordMessage message, Command command)
         {
+            //await message.IsDirectMessageSupported();
+
             if (!command.HasArgs) return;
             if (command.Args.Count != 1) return;
-
-            //await message.IsDirectMessageSupported();
 
             var author = message.Author.Id;
             var cmd = command.Args[0];
@@ -58,7 +58,7 @@
                 var pokeId = Helpers.PokemonIdFromName(Db, arg);
                 if (pokeId == 0)
                 {
-                    await message.RespondAsync($"Failed to find Pokemon {arg}.");
+                    await message.RespondAsync($"{message.Author.Mention}, failed to find raid Pokemon {arg}.");
                     return;
                 }
 

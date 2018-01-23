@@ -1,15 +1,9 @@
-﻿namespace BrockBot
+﻿namespace BrockBot.Data.Models
 {
     using System;
 
     using Newtonsoft.Json;
 
-    /**Dictionary
-     * ulong
-     * Time available
-     * Email
-     * Donate date
-     */
     [JsonObject("donator")]
     public class Donator
     {

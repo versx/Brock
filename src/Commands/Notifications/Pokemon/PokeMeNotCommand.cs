@@ -73,7 +73,7 @@
                 var index = Convert.ToUInt32(arg);
                 if (!Db.Pokemon.ContainsKey(index.ToString()))
                 {
-                    await message.RespondAsync($"Pokedex number {index} is not a valid Pokemon id.");
+                    await message.RespondAsync($"{message.Author.Mention}, pokedex number {index} is not a valid Pokemon id.");
                     continue;
                 }
 

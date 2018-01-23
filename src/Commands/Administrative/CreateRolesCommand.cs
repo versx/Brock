@@ -19,7 +19,7 @@
     )]
     public class CreateRolesCommand : ICustomCommand
     {
-        public const string DefaultParentChannel = "DISCUSSIONS";
+        public const string DefaultParentChannel = "GENERAL";
 
         private readonly IEventLogger _logger;
 
@@ -58,7 +58,7 @@
                     if (Client.GetRoleFromName(team) != null)
                     {
                         await message.RespondAsync($"Role {team} already exists.");
-                        return;
+                        continue;
                     }
 
                     var roleColor = Roles.Teams.ContainsKey(team) ? Roles.Teams[team] : DiscordColor.None;
@@ -66,7 +66,7 @@
                     if (newRole == null)
                     {
                         _logger.Error($"Failed to create team role {team}");
-                        return;
+                        continue;
                     }
 
                     var parentChannel = Client.GetChannelByName(DefaultParentChannel);

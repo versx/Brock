@@ -53,16 +53,13 @@
         {
             if (!command.HasArgs) return;
 
-            await message.IsDirectMessageSupported();
+            //await message.IsDirectMessageSupported();
 
             if (message.Channel.Guild == null)
             {
-                //TODO: Ask what server to assign to.
-                //foreach (var guild in _client.Guilds)
-                //{
-                //    await guild.Value.GrantRoleAsync(member, teamRole, reason);
-                //}
                 var channel = await Client.GetChannel(_config.CommandsChannelId);
+                if (channel == null) return;
+
                 await message.RespondAsync($"Currently I only support city feed assignment via the channel #{channel.Name}, direct message support is coming soon.");
                 return;
             }

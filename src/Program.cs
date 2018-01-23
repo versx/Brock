@@ -12,14 +12,14 @@
     {
         static string LogsFolder = Path.Combine(Directory.GetCurrentDirectory(), "Logs");
 
+        static FilterBot bot;
+
         static void Main(string[] args) => MainAsync(args).ConfigureAwait(false).GetAwaiter().GetResult();
 
         static async Task MainAsync(string[] args)
         {
             try
             {
-                AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
-
                 Console.WriteLine($"Arguments: {string.Join(", ", args)}");
 
                 if (!Directory.Exists(LogsFolder))
@@ -27,7 +27,9 @@
                     Directory.CreateDirectory(LogsFolder);
                 }
 
-                var bot = new FilterBot { Logger = new EventLogger(Log) };
+                bot = new FilterBot { Logger = new EventLogger(Log) };
+
+                AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
                 //General Commands
                 bot.RegisterCommand<HelpCommand>();
@@ -57,8 +59,7 @@
                 bot.RegisterCommand<PokeMeNotCommand>();
                 bot.RegisterCommand<RaidMeCommand>();
                 bot.RegisterCommand<RaidMeNotCommand>();
-                bot.RegisterCommand<EnableDisableCommand>(true);
-                bot.RegisterCommand<EnableDisableCommand>(false);
+                bot.RegisterCommand<EnableDisableCommand>();
 
                 //Raid Lobby Commands
                 bot.RegisterCommand<CreateRaidLobbyCommand>();
@@ -86,6 +87,7 @@
                 //bot.RegisterCommand<SetCommand>();
                 bot.RegisterCommand<SayCommand>();
                 //bot.RegisterCommand<LeaveGuildCommand>();
+                bot.RegisterCommand<SetEncounterListCommand>();
                 bot.RegisterCommand<RestartCommand>();
                 bot.RegisterCommand<ShutdownCommand>();
 
@@ -102,13 +104,22 @@
 
         static void Log(LogType logType, string message)
         {
-            Console.WriteLine($"{DateTime.Now.ToLongTimeString()}: {logType.ToString().ToUpper()} >> {message}");
-            File.AppendAllText(Path.Combine(LogsFolder, DateTime.Now.ToString("yyyy-MM-dd") + ".log"), $"{DateTime.Now.ToLongTimeString()}: {logType.ToString().ToUpper()} >> {message}\r\n");
+            try
+            {
+                Console.WriteLine($"{DateTime.Now.ToLongTimeString()}: {logType.ToString().ToUpper()} >> {message}");
+                File.AppendAllText(Path.Combine(LogsFolder, DateTime.Now.ToString("yyyy-MM-dd") + ".log"), $"{DateTime.Now.ToLongTimeString()}: {logType.ToString().ToUpper()} >> {message}\r\n");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ERROR: {ex}");
+            }
         }
 
-        static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        static async void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
             Log(LogType.Error, $"IsTerminating: {e.IsTerminating}\r\n{((Exception)e.ExceptionObject).ToString()}");
+
+            await bot.AlertOwnerOfCrash();
 
             if (e.IsTerminating)
             {

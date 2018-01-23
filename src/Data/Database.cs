@@ -84,7 +84,7 @@
         public Database()
         {
             Reminders = new ConcurrentDictionary<ulong, List<Reminder>>();
-            Subscriptions = new List<Subscription<BrockBot.Pokemon>>();
+            Subscriptions = new List<Subscription<Pokemon>>();
 
             if (File.Exists(PokemonDatabaseFileName))
             {

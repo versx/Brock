@@ -61,7 +61,7 @@
 //                        return;
 //                    }
 
-//                    var newOwner = await Client.GetUserAsync(newOwnerId);
+//                    var newOwner = await Client.GetUser(newOwnerId);
 //                    if (newOwner == null)
 //                    {
 //                        await message.RespondAsync($"{value} is not a valid user id.");
