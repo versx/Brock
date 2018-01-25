@@ -12,7 +12,7 @@
 
     [Command(
         Categories.General,
-        "Checks what the current map scanner version is against the latest Pokemon Go api version.",
+        "Checks what the current map scanner version is against the latest Pokemon Go API version.",
         "\tExample: `.checkapi`",
         "checkapi"
     )]
@@ -37,16 +37,25 @@
         {
             if (command.HasArgs) return;
 
-            var eb = new DiscordEmbedBuilder { Title = "Pokemon Go Api Version Check:" };
+            var eb = new DiscordEmbedBuilder { Title = "Pokemon Go API Version Check:" };
             var current = _config.ScannerApiVersion;
             var latest = Utils.GetPoGoApiVersion();
+            var isLatest = IsVersionMatch(current, latest);
             eb.AddField("Current:", current.ToString(), true);
             eb.AddField("Latest:", latest.ToString(), true);
             eb.WithFooter(current == latest ? "LATEST API VERSION" : "NEW POGO API RELEASED");
-            eb.Color = current == latest ? DiscordColor.Green : DiscordColor.Red;
+            eb.Color = isLatest ? DiscordColor.Green : DiscordColor.Red;
 
             var embed = eb.Build();
             await message.RespondAsync(string.Empty, false, embed);
+        }
+
+        private bool IsVersionMatch(Version current, Version latest)
+        {
+            return
+                current.Major == latest.Major &&
+                current.Minor == latest.Minor &&
+                current.Revision == latest.Revision;
         }
     }
 }

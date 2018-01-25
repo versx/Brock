@@ -36,6 +36,7 @@
     //TODO: Add support for pokedex # or name for Pokemon and Raid subscriptions.
     //TODO: Keep track of supporters, have a command to check if a paypal email etc or username rather has donated.
     //TODO: Finish multiple sponsored raids setup.
+    //TODO: Add response messages to invalid commands/arguments provided.
 
     //[Group("tests", CanInvokeWithoutSubcommand = false)] // this makes the class a group, but with a twist; the class now needs an ExecuteGroupAsync method
     //[Description("Contains some memes. When invoked without subcommand, returns a random one.")]
@@ -856,7 +857,7 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
                 if (!matchesIV) continue;
                 //if (!matchesIV || !matchesCP) continue;
 
-                Logger.Info($"Notifying user {discordUser.Username} that a {pokemon.Name} CP{pkmn.CP} {pkmn.IV}% IV has spawned...");
+                Logger.Info($"Notifying user {discordUser.Username} that a {pokemon.Name} CP{pkmn.CP} {pkmn.IV} IV L{pkmn.PlayerLevel} has spawned...");
 
                 var embed = await BuildEmbedPokemon(pkmn, user.UserId);
                 if (embed == null) continue;
@@ -1134,7 +1135,9 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
 
             if (loc != null)
             {
-                if (!_client.HasRole(user, loc.City.Replace("Rancho Cucamonga", "Upland")))
+                if (!_client.HasRole(user, loc.City
+                    .Replace("Rancho Cucamonga", "Upland")
+                    .Replace("Santa Fe Springs", "Whittier")))
                 {
                     Logger.Debug($"Skipping notification for user {user.DisplayName} ({user.Id}) for Pokemon {pkmn.Name} because they do not have the city role.");
                     return null;

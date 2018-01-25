@@ -196,7 +196,7 @@
             NotifyNewMemberJoined = true;
             NotifyMemberLeft = true;
             OwnerId = 0;
-            ScannerApiVersion = new Version(0, 87, 0);
+            //ScannerApiVersion = new Version(0, 87, 0);
             //SendStartupMessage = true;
             //StartupMessageWebHook = "";
             SendWelcomeMessage = true;

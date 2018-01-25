@@ -16,7 +16,7 @@
         "Assigns the default city roles to all guild members.",
         "\tExample: `.assign_all` (Assigns all guild members the default city roles.)\r\n" +
         "\tExample: `.assign_all NewRoleName (Assigns all guild members the specified role.)`",
-        "assign_all"
+        "assign-all"
     )]
     public class AssignRolesCommand : ICustomCommand
     {

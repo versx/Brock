@@ -12,8 +12,8 @@
     [Command(
         Categories.Administrative,
         "Deletes all team roles that " + FilterBot.BotName + " has created.",
-        null,
-        "delete_roles"
+        "\tExample: `.delete-roles`",
+        "delete-roles"
     )]
     public class DeleteRolesCommand : ICustomCommand
     {

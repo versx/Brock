@@ -14,10 +14,10 @@
     [Command(
         Categories.General,
         "Simple Pokemon stats lookup.",
-        "\tExample: `.poke 25`\r\n" +
-        "\tExample: `.poke larvit`\r\n" +
-        "\tExample: `.poke mewtwo`",
-        "poke"
+        "\tExample: `.search 25`\r\n" +
+        "\tExample: `.search larvi`\r\n" +
+        "\tExample: `.search mewtwo`",
+        "search"
     )]
     public class PokemonLookupCommand : ICustomCommand
     {
@@ -67,7 +67,7 @@
             {
                 if (!Db.Pokemon.ContainsKey(pokeId.ToString()))
                 {
-                    await message.RespondAsync($"Failed to lookup Pokemon with id {pokeId}.");
+                    await message.RespondAsync($"{message.Author.Mention}, failed to lookup Pokemon with id {pokeId}.");
                     return;
                 }
 
@@ -105,8 +105,20 @@
             var weaknesses = new List<string>();
             foreach (var type in types.Split('/'))
             {
-                strengths.AddRange(Helpers.GetStrengths(type));
-                weaknesses.AddRange(Helpers.GetWeaknesses(type));
+                foreach (var strength in Helpers.GetStrengths(type))
+                {
+                    if (!strengths.Contains(strength))
+                    {
+                        strengths.Add(strength);
+                    }
+                }
+                foreach (var weakness in Helpers.GetWeaknesses(type))
+                {
+                    if (!weaknesses.Contains(weakness))
+                    {
+                        weaknesses.Add(weakness);
+                    }
+                }
             }
 
             if (strengths.Count > 0)

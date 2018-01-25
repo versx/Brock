@@ -20,6 +20,8 @@
         {
             try
             {
+                Console.WriteLine(new Version("0.89.0").Equals(new Version("0.89.0.0")));
+                Console.Read();
                 Console.WriteLine($"Arguments: {string.Join(", ", args)}");
 
                 if (!Directory.Exists(LogsFolder))
@@ -47,10 +49,10 @@
                 bot.RegisterCommand<VersionCommand>();
 
                 //Custom Commands
-                //bot.RegisterCommand<ListCmdCommand>();
-                //bot.RegisterCommand<AddCmdCommand>();
-                //bot.RegisterCommand<EditCmdCommand>();
-                //bot.RegisterCommand<DelCmdCommand>();
+                bot.RegisterCommand<ListCmdCommand>();
+                bot.RegisterCommand<AddCmdCommand>();
+                bot.RegisterCommand<EditCmdCommand>();
+                bot.RegisterCommand<DelCmdCommand>();
 
                 //Notification Commands
                 bot.RegisterCommand<DemoCommand>();
@@ -88,6 +90,7 @@
                 bot.RegisterCommand<SayCommand>();
                 //bot.RegisterCommand<LeaveGuildCommand>();
                 bot.RegisterCommand<SetEncounterListCommand>();
+                bot.RegisterCommand<SwitchAccountsCommand>();
                 bot.RegisterCommand<RestartCommand>();
                 bot.RegisterCommand<ShutdownCommand>();
 

@@ -16,8 +16,8 @@
         "Subscribe to Pokemon notifications based on the pokedex number and minimum IV stats.",
         "\tExample: `.pokeme 147 95`\r\n" +
         "\tExample: `.pokeme 113,242,248 90`\r\n" +
-        "\tExample: `.pokeme all 90` (Subscribe to all Pokemon notifications with minimum IV of 90%.)\r\n" +
-        "\tExample: `.pokeme * 90` (Subscribe to all Pokemon notifications with minimum IV of 90%.)\r\n",
+        "\tExample: `.pokeme all 90` (Subscribe to all Pokemon notifications with minimum IV of 90%. Excludes Unown)\r\n" +
+        "\tExample: `.pokeme * 90` (Subscribe to all Pokemon notifications with minimum IV of 90%. Excludes Unown)\r\n",
         "pokeme"
     )]
     public class PokeMeCommand : ICustomCommand
@@ -83,6 +83,9 @@
 
                 for (uint i = 1; i < 390; i++)
                 {
+                    //Always ignore the user's input for Unown and set it to 0 by default.
+                    if (i == 201) iv = 0;
+
                     var pokemon = Db.Pokemon[i.ToString()];
                     if (!Db.SubscriptionExists(author))
                     {

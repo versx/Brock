@@ -14,8 +14,8 @@
     [Command(
         Categories.Administrative,
         "Creates the required team roles to be assigned when users type the team assignment commmand.",
-        "\tExample: `.create_roles`",
-        "create_roles"
+        "\tExample: `.create-roles`",
+        "create-roles"
     )]
     public class CreateRolesCommand : ICustomCommand
     {

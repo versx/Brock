@@ -11,6 +11,8 @@
     using BrockBot.Diagnostics;
     using BrockBot.Extensions;
 
+    //TODO: If list is longer than x, look for most occurred IV%--use that as 'Default' then list others.
+
     [Command(
         Categories.Notifications, 
         "Shows your current Pokemon and Raid notification subscriptions.",
@@ -49,7 +51,7 @@
                 var pokemon = Db[author].Pokemon;
                 pokemon.Sort((x, y) => x.PokemonId.CompareTo(y.PokemonId));
 
-                msg = $"**{message.Author.Username} Pokemon Subscriptions:**\r\n";
+                msg = $"**{message.Author.Username} Pokemon Subscriptions:**\r\n```";
                 foreach (var sub in pokemon)
                 {
                     if (!Db.Pokemon.ContainsKey(sub.PokemonId.ToString()))
@@ -61,13 +63,14 @@
                     var pkmn = Db.Pokemon[sub.PokemonId.ToString()];
                     msg += $"{sub.PokemonId}: {pkmn.Name} {sub.MinimumIV}%+\r\n";
                 }
-                msg += Environment.NewLine + Environment.NewLine;
+                msg += "```" + Environment.NewLine + Environment.NewLine;
             }
 
             if (hasRaids)
             {
-                msg += $"**{message.Author.Username} Raid Subscriptions:**\r\n";
+                msg += $"**{message.Author.Username} Raid Subscriptions:**\r\n```";
                 msg += string.Join(", ", GetRaidSubscriptionNames(author));
+				msg += "```";
             }
 
             if (string.IsNullOrEmpty(msg))

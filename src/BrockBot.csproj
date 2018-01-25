@@ -125,6 +125,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Commands\Administrative\SwitchAccountsCommand.cs" />
     <Compile Include="Commands\CustomCommands\AddCmdCommand.cs" />
     <Compile Include="Commands\Administrative\Twitter\AddTwitterCommand.cs" />
     <Compile Include="Commands\Administrative\AssignRolesCommand.cs" />
