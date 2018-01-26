@@ -10,6 +10,10 @@
     [JsonObject("sponsoredRaids")]
     public class SponsoredRaidsConfig
     {
+        [XmlElement("enabled")]
+        [JsonProperty("enabled")]
+        public bool Enabled { get; set; }
+
         [XmlArray("channelPool")]
         [XmlArrayItem("channel")]
         [JsonProperty("channelPool")]

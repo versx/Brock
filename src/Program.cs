@@ -18,20 +18,18 @@
 
         static async Task MainAsync(string[] args)
         {
+            Console.WriteLine($"MainAsync [Arguments={string.Join(", ", args)}]");
+
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+
             try
             {
-                Console.WriteLine(new Version("0.89.0").Equals(new Version("0.89.0.0")));
-                Console.Read();
-                Console.WriteLine($"Arguments: {string.Join(", ", args)}");
-
                 if (!Directory.Exists(LogsFolder))
                 {
                     Directory.CreateDirectory(LogsFolder);
                 }
 
                 bot = new FilterBot { Logger = new EventLogger(Log) };
-
-                AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
                 //General Commands
                 bot.RegisterCommand<HelpCommand>();

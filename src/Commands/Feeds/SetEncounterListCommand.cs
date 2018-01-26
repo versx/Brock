@@ -57,7 +57,7 @@
             var weather = command.Args[1];
             if (weather.TryParse(out WeatherType result))
             {
-                if (city == "all")
+                if (string.Compare(city, "all", true) == 0)
                 {
                     var switched = new List<string>();
                     foreach (var feed in _config.CityRoles)
@@ -65,7 +65,7 @@
                         if (!SetEncounterList(MapPath, feed, result))
                         {
                             await message.RespondAsync($"{message.Author.Mention}, failed to switch encounter list for {feed} to {result}.");
-                            return;
+                            continue;
                         }
 
                         switched.Add(feed);
@@ -82,7 +82,10 @@
                 }
 
                 await message.RespondAsync($"{message.Author.Mention} switched encounter list for {city} to {result}.");
+                return;
             }
+
+            await message.RespondAsync($"{message.Author.Mention} specified an invalid Weather type.");
         }
 
         private bool SetEncounterList(string mapPath, string feedName, WeatherType weather)

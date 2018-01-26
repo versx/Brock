@@ -15,7 +15,7 @@
                 {
                     foreach (var cmdName in command.Key)
                     {
-                        if (cmdName == key)
+                        if (string.Compare(cmdName, key, true) == 0)
                         {
                             return command.Value;
                         }
@@ -30,10 +30,12 @@
         {
             foreach (var command in this)
             {
-                var cmdList = new List<string>(command.Key);
-                if (cmdList.Exists(x => string.Compare(x, key, true) == 0))
+                foreach (var alias in command.Key)
                 {
-                    return true;
+                    if (string.Compare(alias, key, true) == 0)
+                    {
+                        return true;
+                    }
                 }
             }
 

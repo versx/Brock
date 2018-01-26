@@ -80,6 +80,8 @@
                     await message.RespondAsync($"{message.Author.Mention} may not subscribe to all Pokemon with a minimum IV less than 80, please set something higher.");
                     return;
                 }
+				
+				var previousIV = iv;
 
                 for (uint i = 1; i < 390; i++)
                 {
@@ -112,6 +114,8 @@
                             alreadySubscribed.Add(pokemon.Name);
                         }
                     }
+					
+					iv = previousIV;
                 }
 
                 await message.RespondAsync($"{message.Author.Mention} subscribed to all Pokemon notifications with a minimum IV of {iv}%.");

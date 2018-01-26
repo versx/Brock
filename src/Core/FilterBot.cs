@@ -753,33 +753,20 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
 
         private async Task CheckSponsoredRaids(DiscordMessage message)
         {
-            //TODO: Add whittier raids and legendary raids channel ids.
-            //TODO: Add whittier sponsored raids channel webhook.
-            if (!_config.SponsoredRaids.ChannelPool.Contains(message.ChannelId)) return;
-
             //await _client.SetDefaultRaidReactions(message);
 
-            foreach (var embed in message.Embeds)
+            foreach (var sponsored in _config.SponsoredRaids)
             {
-                //foreach (var sponsored in _config.SponsoredRaids)
-                //{
-                //    if (!sponsored.ChannelPool.Contains(message.ChannelId)) continue;
+                if (!sponsored.ChannelPool.Contains(message.ChannelId)) continue;
 
-                //    foreach (var keyword in sponsored.Keywords)
-                //    {
-                //        if (embed.Description.Contains(keyword))
-                //        {
-                //            await _client.SendMessage(sponsored.WebHook, string.Empty, embed);
-                //        }
-                //    }
-                //}
-
-                foreach (var keyword in _config.SponsoredRaids.Keywords)
+                foreach (var embed in message.Embeds)
                 {
-                    if (embed.Description.Contains(keyword))
+                    foreach (var keyword in sponsored.Keywords)
                     {
-                        await _client.SendMessage(_config.SponsoredRaids.WebHook, string.Empty, embed);
-                        break;
+                        if (embed.Description.Contains(keyword))
+                        {
+                            await _client.SendMessage(sponsored.WebHook, string.Empty, embed);
+                        }
                     }
                 }
             }
@@ -1116,6 +1103,57 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
             await PostAdvertisement();
         }
 
+        private async Task<DiscordEmbed> BuildEmbedPokemon(PokemonData pokemon, ulong userId)
+        {
+            var pkmn = _db.Pokemon[pokemon.PokemonId.ToString()];
+            if (pkmn == null)
+            {
+                Logger.Error($"Failed to lookup Pokemon '{pokemon.PokemonId}' in database.");
+                return null;
+            }
+
+            var loc = Utils.GetGoogleAddress(pokemon.Latitude, pokemon.Longitude, _config.GmapsKey);
+            var user = await _client.GetMemberFromUserId(userId);
+            if (user == null)
+            {
+                Logger.Error($"Failed to get discord member object from user id {userId}.");
+                return null;
+            }
+
+            if (loc != null)
+            {
+                if (!_client.HasRole(user, loc.City
+                    .Replace("Rancho Cucamonga", "Upland")
+                    .Replace("Santa Fe Springs", "Whittier")))
+                {
+                    Logger.Debug($"Skipping notification for user {user.DisplayName} ({user.Id}) for Pokemon {pkmn.Name} because they do not have the city role '{loc.City}'.");
+                    return null;
+                }
+            }
+
+            var eb = new DiscordEmbedBuilder
+            {
+                Title = loc == null || string.IsNullOrEmpty(loc.City) ? "DIRECTIONS" : loc.City,
+                Description = $"{pkmn.Name}{Helpers.GetPokemonGender(pokemon.Gender)} {pokemon.CP}CP {pokemon.IV} LV{pokemon.PlayerLevel} has spawned!",
+                Url = string.Format(HttpServer.GoogleMaps, pokemon.Latitude, pokemon.Longitude),
+                ImageUrl = string.Format(HttpServer.GoogleMapsImage, pokemon.Latitude, pokemon.Longitude),
+                ThumbnailUrl = string.Format(HttpServer.PokemonImage, pokemon.PokemonId),
+                Color = BuildColor(pokemon.IV)
+            };
+
+            eb.AddField($"{pkmn.Name} (#{pokemon.PokemonId}, {pokemon.Gender})", $"CP: {pokemon.CP} IV: {pokemon.IV} (Sta: {pokemon.Stamina}/Atk: {pokemon.Attack}/Def: {pokemon.Defense}) LV: {pokemon.PlayerLevel}");
+            eb.AddField("Available Until:", $"{pokemon.DespawnTime.ToLongTimeString()} ({pokemon.SecondsLeft} remaining)");
+            if (loc != null)
+            {
+                eb.AddField("Address:", loc.Address);
+            }
+            eb.AddField("Location:", $"{pokemon.Latitude},{pokemon.Longitude}");
+            eb.WithImageUrl(string.Format(HttpServer.GoogleMapsImage, pokemon.Latitude, pokemon.Longitude) + $"&key={_config.GmapsKey}");
+            var embed = eb.Build();
+
+            return embed;
+        }
+
         private async Task<DiscordEmbed> BuildEmbedRaid(RaidData raid, ulong userId)
         {
             var pkmn = _db.Pokemon[raid.PokemonId.ToString()];
@@ -1139,7 +1177,7 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
                     .Replace("Rancho Cucamonga", "Upland")
                     .Replace("Santa Fe Springs", "Whittier")))
                 {
-                    Logger.Debug($"Skipping notification for user {user.DisplayName} ({user.Id}) for Pokemon {pkmn.Name} because they do not have the city role.");
+                    Logger.Debug($"Skipping notification for user {user.DisplayName} ({user.Id}) for Pokemon {pkmn.Name} because they do not have the city role '{loc.City}'.");
                     return null;
                 }
             }
@@ -1178,55 +1216,6 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
             }
             eb.AddField("Location:", $"{raid.Latitude},{raid.Longitude}");
             eb.WithImageUrl(string.Format(HttpServer.GoogleMapsImage, raid.Latitude, raid.Longitude));
-            var embed = eb.Build();
-
-            return embed;
-        }
-
-        private async Task<DiscordEmbed> BuildEmbedPokemon(PokemonData pokemon, ulong userId)
-        {
-            var pkmn = _db.Pokemon[pokemon.PokemonId.ToString()];
-            if (pkmn == null)
-            {
-                Logger.Error($"Failed to lookup Pokemon '{pokemon.PokemonId}' in database.");
-                return null;
-            }
-
-            var loc = Utils.GetGoogleAddress(pokemon.Latitude, pokemon.Longitude, _config.GmapsKey);
-            var user = await _client.GetMemberFromUserId(userId);
-            if (user == null)
-            {
-                Logger.Error($"Failed to get discord member object from user id {userId}.");
-                return null;
-            }
-
-            if (loc != null)
-            {
-                if (!_client.HasRole(user, loc.City.Replace("Rancho Cucamonga", "Upland")))
-                {
-                    Logger.Debug($"Skipping notification for user {user.DisplayName} ({user.Id}) for Pokemon {pkmn.Name} because they do not have the city role.");
-                    return null;
-                }
-            }
-
-            var eb = new DiscordEmbedBuilder
-            {
-                Title = loc == null || string.IsNullOrEmpty(loc.City) ? "DIRECTIONS" : loc.City,
-                Description = $"{pkmn.Name}{Helpers.GetPokemonGender(pokemon.Gender)} {pokemon.CP}CP {pokemon.IV} LV{pokemon.PlayerLevel} has spawned!",
-                Url = string.Format(HttpServer.GoogleMaps, pokemon.Latitude, pokemon.Longitude),
-                ImageUrl = string.Format(HttpServer.GoogleMapsImage, pokemon.Latitude, pokemon.Longitude),
-                ThumbnailUrl = string.Format(HttpServer.PokemonImage, pokemon.PokemonId),
-                Color = BuildColor(pokemon.IV)
-            };
-
-            eb.AddField($"{pkmn.Name} (#{pokemon.PokemonId}, {pokemon.Gender})", $"CP: {pokemon.CP} IV: {pokemon.IV} (Sta: {pokemon.Stamina}/Atk: {pokemon.Attack}/Def: {pokemon.Defense}) LV: {pokemon.PlayerLevel}");
-            eb.AddField("Available Until:", $"{pokemon.DespawnTime.ToLongTimeString()} ({pokemon.SecondsLeft} remaining)");
-            if (loc != null)
-            {
-                eb.AddField("Address:", loc.Address);
-            }
-            eb.AddField("Location:", $"{pokemon.Latitude},{pokemon.Longitude}");
-            eb.WithImageUrl(string.Format(HttpServer.GoogleMapsImage, pokemon.Latitude, pokemon.Longitude) + $"&key={_config.GmapsKey}");
             var embed = eb.Build();
 
             return embed;

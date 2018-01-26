@@ -48,9 +48,13 @@
         [JsonProperty("commandsPrefix")]
         public char CommandsPrefix { get; set; }
 
+        //[XmlElement("sponsoredRaids")]
+        //[JsonProperty("sponsoredRaids")]
+        //public SponsoredRaidsConfig SponsoredRaids { get; set; }
+
         [XmlElement("sponsoredRaids")]
         [JsonProperty("sponsoredRaids")]
-        public SponsoredRaidsConfig SponsoredRaids { get; set; }
+        public List<SponsoredRaidsConfig> SponsoredRaids { get; set; }
 
         [XmlElement("apiVersion")]
         [JsonProperty("apiVersion")]
@@ -213,8 +217,7 @@
             //};
             WebHookPort = 8008;
             WelcomeMessage = DefaultWelcomeMessage;
-            //SponsoredRaids = new List<SponsoredRaidsConfig>();
-            SponsoredRaids = new SponsoredRaidsConfig();
+            SponsoredRaids = new List<SponsoredRaidsConfig>();
             TwitterUpdates = new TwitterUpdatesConfig();
             Advertisement = new AdvertisementConfig();
             FeedStatus = new FeedStatusConfig();

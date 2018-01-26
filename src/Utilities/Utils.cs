@@ -207,8 +207,7 @@
                         if (city != "Unknown") break;
                     }
 
-                    Console.WriteLine($"Address: {address}");
-                    Console.WriteLine($"City: {city}");
+                    File.AppendAllText("cities.txt", $"City: {city}\r\n");
 
                     return new Location(address, city, lat, lng);
                 }
