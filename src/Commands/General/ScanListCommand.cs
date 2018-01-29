@@ -61,7 +61,9 @@
                 return;
             }
 
+            scanList.Sort((x, y) => Convert.ToInt32(x).CompareTo(Convert.ToInt32(y)));
             var pokemon = new List<string>();
+
             foreach (var pkmn in scanList)
             {
                 if (!_db.Pokemon.ContainsKey(pkmn)) continue;

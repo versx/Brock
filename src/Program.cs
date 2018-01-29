@@ -29,7 +29,7 @@
                     Directory.CreateDirectory(LogsFolder);
                 }
 
-                bot = new FilterBot { Logger = new EventLogger(Log) };
+                bot = new FilterBot(new EventLogger(Log));
 
                 //General Commands
                 bot.RegisterCommand<HelpCommand>();

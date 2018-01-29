@@ -86,7 +86,7 @@
                 {
                     if (!isSupporter && _db[author].Raids.Count >= MaxRaidSubscriptions)
                     {
-                        await message.RespondAsync($"{message.Author.Mention} non-supporter members have a limited notification amount of {MaxRaidSubscriptions}, please consider donating to lift this to every raid Pokemon. Otherwise you will need to remove some subscriptions in order to subscribe to new raid Pokemon.");
+                        await message.RespondAsync($"{message.Author.Mention} non-supporter members have a limited notification amount of {MaxRaidSubscriptions} different raid bosses, please consider donating to lift this to every raid Pokemon. Otherwise you will need to remove some subscriptions in order to subscribe to new raid Pokemon.");
                         return;
                     }
 

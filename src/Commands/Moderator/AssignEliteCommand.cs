@@ -18,6 +18,7 @@
     public class AssignEliteCommand : ICustomCommand
     {
         public const string TeamEliteRole = "TMxEliteEastLA";
+        public const string EastLA = "EastLA";
 
         private readonly DiscordClient _client;
         private readonly IEventLogger _logger;
@@ -56,21 +57,42 @@
                 return;
             }
 
-            if (member.HasRole(role.Id))
+            if (!member.HasRole(role.Id))
             {
-                await message.RespondAsync($"{message.Author.Mention}, {member.Username} is already assigned {TeamEliteRole} role.");
+                //await message.RespondAsync($"{message.Author.Mention}, {member.Username} is already assigned {TeamEliteRole} role.");
+                //return;
+
+                try
+                {
+                    await member.GrantRoleAsync(role);
+                    await message.RespondAsync($"{message.Author.Mention} has assigned {mention} the {TeamEliteRole} role.");
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error(ex);
+                    await message.RespondAsync($"{message.Author.Mention}, failed to assign role {TeamEliteRole} to {mention}, please check my permissions.");
+                }
+            }
+
+            var laRole = _client.GetRoleFromName(EastLA);
+            if (laRole == null)
+            {
+                _logger.Error($"Failed to find role '{EastLA}'.");
                 return;
             }
 
-            try
+            if (!member.HasRole(laRole.Id))
             {
-                await member.GrantRoleAsync(role);
-                await message.RespondAsync($"{message.Author.Mention} has assigned {mention} the {TeamEliteRole} role.");
-            }
-            catch (Exception ex)
-            {
-                _logger.Error(ex);
-                await message.RespondAsync($"{message.Author.Mention}, failed to assign role {TeamEliteRole} to {mention}, please check my permissions.");
+                try
+                {
+                    await member.GrantRoleAsync(laRole);
+                    await message.RespondAsync($"{message.Author.Mention} has assigned {mention} the {EastLA} role.");
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error(ex);
+                    await message.RespondAsync($"{message.Author.Mention}, failed to assign role {EastLA} to {mention}, please check my permissions.");
+                }
             }
         }
 

@@ -32,7 +32,6 @@
     //TODO: Add support for pokedex # or name for Pokemon and Raid subscriptions.
     //TODO: Keep track of supporters, have a command to check if a paypal email etc or username rather has donated.
     //TODO: Add response messages to invalid commands/arguments provided.
-    //TODO: Delete expired raid lobbies.
 
     //TODO: Parse feed cities with spaces, or replace all feeds with a single command?
 
@@ -75,9 +74,9 @@
 
         #region Constructor
 
-        public FilterBot()
+        public FilterBot(IEventLogger logger)
         {
-            Logger = new EventLogger();
+            Logger = logger;
             Commands = new CommandList();
 
             _db = Database.Load();

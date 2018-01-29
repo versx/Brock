@@ -41,7 +41,7 @@
             var isLatest = IsVersionMatch(current, latest);
             eb.AddField("Current:", current.ToString(), true);
             eb.AddField("Latest:", latest.ToString(), true);
-            eb.WithFooter(current == latest ? "LATEST API VERSION" : "NEW POGO API RELEASED");
+            eb.WithFooter(isLatest ? "LATEST API VERSION" : "NEW POGO API RELEASED");
             eb.Color = isLatest ? DiscordColor.Green : DiscordColor.Red;
 
             var embed = eb.Build();
