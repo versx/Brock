@@ -43,7 +43,7 @@
         #region Variables
 
         private readonly Config _config;
-        private readonly EventLogger _logger;
+        private readonly IEventLogger _logger;
 
         #endregion
 
@@ -67,7 +67,7 @@
 
         #region Constructor
 
-        public HttpServer(Config config, EventLogger logger)
+        public HttpServer(Config config, IEventLogger logger)
         {
             _config = config;
             _logger = logger;

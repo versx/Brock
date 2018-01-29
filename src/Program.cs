@@ -35,7 +35,6 @@
                 bot.RegisterCommand<HelpCommand>();
                 bot.RegisterCommand<TeamsCommand>();
                 bot.RegisterCommand<TeamCommand>();
-                bot.RegisterCommand<NearbyNestsCommand>();
                 bot.RegisterCommand<FeedsCommand>();
                 bot.RegisterCommand<FeedMeCommand>();
                 bot.RegisterCommand<FeedMeNotCommand>();
@@ -43,6 +42,7 @@
                 bot.RegisterCommand<MapCommand>();
                 bot.RegisterCommand<DonateCommand>();
                 bot.RegisterCommand<ScanListCommand>();
+                bot.RegisterCommand<NearbyNestsCommand>();
                 bot.RegisterCommand<CheckApiCommand>();
                 bot.RegisterCommand<VersionCommand>();
 
@@ -62,11 +62,11 @@
                 bot.RegisterCommand<EnableDisableCommand>();
 
                 //Raid Lobby Commands
-                bot.RegisterCommand<CreateRaidLobbyCommand>();
-                bot.RegisterCommand<RaidLobbyCheckInCommand>();
-                bot.RegisterCommand<RaidLobbyOnTheWayCommand>();
-                bot.RegisterCommand<RaidLobbyCancelCommand>();
-                bot.RegisterCommand<RaidLobbyListUsersCommand>();
+                //bot.RegisterCommand<CreateRaidLobbyCommand>();
+                //bot.RegisterCommand<RaidLobbyCheckInCommand>();
+                //bot.RegisterCommand<RaidLobbyOnTheWayCommand>();
+                //bot.RegisterCommand<RaidLobbyCancelCommand>();
+                //bot.RegisterCommand<RaidLobbyListUsersCommand>();
 
                 //Reminder Commands
                 bot.RegisterCommand<GetRemindersCommand>();
@@ -79,12 +79,15 @@
                 bot.RegisterCommand<DeleteTwitterCommand>();
                 bot.RegisterCommand<EnableDisableTwitterCommand>();
 
+                //Moderator Commands
+                bot.RegisterCommand<AssignEliteCommand>();
+
                 //Administrative Commands
                 bot.RegisterCommand<CreateRolesCommand>();
                 bot.RegisterCommand<DeleteRolesCommand>();
                 bot.RegisterCommand<AssignRolesCommand>();
                 bot.RegisterCommand<UptimeCommand>();
-                //bot.RegisterCommand<SetCommand>();
+                bot.RegisterCommand<SetCommand>();
                 bot.RegisterCommand<SayCommand>();
                 //bot.RegisterCommand<LeaveGuildCommand>();
                 bot.RegisterCommand<SetEncounterListCommand>();

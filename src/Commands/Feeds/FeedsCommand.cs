@@ -16,15 +16,13 @@
     )]
     public class FeedsCommand : ICustomCommand
     {
+        private readonly DiscordClient _client;
+        private readonly IDatabase _db;
         private readonly Config _config;
 
         #region Properties
 
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
-
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
 
         #endregion
 
@@ -32,8 +30,8 @@
 
         public FeedsCommand(DiscordClient client, IDatabase db, Config config)
         {
-            Client = client;
-            Db = db;
+            _client = client;
+            _db = db;
             _config = config;
         }
 

@@ -17,19 +17,17 @@
     )]
     public class ListCmdCommand : ICustomCommand
     {
+        private readonly DiscordClient _client;
+        private readonly IDatabase _db;
+        private readonly Config _config;
+
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Supporter;
-
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
-
-        public Config Config { get; }
 
         public ListCmdCommand(DiscordClient client, IDatabase db, Config config)
         {
-            Client = client;
-            Db = db;
-            Config = config;
+            _client = client;
+            _db = db;
+            _config = config;
         }
 
         public async Task Execute(DiscordMessage message, Command command)
@@ -37,11 +35,11 @@
             if (command.HasArgs) return;
 
             var msg = "**Custom Commands List:**\r\n";
-            foreach (var cmd in Config.CustomCommands)
+            foreach (var cmd in _config.CustomCommands)
             {
-                msg += $"{Config.CommandsPrefix}{cmd.Key}: {cmd.Value}\r\n";
+                msg += $"{_config.CommandsPrefix}{cmd.Key}: {cmd.Value}\r\n";
             }
-            if (Config.CustomCommands == null || Config.CustomCommands.Count == 0)
+            if (_config.CustomCommands == null || _config.CustomCommands.Count == 0)
             {
                 msg += "No custom commands have been created yet.";
             }

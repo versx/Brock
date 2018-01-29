@@ -21,13 +21,12 @@
     )]
     public class PokemonLookupCommand : ICustomCommand
     {
+        private readonly DiscordClient _client;
+        private readonly IDatabase _db;
+        
         #region Properties
 
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
-
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
 
         #endregion
 
@@ -35,8 +34,8 @@
 
         public PokemonLookupCommand(DiscordClient client, IDatabase db)
         {
-            Client = client;
-            Db = db;
+            _client = client;
+            _db = db;
         }
 
         #endregion
@@ -53,7 +52,7 @@
             {
                 Console.WriteLine($"Failed to parse Pokemon index {cmd}, searching by Pokemon name now...");
 
-                foreach (var poke in Db.Pokemon)
+                foreach (var poke in _db.Pokemon)
                 {
                     if (poke.Value.Name.ToLower().Contains(cmd))
                     {
@@ -65,13 +64,19 @@
             }
             else
             {
-                if (!Db.Pokemon.ContainsKey(pokeId.ToString()))
+                if (!_db.Pokemon.ContainsKey(pokeId.ToString()))
                 {
                     await message.RespondAsync($"{message.Author.Mention}, failed to lookup Pokemon with id {pokeId}.");
                     return;
                 }
 
-                pkmn = Db.Pokemon[pokeId.ToString()];
+                pkmn = _db.Pokemon[pokeId.ToString()];
+            }
+
+            if (pkmn == null)
+            {
+                await message.RespondAsync($"{message.Author.Mention}, failed to lookup Pokemon '{cmd}'.");
+                return;
             }
 
             var types = pkmn.Types.Count > 1 ? pkmn.Types[0].Type + "/" + pkmn.Types[1].Type : pkmn.Types[0].Type;

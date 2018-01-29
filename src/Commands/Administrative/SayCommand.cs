@@ -20,17 +20,14 @@
     )]
     public class SayCommand : ICustomCommand
     {
+        private readonly DiscordClient _client;
+        private readonly IDatabase _db;
+        private readonly Config _config;
         private readonly IEventLogger _logger;
 
         #region Properties
 
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Admin;
-
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
-
-        public Config Config { get; }
 
         #endregion
 
@@ -38,9 +35,9 @@
 
         public SayCommand(DiscordClient client, IDatabase db, Config config, IEventLogger logger)
         {
-            Client = client;
-            Db = db;
-            Config = config;
+            _client = client;
+            _db = db;
+            _config = config;
             _logger = logger;
         }
 
@@ -54,7 +51,7 @@
             await message.IsDirectMessageSupported();
 
             var channelName = command.Args[0];
-            var channel = Client.GetChannelByName(channelName);
+            var channel = _client.GetChannelByName(channelName);
             if (channel == null)
             {
                 await message.RespondAsync($"Failed to lookup channel {channelName}.");
@@ -65,7 +62,6 @@
             {
                 var msg = command.Args[1];
                 await channel.SendMessageAsync(msg);
-                //await Client.SendMessageAsync(channel, msg);
             }
             catch (Exception ex)
             {

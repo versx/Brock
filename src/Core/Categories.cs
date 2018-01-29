@@ -4,6 +4,8 @@
     {
         public const string Administrative = "Administrative";
 
+        public const string Moderator = "Moderator";
+
         public const string General = "General";
 
         public const string Info = "Information";

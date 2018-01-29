@@ -18,13 +18,12 @@
     )]
     public class EnableDisableCommand : ICustomCommand
     {
+        private readonly DiscordClient _client;
+        private readonly IDatabase _db;
+
         #region Properties
 
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
-
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
 
         #endregion
 
@@ -32,8 +31,8 @@
 
         public EnableDisableCommand(DiscordClient client, IDatabase db)
         {
-            Client = client;
-            Db = db;
+            _client = client;
+            _db = db;
         }
 
         #endregion
@@ -43,15 +42,14 @@
             await message.IsDirectMessageSupported();
 
             var author = message.Author.Id;
-            if (!Db.SubscriptionExists(author))
+            if (!_db.SubscriptionExists(author))
             {
                 await message.RespondAsync($"{message.Author.Mention} is not currently subscribed to any Pokemon or Raid notifications.");
                 return;
             }
 
-            var enabled = string.Compare(command.Name, "enable", true) == 0;
-            Db[author].Enabled = enabled;
-            Db.Save();
+            _db[author].Enabled = string.Compare(command.Name, "enable", true) == 0;
+            _db.Save();
 
             await message.RespondAsync($"{message.Author.Mention} has **{command.Name}d** Pokemon and Raid notifications.");
         }

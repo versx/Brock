@@ -23,27 +23,22 @@
     {
         public const string MapPath = @"C:\Users\Jeremy\Sync\PoGO\RocketMap";
 
+        private readonly DiscordClient _client;
+        private readonly IEventLogger _logger;
         private readonly Config _config;
 
         #region Properties
 
-        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Admin;
-
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
-
-        public IEventLogger Logger { get; }
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Moderator;
 
         #endregion
 
         #region Constructor
 
-        public SetEncounterListCommand(DiscordClient client, IDatabase db, IEventLogger logger, Config config)
+        public SetEncounterListCommand(DiscordClient client, IEventLogger logger, Config config)
         {
-            Client = client;
-            Db = db;
-            Logger = logger;
+            _client = client;
+            _logger = logger;
             _config = config;
         }
 
@@ -90,36 +85,36 @@
 
         private bool SetEncounterList(string mapPath, string feedName, WeatherType weather)
         {
-            Logger.Trace($"SetEncounterListCommand::SwitchEncounterList [MapPath={mapPath}, FeedName={feedName}, WeatherType={weather}]");
+            _logger.Trace($"SetEncounterListCommand::SwitchEncounterList [MapPath={mapPath}, FeedName={feedName}, WeatherType={weather}]");
 
-            Logger.Debug($"Attempting to switch encounter list for feed {feedName} to {weather}...");
+            _logger.Debug($"Attempting to switch encounter list for feed {feedName} to {weather}...");
 
             var encounterList = "enc-whitelist-rares";
             var cityEncounterListFilePath = Path.Combine(mapPath, $"{encounterList}-{feedName}.txt");
             if (!File.Exists(cityEncounterListFilePath))
             {
-                Logger.Error($"Specified city encounter list does not exist at path {cityEncounterListFilePath}...");
+                _logger.Error($"Specified city encounter list does not exist at path {cityEncounterListFilePath}...");
                 return false;
             }
 
             var weatherEncounterListFilePath = Path.Combine(mapPath, $"{encounterList} - {weather}.txt");
             if (!File.Exists(weatherEncounterListFilePath))
             {
-                Logger.Error($"Specified weather encounter list does not exist at path {weatherEncounterListFilePath}...");
+                _logger.Error($"Specified weather encounter list does not exist at path {weatherEncounterListFilePath}...");
                 return false;
             }
 
             var weatherEncounterList = File.ReadAllLines(weatherEncounterListFilePath);
             if (weatherEncounterList.Length == 0)
             {
-                Logger.Error($"Encounter list is empty, aborting...");
+                _logger.Error($"Encounter list is empty, aborting...");
                 return false;
             }
 
-            Logger.Debug("Writing new weather encounter list...");
+            _logger.Debug("Writing new weather encounter list...");
             File.WriteAllLines(cityEncounterListFilePath, weatherEncounterList);
 
-            Logger.Debug($"Successfully switched encounter list for feed {feedName} to {weather}...");
+            _logger.Debug($"Successfully switched encounter list for feed {feedName} to {weather}...");
             return true;
         }
     }

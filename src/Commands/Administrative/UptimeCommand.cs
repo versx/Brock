@@ -18,13 +18,12 @@
     )]
     public class UptimeCommand : ICustomCommand
     {
+        private readonly DiscordClient _client;
+        private readonly IDatabase _db;
+
         #region Properties
 
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Admin;
-
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
 
         #endregion
 
@@ -32,8 +31,8 @@
 
         public UptimeCommand(DiscordClient client, IDatabase db)
         {
-            Client = client;
-            Db = db;
+            _client = client;
+            _db = db;
         }
 
         #endregion

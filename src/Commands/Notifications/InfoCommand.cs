@@ -21,18 +21,16 @@
     )]
     public class InfoCommand : ICustomCommand
     {
+        private readonly DiscordClient _client;
+        private readonly IDatabase _db;
         private readonly IEventLogger _logger;
 
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
 
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
-
         public InfoCommand(DiscordClient client, IDatabase db, IEventLogger logger)
         {
-            Client = client;
-            Db = db;
+            _client = client;
+            _db = db;
             _logger = logger;
         }
 
@@ -41,26 +39,29 @@
             //await message.IsDirectMessageSupported();
 
             var author = message.Author.Id;
-            var isSubbed = Db.SubscriptionExists(author);
-            var hasPokemon = isSubbed && Db[author].Pokemon.Count > 0;
-            var hasRaids = isSubbed && Db[author].Raids.Count > 0;
+            var isSubbed = _db.SubscriptionExists(author);
+            var hasPokemon = isSubbed && _db[author].Pokemon.Count > 0;
+            var hasRaids = isSubbed && _db[author].Raids.Count > 0;
             var msg = string.Empty;
 
             if (hasPokemon)
             {
-                var pokemon = Db[author].Pokemon;
+                var pokemon = _db[author].Pokemon;
                 pokemon.Sort((x, y) => x.PokemonId.CompareTo(y.PokemonId));
 
-                msg = $"**{message.Author.Username} Pokemon Subscriptions:**\r\n```";
+                msg = $"**{message.Author.Username} Notification Settings:**\r\n";
+                msg += $"Enabled: **{(_db[author].Enabled ? "Yes" : "No")}**\r\n";
+                msg += $"Pokemon Subscriptions:\r\n```";
+
                 foreach (var sub in pokemon)
                 {
-                    if (!Db.Pokemon.ContainsKey(sub.PokemonId.ToString()))
+                    if (!_db.Pokemon.ContainsKey(sub.PokemonId.ToString()))
                     {
                         _logger.Error($"Failed to find Pokemon with id {sub.PokemonId} in the Pokemon database, skipping...");
                         continue;
                     }
 
-                    var pkmn = Db.Pokemon[sub.PokemonId.ToString()];
+                    var pkmn = _db.Pokemon[sub.PokemonId.ToString()];
                     msg += $"{sub.PokemonId}: {pkmn.Name} {sub.MinimumIV}%+\r\n";
                 }
                 msg += "```" + Environment.NewLine + Environment.NewLine;
@@ -68,7 +69,7 @@
 
             if (hasRaids)
             {
-                msg += $"**{message.Author.Username} Raid Subscriptions:**\r\n```";
+                msg += $"Raid Subscriptions:\r\n```";
                 msg += string.Join(", ", GetRaidSubscriptionNames(author));
 				msg += "```";
             }
@@ -79,24 +80,24 @@
             }
 
             if (msg.Length > 2000)
-                await Client.SendDirectMessage(message.Author, $"**{message.Author.Mention}**'s subscription list is longer than the allowed Discord message character count, here is a partial list:\r\n{msg.Substring(0, Math.Min(msg.Length, 1500))}", null);
+                await _client.SendDirectMessage(message.Author, $"**{message.Author.Mention}**'s subscription list is longer than the allowed Discord message character count, here is a partial list:\r\n{msg.Substring(0, Math.Min(msg.Length, 1500))}", null);
             else
-                await Client.SendDirectMessage(message.Author, msg, null);
+                await _client.SendDirectMessage(message.Author, msg, null);
         }
 
         private List<string> GetPokemonSubscriptionNames(ulong userId)
         {
             var list = new List<string>();
-            if (Db.SubscriptionExists(userId))
+            if (_db.SubscriptionExists(userId))
             {
-                var subscribedPokemon = Db[userId].Pokemon;
+                var subscribedPokemon = _db[userId].Pokemon;
                 subscribedPokemon.Sort((x, y) => x.PokemonId.CompareTo(y.PokemonId));
 
                 foreach (var poke in subscribedPokemon)
                 {
-                    if (!Db.Pokemon.ContainsKey(poke.PokemonId.ToString())) continue;
+                    if (!_db.Pokemon.ContainsKey(poke.PokemonId.ToString())) continue;
 
-                    var pokemon = Db.Pokemon[poke.PokemonId.ToString()];
+                    var pokemon = _db.Pokemon[poke.PokemonId.ToString()];
                     if (pokemon == null) continue;
 
                     list.Add(pokemon.Name);
@@ -108,16 +109,16 @@
         private List<string> GetRaidSubscriptionNames(ulong userId)
         {
             var list = new List<string>();
-            if (Db.SubscriptionExists(userId))
+            if (_db.SubscriptionExists(userId))
             {
-                var subscribedRaids = Db[userId].Raids;
+                var subscribedRaids = _db[userId].Raids;
                 subscribedRaids.Sort((x, y) => x.PokemonId.CompareTo(y.PokemonId));
 
                 foreach (var poke in subscribedRaids)
                 {
-                    if (!Db.Pokemon.ContainsKey(poke.PokemonId.ToString())) continue;
+                    if (!_db.Pokemon.ContainsKey(poke.PokemonId.ToString())) continue;
 
-                    var pokemon = Db.Pokemon[poke.PokemonId.ToString()];
+                    var pokemon = _db.Pokemon[poke.PokemonId.ToString()];
                     if (pokemon == null) continue;
 
                     list.Add(pokemon.Name);

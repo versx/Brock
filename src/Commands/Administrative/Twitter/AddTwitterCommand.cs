@@ -17,19 +17,17 @@
     )]
     public class AddTwitterCommand : ICustomCommand
     {
+        private readonly DiscordClient _client;
+        private readonly IDatabase _db;
+        private readonly Config _config;
+
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Admin;
-
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
-
-        public Config Config { get; }
 
         public AddTwitterCommand(DiscordClient client, IDatabase db, Config config)
         {
-            Client = client;
-            Db = db;
-            Config = config;
+            _client = client;
+            _db = db;
+            _config = config;
         }
 
         public async Task Execute(DiscordMessage message, Command command)
@@ -39,19 +37,20 @@
             var twitterId = command.Args[0];
             if (!ulong.TryParse(twitterId, out ulong result))
             {
-                await message.RespondAsync($"{twitterId} is not a valid Twitter id.");
+                await message.RespondAsync($"{message.Author.Mention}, {twitterId} is not a valid Twitter id.");
                 return;
             }
 
-            if (Config.TwitterUpdates.TwitterUsers.Contains(result))
+            if (_config.TwitterUpdates.TwitterUsers.Contains(result))
             {
                 await message.RespondAsync($"{message.Author.Mention} is already subscribed to {result} Twitter notifications.");
                 return;
             }
 
-            Config.TwitterUpdates.TwitterUsers.Add(result);
-            await message.RespondAsync($"{result} was successfully added to the Twitter notifications database.");
-            Config.Save();
+            _config.TwitterUpdates.TwitterUsers.Add(result);
+            _config.Save();
+
+            await message.RespondAsync($"{message.Author.Mention}, {result} was successfully added to the Twitter notifications database.");
         }
     }
 }

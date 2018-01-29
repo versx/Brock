@@ -18,19 +18,17 @@
     )]
     public class DelCmdCommand : ICustomCommand
     {
+        private readonly DiscordClient _client;
+        private readonly IDatabase _db;
+        private readonly Config _config;
+
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Supporter;
-
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
-
-        public Config Config { get; }
 
         public DelCmdCommand(DiscordClient client, IDatabase db, Config config)
         {
-            Client = client;
-            Db = db;
-            Config = config;
+            _client = client;
+            _db = db;
+            _config = config;
         }
 
         public async Task Execute(DiscordMessage message, Command command)
@@ -40,20 +38,21 @@
             if (command.Args.Count != 1) return;
 
             var cmd = command.Args[0];
-            if (Config.CustomCommands.ContainsKey(cmd))
+            if (_config.CustomCommands.ContainsKey(cmd))
             {
-                if (!Config.CustomCommands.Remove(cmd))
+                if (!_config.CustomCommands.Remove(cmd))
                 {
-                    await message.RespondAsync($"Failed to delete custom command {cmd} from the database, unknown error.");
+                    await message.RespondAsync($"{message.Author.Mention}, failed to delete custom command {cmd} from the database, unknown error.");
                     return;
                 }
 
-                await message.RespondAsync($"Custom command {cmd} was successfully deleted from the database.");
-                Config.Save();
+                _config.Save();
+
+                await message.RespondAsync($"{message.Author.Mention}, custom command {cmd} was successfully deleted from the database.");
             }
             else
             {
-                await message.RespondAsync($"Failed to delete custom command {cmd} from the database, it is not registered.");
+                await message.RespondAsync($"{message.Author.Mention}, failed to delete custom command {cmd} from the database, it is not registered.");
             }
         }
     }

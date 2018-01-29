@@ -21,17 +21,14 @@
     {
         public const string DefaultParentChannel = "GENERAL";
 
+        private readonly DiscordClient _client;
+        private readonly IDatabase _db;
+        private readonly Config _config;
         private readonly IEventLogger _logger;
 
         #region Properties
 
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Admin;
-
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
-
-        public Config Config { get; set; }
 
         #endregion
 
@@ -39,9 +36,9 @@
 
         public CreateRolesCommand(DiscordClient client, IDatabase db, Config config, IEventLogger logger)
         {
-            Client = client;
-            Db = db;
-            Config = config;
+            _client = client;
+            _db = db;
+            _config = config;
             _logger = logger;
         }
 
@@ -51,11 +48,11 @@
         {
             await message.IsDirectMessageSupported();
 
-            foreach (var team in Config.TeamRoles)
+            foreach (var team in _config.TeamRoles)
             {
                 try
                 {
-                    if (Client.GetRoleFromName(team) != null)
+                    if (_client.GetRoleFromName(team) != null)
                     {
                         await message.RespondAsync($"Role {team} already exists.");
                         continue;
@@ -69,7 +66,7 @@
                         continue;
                     }
 
-                    var parentChannel = Client.GetChannelByName(DefaultParentChannel);
+                    var parentChannel = _client.GetChannelByName(DefaultParentChannel);
                     if (parentChannel == null)
                     {
                         _logger.Error($"Failed to find parent channel '{DefaultParentChannel}'.");
@@ -90,19 +87,19 @@
                 catch (Exception ex)
                 {
                     _logger.Error(ex);
-                    await message.RespondAsync($"Failed to create team role {team}, it might already exist or I do not have the correct permissions to manage roles.");
+                    await message.RespondAsync($"{message.Author.Mention}, failed to create team role {team}, it might already exist or I do not have the correct permissions to manage roles.");
                 }
             }
 
-            await message.RespondAsync($"{string.Join(", ", Config.TeamRoles)} team roles were successfully created.");
+            await message.RespondAsync($"{message.Author.Mention}, {string.Join(", ", _config.TeamRoles)} team roles were successfully created.");
 
-            foreach (var city in Config.CityRoles)
+            foreach (var city in _config.CityRoles)
             {
                 try
                 {
-                    if (Client.GetRoleFromName(city) != null)
+                    if (_client.GetRoleFromName(city) != null)
                     {
-                        await message.RespondAsync($"Role {city} already exists.");
+                        await message.RespondAsync($"{message.Author.Mention}, role {city} already exists.");
                         return;
                     }
 
@@ -116,11 +113,11 @@
                 catch (Exception ex)
                 {
                     _logger.Error(ex);
-                    await message.RespondAsync($"Failed to create team role {city}, it might already exist or I do not have the correct permissions to manage roles.");
+                    await message.RespondAsync($"{message.Author.Mention}, failed to create team role {city}, it might already exist or I do not have the correct permissions to manage roles.");
                 }
             }
 
-            await message.RespondAsync($"{string.Join(", ", Config.CityRoles)} city roles were successfully created.");
+            await message.RespondAsync($"{message.Author.Mention}, {string.Join(", ", _config.CityRoles)} city roles were successfully created.");
         }
     }
 }

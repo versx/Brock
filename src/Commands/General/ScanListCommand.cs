@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Threading.Tasks;
 
     using DSharpPlus;
@@ -18,41 +19,57 @@
     )]
     public class ScanListCommand : ICustomCommand
     {
+        private readonly DiscordClient _client;
+        private readonly IDatabase _db;
         private readonly Config _config;
 
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
 
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
-
         public ScanListCommand(DiscordClient client, IDatabase db, Config config)
         {
-            Client = client;
-            Db = db;
+            _client = client;
+            _db = db;
             _config = config;
         }
 
         public async Task Execute(DiscordMessage message, Command command)
         {
-            if (command.HasArgs) return;
+            if (!command.HasArgs)
+            {
+                await message.RespondAsync($"{message.Author.Mention} please specify a city.");
+                return;
+            }
 
-            var scanList = _config.EncounterList;
+            var city = command.Args[0];
+            if (!_config.CityRoles.Exists(x => string.Compare(x, city, true) == 0))
+            {
+                await message.RespondAsync($"{message.Author.Mention} you've specified an invalid city name.");
+                return;
+            }
+
+            var encounterListFilePath = Path.Combine(SetEncounterListCommand.MapPath, $"enc-whitelist-rares-{city}.txt");
+            if (!File.Exists(encounterListFilePath))
+            {
+                await message.RespondAsync($"{message.Author.Mention} the specified encounter list does not exist.");
+                return;
+            }
+
+            var scanList = new List<string>(File.ReadAllLines(encounterListFilePath));
             if (scanList.Count == 0)
             {
-                await message.RespondAsync("It appears the scan list is empty.");
+                await message.RespondAsync($"{message.Author.Mention} it appears the scan list is empty.");
                 return;
             }
 
             var pokemon = new List<string>();
-            foreach (var pkmn in _config.EncounterList)
+            foreach (var pkmn in scanList)
             {
-                if (!Db.Pokemon.ContainsKey(pkmn.ToString())) continue;
+                if (!_db.Pokemon.ContainsKey(pkmn)) continue;
 
-                pokemon.Add(Db.Pokemon[pkmn.ToString()].Name);
+                pokemon.Add(_db.Pokemon[pkmn].Name);
             }
 
-            await message.RespondAsync("**Current Pokemon CP/IV/Moveset info being scanned for:**\r\n" + string.Join(Environment.NewLine, pokemon));
+            await message.RespondAsync($"**{city} Pokemon CP/IV/Moveset Scan List:**\r\n```{string.Join(Environment.NewLine, pokemon)}```");
         }
     }
 }

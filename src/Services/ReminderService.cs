@@ -9,6 +9,7 @@
     using Newtonsoft.Json;
 
     using BrockBot.Data;
+    using BrockBot.Diagnostics;
     using BrockBot.Extensions;
     using BrockBot.Utilities;
 
@@ -26,15 +27,17 @@
         private Timer _timer;
         private readonly Database _db;
         private readonly DiscordClient _client;
+        private readonly IEventLogger _logger;
 
         #endregion
 
         #region Constructor
 
-        public ReminderService(DiscordClient client, Database db)
+        public ReminderService(DiscordClient client, Database db, IEventLogger logger)
         {
             _client = client;
             _db = db;
+            _logger = logger;
 
             InitializeTimer();
         }
@@ -56,18 +59,34 @@
                         var itemsToRemove = new List<Reminder>();
                         foreach (var reminder in user.Value)
                         {
-                            Console.WriteLine($"Reminder for user {user.Key} {DateTime.UtcNow.Subtract(reminder.Time)} time left.");
+                            _logger.Info($"Reminder for user {user.Key} {DateTime.UtcNow.Subtract(reminder.Time)} time left.");
                             if (reminder.Time.CompareTo(DateTime.UtcNow) <= 0)
                             {
                                 var userToRemind = await _client.GetUser(user.Key);
                                 if (userToRemind == null)
                                 {
-                                    Console.WriteLine($"Failed to find discord user with id '{user.Key}'.");
+                                    _logger.Error($"Failed to find discord user with id '{user.Key}'.");
                                     continue;
                                 }
 
-                                await _client.SendDirectMessage(userToRemind, $":alarm_clock: **Reminder:** {reminder.Message}", null);
-                                Console.WriteLine($"NOTIFYING USER OF REMINDER: {reminder.Message}");
+                                _logger.Info($"NOTIFYING USER OF REMINDER: {reminder.Message}");
+                                if (reminder.Where == 0)
+                                {
+                                    await _client.SendDirectMessage(userToRemind, $":alarm_clock: **Reminder:** {reminder.Message}", null);
+                                }
+                                else
+                                {
+                                    var channel = await _client.GetChannel(reminder.Where);
+                                    if (channel == null)
+                                    {
+                                        _logger.Error($"Failed to find channel {reminder.Where} that reminder should be sent to, sending via DM instead...");
+                                        await _client.SendDirectMessage(userToRemind, $":alarm_clock: **Reminder:** {reminder.Message}", null);
+                                    }
+                                    else
+                                    {
+                                        await channel.SendMessageAsync($":alarm_clock: {userToRemind.Mention} **Reminder:** {reminder.Message}");
+                                    }
+                                }
                                 itemsToRemove.Add(reminder);
                             }
                         }
@@ -141,9 +160,12 @@
     public class Reminder
     {
         [JsonProperty("time")]
-        public DateTime Time;
+        public DateTime Time { get; set; }
 
         [JsonProperty("message")]
-        public string Message;
+        public string Message { get; set; }
+
+        [JsonProperty("where")]
+        public ulong Where { get; set; }
     }
 }

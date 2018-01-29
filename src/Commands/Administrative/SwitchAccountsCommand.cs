@@ -21,6 +21,8 @@
     {
         #region Variables
 
+        private readonly DiscordClient _client;
+        private readonly IDatabase _db;
         private readonly Config _config;
         private readonly IEventLogger _logger;
 
@@ -30,18 +32,14 @@
 
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Admin;
 
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
-
         #endregion
 
         #region Constructor
 
         public SwitchAccountsCommand(DiscordClient client, IDatabase db, Config config, IEventLogger logger)
         {
-            Client = client;
-            Db = db;
+            _client = client;
+            _db = db;
             _config = config;
             _logger = logger;
         }

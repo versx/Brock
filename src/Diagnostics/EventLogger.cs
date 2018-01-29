@@ -14,6 +14,7 @@
 
         public EventLogger()
         {
+            LogHandler = new Action<LogType, string>((logType, message) => Console.WriteLine($"{logType}: {message}"));
         }
 
         public EventLogger(Action<LogType, string> logHandler)

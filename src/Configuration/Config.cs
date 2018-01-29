@@ -24,7 +24,7 @@
         /// <summary>
         /// The default config file name with extension.
         /// </summary>
-        public const string DefaultConfigFileName = /*"Config.xml"; */"config.json";
+        public const string DefaultConfigFileName = "config.json";
 
         private const string DefaultWelcomeMessage = "Hello {username}, welcome to versx's discord server!\r\nMy name is Brock and I'm here to help you with certain things if you require them such as notifications of Pokemon that have spawned as well as setting up Raid Lobbies or even assigning yourself to a team or city role. To see a full list of my available commands please send me a direct message containing `.help`.";
 
@@ -32,132 +32,125 @@
 
         #region Properties
 
-        [XmlElement("ownerId")]
+        #region Administration
+
         [JsonProperty("ownerId")]
         public ulong OwnerId { get; set; }
 
-        [XmlElement("adminCommandsChannelId")]
         [JsonProperty("adminCommandsChannelId")]
         public ulong AdminCommandsChannelId { get; set; }
 
-        [XmlElement("commandsChannelId")]
         [JsonProperty("commandsChannelId")]
         public ulong CommandsChannelId { get; set; }
 
-        [XmlElement("commandsPrefix")]
         [JsonProperty("commandsPrefix")]
         public char CommandsPrefix { get; set; }
 
-        //[XmlElement("sponsoredRaids")]
-        //[JsonProperty("sponsoredRaids")]
-        //public SponsoredRaidsConfig SponsoredRaids { get; set; }
-
-        [XmlElement("sponsoredRaids")]
-        [JsonProperty("sponsoredRaids")]
-        public List<SponsoredRaidsConfig> SponsoredRaids { get; set; }
-
-        [XmlElement("apiVersion")]
         [JsonProperty("apiVersion")]
         public Version ScannerApiVersion { get; set; }
 
-        [XmlElement("allowTeamAssignment")]
-        [JsonProperty("allowTeamAssignment")]
-        public bool AllowTeamAssignment { get; set; }
-
-        [XmlElement("supporterRoleId")]
-        [JsonProperty("supporterRoleId")]
-        public ulong SupporterRoleId { get; set; }
-
-        [XmlArray("teamRoles")]
-        [XmlArrayItem("teamRole")]
-        [JsonProperty("teamRoles")]
-        public List<string> TeamRoles { get; set; }
-
-        [XmlElement("assignNewMembersCityRoles")]
-        [JsonProperty("autoAssignNewMembersCityRoles")]
-        public bool AssignNewMembersCityRoles { get; set; }
-
-        [XmlArray("cityRoles")]
-        [XmlArrayItem("cityRole")]
-        [JsonProperty("cityRoles")]
-        public List<string> CityRoles { get; set; }
-
-        [XmlElement("authToken")]
         [JsonProperty("authToken")]
         public string AuthToken { get; set; }
 
-        [XmlElement("gmapsKey")]
         [JsonProperty("gmapsKey")]
         public string GmapsKey { get; set; }
 
-        [XmlElement("webHookPort")]
         [JsonProperty("webHookPort")]
         public ushort WebHookPort { get; set; }
 
-        [XmlElement("sendStartupMessage")]
+        #endregion
+
+        #region Role Assignment
+
+        [JsonProperty("allowTeamAssignment")]
+        public bool AllowTeamAssignment { get; set; }
+
+        [JsonProperty("supporterRoleId")]
+        public ulong SupporterRoleId { get; set; }
+
+        //[JsonProperty("moderatorRoleId")]
+        //public ulong ModeratorRoleId { get; set; }
+
+        [JsonProperty("moderators")]
+        public List<ulong> Moderators { get; set; }
+
+        [JsonProperty("teamRoles")]
+        public List<string> TeamRoles { get; set; }
+
+        [JsonProperty("autoAssignNewMembersCityRoles")]
+        public bool AssignNewMembersCityRoles { get; set; }
+
+        [JsonProperty("cityRoles")]
+        public List<string> CityRoles { get; set; }
+
+        #endregion
+
+        #region Startup Message
+
         [JsonProperty("sendStartupMessage")]
         public bool SendStartupMessage { get; set; }
 
-        [XmlArray("startupMessages")]
-        [XmlArrayItem("startupMessage")]
         [JsonProperty("startupMessages")]
         public List<string> StartupMessages { get; set; }
 
-        [XmlElement("startupMessageWebHook")]
         [JsonProperty("startupMessageWebHook")]
         public string StartupMessageWebHook { get; set; }
 
-        [XmlElement("sendWelcomeMessage")]
+        #endregion
+
+        #region Welcome Message
+
         [JsonProperty("sendWelcomeMessage")]
         public bool SendWelcomeMessage { get; set; }
 
-        [XmlElement("welcomeMessage")]
         [JsonProperty("welcomeMessage")]
         public string WelcomeMessage { get; set; }
 
-        [XmlElement("notifyMemberJoined")]
+        #endregion
+
+        #region Discord Events
+
         [JsonProperty("notifyMemberJoined")]
         public bool NotifyNewMemberJoined { get; set; }
 
-        [XmlElement("notifyMemberLeft")]
         [JsonProperty("notifyMemberLeft")]
         public bool NotifyMemberLeft { get; set; }
 
-        [XmlElement("notifyMemberBanned")]
         [JsonProperty("notifyMemberBanned")]
         public bool NotifyMemberBanned { get; set; }
 
-        [XmlElement("notifyMemberUnbanned")]
         [JsonProperty("notifyMemberUnbanned")]
         public bool NotifyMemberUnbanned { get; set; }
 
-        [XmlElement("twitterUpdates")]
+        #endregion
+
+        #region Services
+
+        [JsonProperty("sponsoredRaids")]
+        public List<SponsoredRaidsConfig> SponsoredRaids { get; set; }
+
         [JsonProperty("twitterUpdates")]
         public TwitterUpdatesConfig TwitterUpdates { get; set; }
 
-        [XmlElement("advertisement")]
         [JsonProperty("advertisement")]
         public AdvertisementConfig Advertisement { get; set; }
 
-        [XmlElement("nearbyNests")]
         [JsonProperty("nearbyNests")]
         public Dictionary<string, int> NearbyNests { get; set; }
 
-        [XmlElement("encounterList")]
-        [JsonProperty("encounterList")]
-        public List<uint> EncounterList { get; set; }
-
-        [XmlElement("feedStatus")]
         [JsonProperty("feedStatus")]
         public FeedStatusConfig FeedStatus { get; set; }
 
-        [XmlElement("supporters")]
         [JsonProperty("supporters")]
         public Dictionary<ulong, Donator> Supporters { get; set; }
 
-        [XmlElement("customCommands")]
         [JsonProperty("customCommands")]
         public Dictionary<string, string> CustomCommands { get; set; }
+
+        [JsonProperty("raidLobbies")]
+        public RaidLobbyConfig RaidLobbies { get; set; }
+
+        #endregion
 
         /// <summary>
         /// Gets the config full config file path.
@@ -193,7 +186,6 @@
             CityRoles = new List<string>();
             CommandsPrefix = '.';
             CustomCommands = new Dictionary<string, string>();
-            EncounterList = new List<uint>();
             NearbyNests = new Dictionary<string, int>();
             NotifyMemberBanned = true;
             NotifyMemberUnbanned = true;
@@ -218,6 +210,7 @@
             WebHookPort = 8008;
             WelcomeMessage = DefaultWelcomeMessage;
             SponsoredRaids = new List<SponsoredRaidsConfig>();
+            RaidLobbies = new RaidLobbyConfig();
             TwitterUpdates = new TwitterUpdatesConfig();
             Advertisement = new AdvertisementConfig();
             FeedStatus = new FeedStatusConfig();
@@ -326,21 +319,5 @@
         }
 
         #endregion
-    }
-
-    [JsonObject("feedStatus")]
-    public class FeedStatusConfig
-    {
-        [JsonProperty("channels")]
-        public List<ulong> Channels { get; set; }
-
-        [JsonProperty("enabled")]
-        public bool Enabled { get; set; }
-
-        public FeedStatusConfig()
-        {
-            Channels = new List<ulong>();
-            Enabled = true;
-        }
     }
 }

@@ -11,30 +11,28 @@
     using BrockBot.Data;
     using BrockBot.Diagnostics;
     using BrockBot.Services;
-    using BrockBot.Utilities;
 
     [Command(
         Categories.Reminders,
         "Have " + FilterBot.BotName + " remind you to do something.",
-        "\tExample: `.remindme to update you in 2 minutes 30s`",
+        "\tExample: `.remindme to update you in 2 minutes 30s` (Direct message)\r\n" +
+        "\tExample: `.remindme here \"to update you in 2 minutes 30s\"` (In the current channel.)",
         "remindme"
     )]
     public class SetReminderCommand : ICustomCommand
     {
+        private readonly DiscordClient _client;
+        private readonly IDatabase _db;
         private readonly IEventLogger _logger;
 
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
-
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
 
         public ReminderService ReminderSvc { get; }
 
         public SetReminderCommand(DiscordClient client, IDatabase db, ReminderService reminderSvc, IEventLogger logger)
         {
-            Client = client;
-            Db = db;
+            _client = client;
+            _db = db;
             ReminderSvc = reminderSvc;
             _logger = logger;
         }
@@ -42,13 +40,22 @@
         public async Task Execute(DiscordMessage message, Command command)
         {
             if (!command.HasArgs) return;
-            if (command.Args.Count != 1) return;
+            //if (command.Args.Count != 1) return;
 
             var reminder = command.Args[0];
-            await SetReminder(message, reminder);
+            switch (command.Args.Count)
+            {
+                case 1:
+                    await SetReminder(message, reminder);
+                    break;
+                case 2:
+                    var where = command.Args[1];
+                    await SetReminder(message, reminder, where);
+                    break;
+            }
         }
 
-        public async Task SetReminder(DiscordMessage message, string reminder, string seperator = "in")
+        public async Task SetReminder(DiscordMessage message, string reminder, string where = "", string seperator = "in")
         {
             try
             {
@@ -56,20 +63,26 @@
                 var time = GetTimeInterval(reminder);
                 if (Convert.ToInt32(time) == 0)
                 {
-                    await message.RespondAsync(":no_entry_sign: Invalid time format...");
+                    await message.RespondAsync($"{message.Author.Mention} you specified an invalid time format.");
                     return;
                 }
 
                 if (!CheckTimeInterval(userId, time))
                 {
-                    await message.RespondAsync(":no_entry_sign: You cannot have two reminders that are within 60 seconds of each other.");
+                    await message.RespondAsync($"{message.Author.Mention}, you cannot have two reminders that are within 60 seconds of each other.");
                     return;
                 }
 
-                var reminders = new List<Reminder>();
-                if (Db.Reminders.ContainsKey(userId))
+                ulong channelId = 0;
+                if (!string.IsNullOrEmpty(where))
                 {
-                    Db.Reminders.TryGetValue(userId, out reminders);
+                    channelId = message.ChannelId;
+                }
+
+                var reminders = new List<Reminder>();
+                if (_db.Reminders.ContainsKey(userId))
+                {
+                    _db.Reminders.TryGetValue(userId, out reminders);
                 }
                 reminder = SanitizeString(reminder);
 
@@ -77,13 +90,15 @@
                 var data = new Reminder
                 {
                     Time = DateTime.UtcNow.AddSeconds(time),
-                    Message = msg
+                    Message = msg,
+                    Where = channelId
                 };
                 reminders.Add(data);
-                Db.Reminders.AddOrUpdate(userId, reminders, (key, oldValue) => reminders);
+                _db.Reminders.AddOrUpdate(userId, reminders, (key, oldValue) => reminders);
                 ReminderSvc.ChangeToClosestInterval();
-                Db.Save();
-                await message.RespondAsync($":white_check_mark: Successfully set reminder. I will remind {message.Author.Mention} to `{data.Message}` in `{reminder.Substring(reminder.LastIndexOf(seperator, StringComparison.Ordinal) + seperator.Length)}`!");
+                _db.Save();
+
+                await message.RespondAsync($"Successfully set reminder for {message.Author.Mention} to `{data.Message}` in `{reminder.Substring(reminder.LastIndexOf(seperator, StringComparison.Ordinal) + seperator.Length)}`!");
             }
             catch (Exception ex)
             {
@@ -173,11 +188,11 @@
         {
             try
             {
-                if (!Db.Reminders.ContainsKey(userId))
+                if (!_db.Reminders.ContainsKey(userId))
                     return true;
 
                 var reminders = new List<Reminder>();
-                Db.Reminders.TryGetValue(userId, out reminders);
+                _db.Reminders.TryGetValue(userId, out reminders);
 
                 var closestTime = double.PositiveInfinity;
                 var dateTimeToFind = DateTime.UtcNow.AddSeconds(time);

@@ -3,11 +3,8 @@
     using System;
     using System.Threading.Tasks;
 
-    using DSharpPlus;
     using DSharpPlus.Entities;
-
-    using BrockBot.Data;
-
+    
     [Command(
         Categories.General,
         "Displays information regarding how to donate.",
@@ -17,10 +14,6 @@
     public sealed class DonateCommand : ICustomCommand
     {
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
-
-        public DiscordClient Client { get; set; }
-
-        public IDatabase Db { get; set; }
 
         public async Task Execute(DiscordMessage message, Command command)
         {

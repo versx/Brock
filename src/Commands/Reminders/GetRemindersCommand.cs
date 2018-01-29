@@ -9,30 +9,29 @@
 
     using BrockBot.Data;
     using BrockBot.Diagnostics;
+    using BrockBot.Extensions;
     using BrockBot.Services;
 
     [Command(
         Categories.Reminders,
-        "List all reminders that " + FilterBot.BotName + " should notify you of.",
+        "List all reminders that " + FilterBot.BotName + " will notify you of.",
         "\tExample: `.reminders`",
         "reminders"
     )]
     public class GetRemindersCommand : ICustomCommand
     {
+        private readonly DiscordClient _client;
+        private readonly IDatabase _db;
         private readonly IEventLogger _logger;
 
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
-
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
 
         public ReminderService ReminderSvc { get; }
 
         public GetRemindersCommand(DiscordClient client, IDatabase db, ReminderService reminderSvc, IEventLogger logger)
         {
-            Client = client;
-            Db = db;
+            _client = client;
+            _db = db;
             ReminderSvc = reminderSvc;
             _logger = logger;
         }
@@ -48,19 +47,19 @@
         {
             try
             {
-                if (!Db.Reminders.ContainsKey(message.Author.Id))
+                if (!_db.Reminders.ContainsKey(message.Author.Id))
                 {
-                    await message.RespondAsync($":no_entry_sign: {message.Author.Mention} does not have any reminders set.");
+                    await message.RespondAsync($"{message.Author.Mention} does not have any reminders set.");
                     return;
                 }
 
-                if (Db.Reminders.Count < 1)
+                if (_db.Reminders.Count == 0)
                 {
-                    await message.RespondAsync($":no_entry_sign: {message.Author.Mention} does not have any reminders set.");
+                    await message.RespondAsync($"{message.Author.Mention} does not have any reminders set.");
                     return;
                 }
 
-                var orderedReminders = Db.Reminders[message.Author.Id].OrderBy(x => x.Time).ToList();
+                var orderedReminders = _db.Reminders[message.Author.Id].OrderBy(x => x.Time).ToList();
 
                 var eb = new DiscordEmbedBuilder
                 {
@@ -74,7 +73,8 @@
                     var msg = $"Reminder #{i + 1} in {ReminderSvc.ConvertTime(orderedReminders[i].Time.Subtract(DateTime.UtcNow).TotalSeconds)}";
                     _logger.Debug($"{msg}: {orderedReminders[i].Message}");
 
-                    eb.AddField(msg, $"{orderedReminders[i].Message}");
+                    var channel = orderedReminders[i].Where == 0 ? null : await _client.GetChannel(orderedReminders[i].Where);
+                    eb.AddField(msg, $"{(channel?.Name ?? "DM")}: {orderedReminders[i].Message}");
                 }
 
                 var embed = eb.Build();

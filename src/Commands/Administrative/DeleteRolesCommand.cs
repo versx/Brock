@@ -17,15 +17,13 @@
     )]
     public class DeleteRolesCommand : ICustomCommand
     {
+        private readonly DiscordClient _client;
+        private readonly IDatabase _db;
         private readonly IEventLogger _logger;
 
         #region Properties
 
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Admin;
-
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
 
         #endregion
 
@@ -33,8 +31,8 @@
 
         public DeleteRolesCommand(DiscordClient client, IDatabase db, IEventLogger logger)
         {
-            Client = client;
-            Db = db;
+            _client = client;
+            _db = db;
             _logger = logger;
         }
 

@@ -8,7 +8,6 @@
     using DSharpPlus.Entities;
 
     using BrockBot.Data;
-    using BrockBot.Extensions;
 
     [Command(
         Categories.Notifications,
@@ -20,13 +19,12 @@
     )]
     public class RaidMeNotCommand : ICustomCommand
     {
+        private readonly DiscordClient _client;
+        private readonly IDatabase _db;
+
         #region Properties
 
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
-
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
 
         #endregion
 
@@ -34,8 +32,8 @@
 
         public RaidMeNotCommand(DiscordClient client, IDatabase db)
         {
-            Client = client;
-            Db = db;
+            _client = client;
+            _db = db;
         }
 
         #endregion
@@ -46,7 +44,7 @@
 
             var author = message.Author.Id;
 
-            if (!Db.SubscriptionExists(author))
+            if (!_db.SubscriptionExists(author))
             {
                 await message.RespondAsync($"{message.Author.Mention} is not subscribed to any raid notifications.");
                 return;
@@ -54,7 +52,7 @@
 
             if (!command.HasArgs)
             {
-                Db.RemoveAllRaids(author);
+                _db.RemoveAllRaids(author);
                 await message.RespondAsync($"{message.Author.Mention} has unsubscribed from **all** raid notifications!");
                 return;
             }
@@ -67,18 +65,18 @@
             var cmd = command.Args[0];
             foreach (var arg in cmd.Split(','))
             {
-                var pokeId = Helpers.PokemonIdFromName(Db, arg);
+                var pokeId = Helpers.PokemonIdFromName(_db, arg);
                 if (pokeId == 0)
                 {
                     await message.RespondAsync($"{message.Author.Mention}, failed to find raid Pokemon {arg}.");
                     return;
                 }
 
-                var pokemon = Db.Pokemon[pokeId.ToString()];
-                var unsubscribePokemon = Db[author].Raids.Find(x => x.PokemonId == pokeId);
+                var pokemon = _db.Pokemon[pokeId.ToString()];
+                var unsubscribePokemon = _db[author].Raids.Find(x => x.PokemonId == pokeId);
                 if (unsubscribePokemon != null)
                 {
-                    if (Db[author].Raids.Remove(unsubscribePokemon))
+                    if (_db[author].Raids.Remove(unsubscribePokemon))
                     {
                         unsubscribed.Add(pokemon.Name);
                         continue;

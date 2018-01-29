@@ -33,6 +33,8 @@
     //]
     public class TeamCommand : ICustomCommand
     {
+        private readonly DiscordClient _client;
+        private readonly IDatabase _db;
         private readonly Config _config;
         private readonly IEventLogger _logger;
 
@@ -40,18 +42,14 @@
 
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
 
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
-
         #endregion
 
         #region Constructor
 
         public TeamCommand(DiscordClient client, IDatabase db, Config config, IEventLogger logger)
         {
-            Client = client;
-            Db = db;
+            _client = client;
+            _db = db;
             _config = config;
             _logger = logger;
         }
@@ -80,18 +78,13 @@
 
                 if (message.Channel.Guild == null)
                 {
-                    //TODO: Ask what server to assign to.
-                    //foreach (var guild in _client.Guilds)
-                    //{
-                    //    await guild.Value.GrantRoleAsync(member, teamRole, reason);
-                    //}
-                    var channel = await Client.GetChannel(_config.CommandsChannelId);
+                    var channel = await _client.GetChannel(_config.CommandsChannelId);
                     await message.RespondAsync($"Currently I only support team assignment via the channel #{channel.Name}, direct message support is coming soon.");
                     return;
                 }
 
-                var member = await Client.GetMemberFromUserId(message.Author.Id);
-                var teamRole = Client.GetRoleFromName(team);
+                var member = await _client.GetMemberFromUserId(message.Author.Id);
+                var teamRole = _client.GetRoleFromName(team);
                 var reason = $"User initiated team assignment via {AssemblyUtils.AssemblyName}.";
                 var alreadyAssigned = false;
                 var msg = string.Empty;

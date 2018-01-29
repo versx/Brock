@@ -7,6 +7,7 @@
     using DSharpPlus;
     using DSharpPlus.Entities;
 
+    using BrockBot.Configuration;
     using BrockBot.Data;
     using BrockBot.Data.Models;
     using BrockBot.Extensions;
@@ -20,22 +21,29 @@
     )]
     public class RaidMeCommand: ICustomCommand
     {
+        public const int MaxRaidSubscriptions = 5;
+
+        #region Variables
+
+        private readonly DiscordClient _client;
+        private readonly IDatabase _db;
+        private readonly Config _config;
+
+        #endregion
+
         #region Properties
 
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
-
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
 
         #endregion
 
         #region Constructor
 
-        public RaidMeCommand(DiscordClient client, IDatabase db)
+        public RaidMeCommand(DiscordClient client, IDatabase db, Config config)
         {
-            Client = client;
-            Db = db;
+            _client = client;
+            _db = db;
+            _config = config;
         }
 
         #endregion
@@ -50,30 +58,38 @@
             var author = message.Author.Id;
             var cmd = command.Args[0];
 
+            var isSupporter = await _client.HasSupporterRole(author, _config.SupporterRoleId);
+
             var alreadySubscribed = new List<string>();
             var subscribed = new List<string>();
 
             foreach (var arg in cmd.Split(','))
             {
-                var pokeId = Helpers.PokemonIdFromName(Db, arg);
+                var pokeId = Helpers.PokemonIdFromName(_db, arg);
                 if (pokeId == 0)
                 {
                     await message.RespondAsync($"{message.Author.Mention}, failed to find raid Pokemon {arg}.");
                     return;
                 }
 
-                var pokemon = Db.Pokemon[pokeId.ToString()];
-                if (!Db.SubscriptionExists(author))
+                var pokemon = _db.Pokemon[pokeId.ToString()];
+                if (!_db.SubscriptionExists(author))
                 {
-                    Db.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon>(), new List<Pokemon> { new Pokemon { PokemonId = pokeId } }));
+                    _db.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon>(), new List<Pokemon> { new Pokemon { PokemonId = pokeId } }));
                     subscribed.Add(pokemon.Name);
                     continue;
                 }
 
                 //User has already subscribed before, check if their new requested sub already exists.
-                var subs = Db[author];
+                var subs = _db[author];
                 if (!subs.Raids.Exists(x => x.PokemonId == pokeId))
                 {
+                    if (!isSupporter && _db[author].Raids.Count >= MaxRaidSubscriptions)
+                    {
+                        await message.RespondAsync($"{message.Author.Mention} non-supporter members have a limited notification amount of {MaxRaidSubscriptions}, please consider donating to lift this to every raid Pokemon. Otherwise you will need to remove some subscriptions in order to subscribe to new raid Pokemon.");
+                        return;
+                    }
+
                     subs.Raids.Add(new Pokemon { PokemonId = pokeId });
                     subscribed.Add(pokemon.Name);
                     continue;

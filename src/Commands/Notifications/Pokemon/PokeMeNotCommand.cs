@@ -20,13 +20,12 @@
     )]
     public class PokeMeNotCommand : ICustomCommand
     {
+        private readonly DiscordClient _client;
+        private readonly IDatabase _db;
+
         #region Properties
 
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
-
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
 
         #endregion
 
@@ -34,8 +33,8 @@
 
         public PokeMeNotCommand(DiscordClient client, IDatabase db)
         {
-            Client = client;
-            Db = db;
+            _client = client;
+            _db = db;
         }
 
         #endregion
@@ -46,7 +45,7 @@
 
             var author = message.Author.Id;
 
-            if (!Db.SubscriptionExists(author))
+            if (!_db.SubscriptionExists(author))
             {
                 await message.RespondAsync($"{message.Author.Mention} is not subscribed to any Pokemon notifications.");
                 return;
@@ -54,7 +53,7 @@
 
             if (!(command.HasArgs && command.Args.Count == 1))
             {
-                if (!Db.RemoveAllPokemon(author))
+                if (!_db.RemoveAllPokemon(author))
                 {
                     await message.RespondAsync($"Failed to remove all Pokemon notifications for {message.Author.Mention}.");
                     return;
@@ -71,17 +70,17 @@
             foreach (var arg in cmd.Split(','))
             {
                 var index = Convert.ToUInt32(arg);
-                if (!Db.Pokemon.ContainsKey(index.ToString()))
+                if (!_db.Pokemon.ContainsKey(index.ToString()))
                 {
                     await message.RespondAsync($"{message.Author.Mention}, pokedex number {index} is not a valid Pokemon id.");
                     continue;
                 }
 
-                var pokemon = Db.Pokemon[index.ToString()];
-                var unsubscribePokemon = Db[author].Pokemon.Find(x => x.PokemonId == index);
+                var pokemon = _db.Pokemon[index.ToString()];
+                var unsubscribePokemon = _db[author].Pokemon.Find(x => x.PokemonId == index);
                 if (unsubscribePokemon != null)
                 {
-                    if (Db[author].Pokemon.Remove(unsubscribePokemon))
+                    if (_db[author].Pokemon.Remove(unsubscribePokemon))
                     {
                         //msg += $"**{pokemon.Name}**";
                         unsubscribed.Add(pokemon.Name);
@@ -90,7 +89,6 @@
                 else
                 {
                     notSubscribed.Add(pokemon.Name);
-                    //await message.RespondAsync($"{message.Author.Mention} is not subscribed to **{pokemon.Name}** notifications.");
                 }
             }
 

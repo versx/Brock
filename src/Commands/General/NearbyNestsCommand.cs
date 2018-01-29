@@ -11,21 +11,18 @@
 
     [Command(Categories.General,
         "Displays all available nearby nests that the feed scans.",
-        "",
-        //CommandPermissionLevel.User,
+        "\tExample: `.nests`",
         "nests"
     )]
     public class NearbyNestsCommand : ICustomCommand
     {
+        private readonly DiscordClient _client;
+        private readonly IDatabase _db;
         private readonly Config _config;
 
         #region Properties
 
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
-
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
 
         #endregion
 
@@ -33,8 +30,8 @@
 
         public NearbyNestsCommand(DiscordClient client, IDatabase db, Config config)
         {
-            Client = client;
-            Db = db;
+            _client = client;
+            _db = db;
             _config = config;
         }
 
@@ -51,7 +48,10 @@
             var msg = "**Nearby Nests**\r\n";
             foreach (var item in _config.NearbyNests)
             {
-                msg += $"{item.Key}: {Db.Pokemon[item.Value.ToString()].Name}\r\n";
+                if (_db.Pokemon.ContainsKey(item.Value.ToString()))
+                {
+                    msg += $"{item.Key}: {_db.Pokemon[item.Value.ToString()].Name}\r\n";
+                }
             }
 
             await message.RespondAsync(msg);

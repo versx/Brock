@@ -3,10 +3,7 @@
     using System;
     using System.Threading.Tasks;
 
-    using DSharpPlus;
     using DSharpPlus.Entities;
-
-    using BrockBot.Data;
 
     [Command(
         Categories.General,
@@ -16,25 +13,7 @@
     )]
     public class HelpCommand : ICustomCommand
     {
-        #region Properties
-
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
-
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
-
-        #endregion
-
-        #region Constructor
-
-        public HelpCommand(DiscordClient client, IDatabase db)
-        {
-            Client = client;
-            Db = db;
-        }
-
-        #endregion
 
         public async Task Execute(DiscordMessage message, Command command) => await Task.CompletedTask;
     }

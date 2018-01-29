@@ -18,19 +18,17 @@
     )]
     public class EnableDisableTwitterCommand : ICustomCommand
     {
+        private readonly DiscordClient _client;
+        private readonly IDatabase _db;
+        private readonly Config _config;
+
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Admin;
-
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
-
-        public Config Config { get; }
 
         public EnableDisableTwitterCommand(DiscordClient client, IDatabase db, Config config)
         {
-            Client = client;
-            Db = db;
-            Config = config;
+            _client = client;
+            _db = db;
+            _config = config;
         }
 
         public async Task Execute(DiscordMessage message, Command command)
@@ -45,7 +43,9 @@
                 return;
             }
 
-            Config.TwitterUpdates.PostTwitterUpdates = result;
+            _config.TwitterUpdates.PostTwitterUpdates = result;
+            _config.Save();
+
             await message.RespondAsync($"All Twitter notifications have been {(result ? "en" : "dis")}abled.");
         }
     }

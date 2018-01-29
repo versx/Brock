@@ -9,16 +9,23 @@
 
     public interface IDatabase
     {
+        #region Properties
+
         List<RaidLobby> Lobbies { get; }
 
         List<Subscription<Pokemon>> Subscriptions { get; }
 
         Dictionary<string, PokemonInfo> Pokemon { get; }
 
+        Dictionary<string, Moveset> Movesets { get; }
+
         ConcurrentDictionary<ulong, List<Reminder>> Reminders { get; }
 
         Subscription<Pokemon> this[ulong userId] { get; }
 
+        #endregion
+
+        #region Methods
 
         bool SubscriptionExists(ulong userId);
 
@@ -27,5 +34,7 @@
         bool RemoveAllRaids(ulong userId);
 
         void Save();
+
+        #endregion
     }
 }

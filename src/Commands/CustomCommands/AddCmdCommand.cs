@@ -18,19 +18,17 @@
     )]
     public class AddCmdCommand : ICustomCommand
     {
+        private readonly DiscordClient _client;
+        private readonly IDatabase _db;
+        private readonly Config _config;
+
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Supporter;
-
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
-
-        public Config Config { get; }
 
         public AddCmdCommand(DiscordClient client, IDatabase db, Config config)
         {
-            Client = client;
-            Db = db;
-            Config = config;
+            _client = client;
+            _db = db;
+            _config = config;
         }
 
         public async Task Execute(DiscordMessage message, Command command)
@@ -42,15 +40,16 @@
             var cmd = command.Args[0];
             var cmdMsg = command.Args[1];
 
-            if (!Config.CustomCommands.ContainsKey(cmd))
+            if (!_config.CustomCommands.ContainsKey(cmd))
             {
-                Config.CustomCommands.Add(cmd, cmdMsg);
-                await message.RespondAsync($"Custom command {cmd} has been registered to say {cmdMsg} when triggered.");
-                Config.Save();
+                _config.CustomCommands.Add(cmd, cmdMsg);
+                _config.Save();
+
+                await message.RespondAsync($"{message.Author.Mention}, custom command {cmd} has been registered to say {cmdMsg} when triggered.");
             }
             else
             {
-                await message.RespondAsync($"Custom command {cmd} already exists in the custom commands database.");
+                await message.RespondAsync($"{message.Author.Mention}, custom command {cmd} already exists in the custom commands database.");
             }
         }
     }

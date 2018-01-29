@@ -4,6 +4,7 @@
     {
         User,
         Supporter,
+        Moderator,
         Admin
     }
 }

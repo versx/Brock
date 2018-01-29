@@ -7,6 +7,7 @@
     using DSharpPlus;
     using DSharpPlus.Entities;
 
+    using BrockBot.Configuration;
     using BrockBot.Data;
     using BrockBot.Data.Models;
     using BrockBot.Extensions;
@@ -22,26 +23,29 @@
     )]
     public class PokeMeCommand : ICustomCommand
     {
+        public const int MaxPokemonSubscriptions = 25;
+
+        #region Variables
+
+        private readonly DiscordClient _client;
+        private readonly IDatabase _db;
+        private readonly Config _config;
+
+        #endregion
+
         #region Properties
 
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
-
-        public bool AdminCommand => false;
-
-        public bool SupporterCommand => true;
-
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
 
         #endregion
 
         #region Constructor
 
-        public PokeMeCommand(DiscordClient client, IDatabase db)
+        public PokeMeCommand(DiscordClient client, IDatabase db, Config config)
         {
-            Client = client;
-            Db = db;
+            _client = client;
+            _db = db;
+            _config = config;
         }
 
         #endregion
@@ -49,7 +53,11 @@
         public async Task Execute(DiscordMessage message, Command command)
         {
             if (!command.HasArgs) return;
-            if (command.Args.Count > 2) return;
+            if (command.Args.Count > 2)
+            {
+                await message.RespondAsync($"{message.Author.Mention} please provide correct values such as `{_config.CommandsPrefix}{command.Name} 25 97`, `{_config.CommandsPrefix}{command.Name} 25,26,89,90 100`");
+                return;
+            }
 
             //await message.IsDirectMessageSupported();
 
@@ -57,6 +65,9 @@
             var cmd = command.Args[0];
             //var cpArg = command.Args.Count == 1 ? "0" : command.Args[1];
             var ivArg = command.Args.Count == 1 ? "0" : command.Args[1];
+            //var lvlArg = command.Args.Count == 1 ? "0" : command.Args[2];
+
+            var isSupporter = (await _client.HasSupporterRole(author, _config.SupporterRoleId) || author == _config.OwnerId);
 
             //if (!int.TryParse(cpArg, out int cp))
             //{
@@ -70,11 +81,23 @@
                 return;
             }
 
+            //if (!int.TryParse(lvlArg, out int lvl))
+            //{
+            //    await message.RespondAsync($"{message.Author.Mention}, '{lvlArg}' is not a valid value for Level.");
+            //    return;
+            //}
+
             var alreadySubscribed = new List<string>();
             var subscribed = new List<string>();
 
             if (cmd == "*" || string.Compare(cmd.ToLower(), "all", true) == 0)
             {
+                if (!isSupporter)
+                {
+                    await message.RespondAsync($"{message.Author.Mention} non-supporter members have a limited notification amount of {MaxPokemonSubscriptions}, thus you may not use the 'all' parameter. Please narrow down your notification subscriptions to be more specific and try again.");
+                    return;
+                }
+
                 if (iv < 80)
                 {
                     await message.RespondAsync($"{message.Author.Mention} may not subscribe to all Pokemon with a minimum IV less than 80, please set something higher.");
@@ -88,23 +111,23 @@
                     //Always ignore the user's input for Unown and set it to 0 by default.
                     if (i == 201) iv = 0;
 
-                    var pokemon = Db.Pokemon[i.ToString()];
-                    if (!Db.SubscriptionExists(author))
+                    var pokemon = _db.Pokemon[i.ToString()];
+                    if (!_db.SubscriptionExists(author))
                     {
-                        Db.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon> { new Pokemon() { PokemonId = i, /*MinimumCP = cp,*/ MinimumIV = iv } }, new List<Pokemon>()));
+                        _db.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon> { new Pokemon() { PokemonId = i, /*MinimumCP = cp,*/ MinimumIV = iv } }, new List<Pokemon>()));
                     }
                     else
                     {
                         //User has already subscribed before, check if their new requested sub already exists.
-                        if (!Db[author].Pokemon.Exists(x => x.PokemonId == i))
+                        if (!_db[author].Pokemon.Exists(x => x.PokemonId == i))
                         {
-                            Db[author].Pokemon.Add(new Pokemon { PokemonId = i, MinimumIV = iv });
+                            _db[author].Pokemon.Add(new Pokemon { PokemonId = i, MinimumIV = iv });
                             subscribed.Add(pokemon.Name);
                         }
                         else
                         {
                             //Check if minimum IV value is different from value in database, if not add it to the already subscribed list.
-                            var subscribedPokemon = Db[author].Pokemon.Find(x => x.PokemonId == i);
+                            var subscribedPokemon = _db[author].Pokemon.Find(x => x.PokemonId == i);
                             if (iv != subscribedPokemon.MinimumIV)
                             {
                                 subscribedPokemon.MinimumIV = iv;
@@ -125,30 +148,36 @@
             foreach (var arg in cmd.Split(','))
             {
                 var index = Convert.ToUInt32(arg);
-                if (!Db.Pokemon.ContainsKey(index.ToString()))
+                if (!_db.Pokemon.ContainsKey(index.ToString()))
                 {
                     await message.RespondAsync($"{message.Author.Mention}, pokedex number {index} is not a valid Pokemon id.");
                     continue;
                 }
 
-                var pokemon = Db.Pokemon[index.ToString()];
-                if (!Db.SubscriptionExists(author))
+                var pokemon = _db.Pokemon[index.ToString()];
+                if (!_db.SubscriptionExists(author))
                 {
-                    Db.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon> { new Pokemon { PokemonId = index, /*MinimumCP = cp,*/ MinimumIV = iv } }, new List<Pokemon>()));
+                    _db.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon> { new Pokemon { PokemonId = index, /*MinimumCP = cp,*/ MinimumIV = iv } }, new List<Pokemon>()));
                     subscribed.Add(pokemon.Name);
                 }
                 else
                 {
                     //User has already subscribed before, check if their new requested sub already exists.
-                    if (!Db[author].Pokemon.Exists(x => x.PokemonId == index))
+                    if (!_db[author].Pokemon.Exists(x => x.PokemonId == index))
                     {
-                        Db[author].Pokemon.Add(new Pokemon { PokemonId = index, MinimumIV = iv });
+                        if (!isSupporter && _db[author].Pokemon.Count >= MaxPokemonSubscriptions)
+                        {
+                            await message.RespondAsync($"{message.Author.Mention} non-supporter members have a limited notification amount of {MaxPokemonSubscriptions}, please consider donating to lift this to every Pokemon. Otherwise you will need to remove some subscriptions in order to subscribe to new Pokemon.");
+                            return;
+                        }
+
+                        _db[author].Pokemon.Add(new Pokemon { PokemonId = index, MinimumIV = iv });
                         subscribed.Add(pokemon.Name);
                     }
                     else
                     {
                         //Check if minimum IV value is different from value in database, if not add it to the already subscribed list.
-                        var subscribedPokemon = Db[author].Pokemon.Find(x => x.PokemonId == index);
+                        var subscribedPokemon = _db[author].Pokemon.Find(x => x.PokemonId == index);
                         if (iv != subscribedPokemon.MinimumIV)
                         {
                             subscribedPokemon.MinimumIV = iv;

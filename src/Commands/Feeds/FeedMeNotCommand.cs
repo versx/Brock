@@ -12,8 +12,6 @@
     using BrockBot.Extensions;
     using BrockBot.Utilities;
 
-    //TODO: Parse feed cities with spaces, or replace all feeds with a single command.
-
     [Command(Categories.General,
         "Unassign yourself from a city feed's role.",
         "\tExample: `.feedmenot Ontario` (Leaves specified city)\r\n" +
@@ -24,6 +22,8 @@
     {
         public const string FeedAll = "All";
 
+        private readonly DiscordClient _client;
+        private readonly IDatabase _db;
         private readonly Config _config;
         private readonly IEventLogger _logger;
 
@@ -31,18 +31,14 @@
 
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
 
-        public DiscordClient Client { get; }
-
-        public IDatabase Db { get; }
-
         #endregion
 
         #region Constructor
 
         public FeedMeNotCommand(DiscordClient client, IDatabase db, Config config, IEventLogger logger)
         {
-            Client = client;
-            Db = db;
+            _client = client;
+            _db = db;
             _config = config;
             _logger = logger;
         }
@@ -57,7 +53,7 @@
 
             if (message.Channel.Guild == null)
             {
-                var channel = await Client.GetChannel(_config.CommandsChannelId);
+                var channel = await _client.GetChannel(_config.CommandsChannelId);
                 if (channel == null) return;
 
                 await message.RespondAsync($"Currently I only support city feed assignment via the channel #{channel.Name}, direct message support is coming soon.");
@@ -95,9 +91,9 @@
                             continue;
                         }
 
-                        var member = await Client.GetMemberFromUserId(message.Author.Id);
-                        var cityRole = Client.GetRoleFromName(city);
-                        var reason = $"User initiated city assignment removal via {AssemblyUtils.AssemblyName}.";
+                        var member = await _client.GetMemberFromUserId(message.Author.Id);
+                        var cityRole = _client.GetRoleFromName(city);
+                        var reason = $"{message.Author.Mention} initiated city assignment removal via {AssemblyUtils.AssemblyName}.";
                         var alreadyAssigned = false;
 
                         if (cityRole == null && city != FeedAll)
@@ -146,7 +142,7 @@
             var reason = "Default city role assignment removal.";
             foreach (var city in _config.CityRoles)
             {
-                var cityRole = Client.GetRoleFromName(city);
+                var cityRole = _client.GetRoleFromName(city);
                 if (cityRole == null)
                 {
                     //Failed to find role.
