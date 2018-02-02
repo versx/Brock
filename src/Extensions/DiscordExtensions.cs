@@ -8,11 +8,49 @@
     using DSharpPlus;
     using DSharpPlus.Entities;
 
-    using BrockBot.Data.Models;
+    using BrockBot.Configuration;
     using BrockBot.Utilities;
 
     public static class DiscordExtensions
     {
+        public static async Task<bool> IsSupporterOrHigher(this DiscordClient client, ulong userId, Config config)
+        {
+            var isAdmin = userId == config.OwnerId;
+            if (isAdmin) return true;
+
+            var isModerator = config.Moderators.Contains(userId);
+            if (isModerator) return true;
+
+            var isSupporter = await client.HasSupporterRole(userId, config.SupporterRoleId);
+            if (isSupporter) return true;
+
+            var isElite = await client.HasSupporterRole(userId, config.TeamEliteRoleId);
+            if (isElite) return true;
+
+            return false;
+        }
+
+        public static bool IsModeratorOrHigher(this ulong userId, Config config)
+        {
+            var isAdmin = userId == config.OwnerId;
+            if (isAdmin) return true;
+
+            var isModerator = config.Moderators.Contains(userId);
+            if (isModerator) return true;
+
+            return false;
+        }
+
+        public static bool IsModerator(this ulong userId, Config config)
+        {
+            return config.Moderators.Contains(userId);
+        }
+
+        public static bool IsAdmin(this ulong userId, Config config)
+        {
+            return userId == config.OwnerId;
+        }
+
         #region Channel Extensions
 
         public static async Task IsDirectMessageSupported(this DiscordMessage message)
@@ -55,6 +93,30 @@
         #endregion
 
         #region Role Extensions
+
+        public static async Task<bool> AssignRole(this DiscordClient client, DiscordMember member, string roleName)
+        {
+            var role = client.GetRoleFromName(roleName);
+            if (role == null)
+            {
+                Utils.LogError(new Exception($"Failed to find role '{roleName}'."));
+                return false;
+            }
+
+            if (member.HasRole(role.Id)) return true;
+
+            try
+            {
+                await member.GrantRoleAsync(role);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Utils.LogError(ex);
+            }
+
+            return false;
+        }
 
         public static DiscordRole GetRoleFromName(this DiscordClient client, string roleName)
         {
@@ -272,6 +334,7 @@
             return null;
         }
 
+        #region Old Raid Lobby System
         //public static async Task<DiscordMessage> UpdateLobbyStatus(this DiscordClient client, RaidLobby lobby)
         //{
         //    if (lobby == null)
@@ -363,6 +426,7 @@
         //           $"Address: {lobby.Address}\r\n\r\n" +
         //           await RaidLobbyUserStatus(client, lobby);
         //}
+        #endregion
 
         #endregion
 

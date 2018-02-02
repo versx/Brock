@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Threading.Tasks;
 
     using DSharpPlus;
@@ -61,7 +62,7 @@
                 return;
             }
 
-            scanList.Sort((x, y) => Convert.ToInt32(x).CompareTo(Convert.ToInt32(y)));
+            scanList.OrderBy(Convert.ToInt32);
             var pokemon = new List<string>();
 
             foreach (var pkmn in scanList)

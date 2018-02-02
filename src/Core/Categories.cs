@@ -14,6 +14,8 @@
 
         public const string Reminders = "Reminders";
 
+        public const string Voting = "Voting";
+
         public const string RaidLobby = "Raid Lobby";
 
         public const string CustomCommands = "Custom Commands";

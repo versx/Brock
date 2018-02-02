@@ -43,6 +43,8 @@
                 bot.RegisterCommand<DonateCommand>();
                 bot.RegisterCommand<ScanListCommand>();
                 bot.RegisterCommand<NearbyNestsCommand>();
+                bot.RegisterCommand<GoogleCommand>();
+                bot.RegisterCommand<DoorCommand>();
                 bot.RegisterCommand<CheckApiCommand>();
                 bot.RegisterCommand<VersionCommand>();
 
@@ -81,6 +83,7 @@
 
                 //Moderator Commands
                 bot.RegisterCommand<AssignEliteCommand>();
+                bot.RegisterCommand<SetEncounterListCommand>();
 
                 //Administrative Commands
                 bot.RegisterCommand<CreateRolesCommand>();
@@ -90,7 +93,6 @@
                 bot.RegisterCommand<SetCommand>();
                 bot.RegisterCommand<SayCommand>();
                 //bot.RegisterCommand<LeaveGuildCommand>();
-                bot.RegisterCommand<SetEncounterListCommand>();
                 bot.RegisterCommand<SwitchAccountsCommand>();
                 bot.RegisterCommand<RestartCommand>();
                 bot.RegisterCommand<ShutdownCommand>();

@@ -131,8 +131,10 @@
     <Compile Include="Commands\Administrative\LeaveGuildCommand.cs" />
     <Compile Include="Commands\Administrative\Twitter\ListTwitterCommand.cs" />
     <Compile Include="Commands\Administrative\SayCommand.cs" />
-    <Compile Include="Commands\Feeds\SetEncounterListCommand.cs" />
+    <Compile Include="Commands\Moderator\SetEncounterListCommand.cs" />
     <Compile Include="Commands\General\CheckApiCommand.cs" />
+    <Compile Include="Commands\General\DoorCommand.cs" />
+    <Compile Include="Commands\General\GoogleCommand.cs" />
     <Compile Include="Commands\General\ScanListCommand.cs" />
     <Compile Include="Commands\Moderator\AssignEliteCommand.cs" />
     <Compile Include="Commands\RaidLobbies\CreateRaidLobbyCommand.cs" />
@@ -171,6 +173,7 @@
     <Compile Include="Commands\Reminders\DeleteReminderCommand.cs" />
     <Compile Include="Commands\Reminders\GetRemindersCommand.cs" />
     <Compile Include="Commands\Reminders\SetReminderCommand.cs" />
+    <Compile Include="Commands\Voting\CreateVoteCommand.cs" />
     <Compile Include="Configuration\AdvertisementConfig.cs" />
     <Compile Include="Configuration\Config.cs" />
     <Compile Include="Configuration\FeedStatusConfig.cs" />
@@ -182,6 +185,8 @@
     <Compile Include="Core\CommandList.cs" />
     <Compile Include="Core\CommandPermissionAttribute.cs" />
     <Compile Include="Core\CommandPermissionLevel.cs" />
+    <Compile Include="Extensions\HelpExtensions.cs" />
+    <Compile Include="Services\AdvertisementService.cs" />
     <Compile Include="Services\RaidLobby\RaidLobbyEta.cs" />
     <Compile Include="Services\RaidLobby\RaidLobbySettings.cs" />
     <Compile Include="Data\Models\Donator.cs" />
@@ -200,7 +205,6 @@
     <Compile Include="Data\Models\PokemonType.cs" />
     <Compile Include="Data\Models\RaidLobby.cs" />
     <Compile Include="Data\Models\RaidLobbyUser.cs" />
-    <Compile Include="Data\Models\Server.cs" />
     <Compile Include="Data\Models\Subscription.cs" />
     <Compile Include="Diagnostics\EventLogger.cs" />
     <Compile Include="Diagnostics\IEventLogger.cs" />
@@ -217,8 +221,10 @@
     <Compile Include="Services\NotificationProcessor.cs" />
     <Compile Include="Services\ReminderService.cs" />
     <Compile Include="Services\TaskManager.cs" />
+    <Compile Include="Services\TweetService.cs" />
     <Compile Include="Utilities\AssemblyUtils.cs" />
     <Compile Include="Utilities\DiscordHelpers.cs" />
+    <Compile Include="Utilities\NetUtils.cs" />
     <Compile Include="Utilities\Utils.cs" />
   </ItemGroup>
   <ItemGroup>

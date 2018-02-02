@@ -67,8 +67,6 @@
             var ivArg = command.Args.Count == 1 ? "0" : command.Args[1];
             //var lvlArg = command.Args.Count == 1 ? "0" : command.Args[2];
 
-            var isSupporter = (await _client.HasSupporterRole(author, _config.SupporterRoleId) || author == _config.OwnerId);
-
             //if (!int.TryParse(cpArg, out int cp))
             //{
             //    await message.RespondAsync($"'{cpArg}' is not a valid value for CP.");
@@ -92,6 +90,7 @@
 
             if (cmd == "*" || string.Compare(cmd.ToLower(), "all", true) == 0)
             {
+                var isSupporter = await _client.IsSupporterOrHigher(author, _config);
                 if (!isSupporter)
                 {
                     await message.RespondAsync($"{message.Author.Mention} non-supporter members have a limited notification amount of {MaxPokemonSubscriptions}, thus you may not use the 'all' parameter. Please narrow down your notification subscriptions to be more specific and try again.");
@@ -147,37 +146,38 @@
 
             foreach (var arg in cmd.Split(','))
             {
-                var index = Convert.ToUInt32(arg);
-                if (!_db.Pokemon.ContainsKey(index.ToString()))
+                var pokeId = Convert.ToUInt32(arg);
+                if (!_db.Pokemon.ContainsKey(pokeId.ToString()))
                 {
-                    await message.RespondAsync($"{message.Author.Mention}, pokedex number {index} is not a valid Pokemon id.");
+                    await message.RespondAsync($"{message.Author.Mention}, pokedex number {pokeId} is not a valid Pokemon id.");
                     continue;
                 }
 
-                var pokemon = _db.Pokemon[index.ToString()];
+                var pokemon = _db.Pokemon[pokeId.ToString()];
                 if (!_db.SubscriptionExists(author))
                 {
-                    _db.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon> { new Pokemon { PokemonId = index, /*MinimumCP = cp,*/ MinimumIV = iv } }, new List<Pokemon>()));
+                    _db.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon> { new Pokemon { PokemonId = pokeId, /*MinimumCP = cp,*/ MinimumIV = iv } }, new List<Pokemon>()));
                     subscribed.Add(pokemon.Name);
                 }
                 else
                 {
                     //User has already subscribed before, check if their new requested sub already exists.
-                    if (!_db[author].Pokemon.Exists(x => x.PokemonId == index))
+                    if (!_db[author].Pokemon.Exists(x => x.PokemonId == pokeId))
                     {
+                        var isSupporter = await _client.IsSupporterOrHigher(author, _config);
                         if (!isSupporter && _db[author].Pokemon.Count >= MaxPokemonSubscriptions)
                         {
                             await message.RespondAsync($"{message.Author.Mention} non-supporter members have a limited notification amount of {MaxPokemonSubscriptions} different Pokemon, please consider donating to lift this to every Pokemon. Otherwise you will need to remove some subscriptions in order to subscribe to new Pokemon.");
                             return;
                         }
 
-                        _db[author].Pokemon.Add(new Pokemon { PokemonId = index, MinimumIV = iv });
+                        _db[author].Pokemon.Add(new Pokemon { PokemonId = pokeId, MinimumIV = iv });
                         subscribed.Add(pokemon.Name);
                     }
                     else
                     {
                         //Check if minimum IV value is different from value in database, if not add it to the already subscribed list.
-                        var subscribedPokemon = _db[author].Pokemon.Find(x => x.PokemonId == index);
+                        var subscribedPokemon = _db[author].Pokemon.Find(x => x.PokemonId == pokeId);
                         if (iv != subscribedPokemon.MinimumIV)
                         {
                             subscribedPokemon.MinimumIV = iv;

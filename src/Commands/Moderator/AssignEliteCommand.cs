@@ -6,13 +6,14 @@
     using DSharpPlus;
     using DSharpPlus.Entities;
 
+    using BrockBot.Configuration;
     using BrockBot.Diagnostics;
     using BrockBot.Extensions;
     using BrockBot.Utilities;
 
     [Command(Categories.Moderator,
-        "Assigns a member a role.",
-        "\tExample: `.elite @mention` (Assigns the mentioned member the " + AssignEliteCommand.TeamEliteRole + " role.)",
+        "Assigns a member the " + TeamEliteRole + " and " + EastLA + " roles.",
+        "\tExample: `.elite @mention` (Assigns the mentioned member the " + TeamEliteRole + " and " + EastLA + " roles.)",
         "elite"
     )]
     public class AssignEliteCommand : ICustomCommand
@@ -21,13 +22,15 @@
         public const string EastLA = "EastLA";
 
         private readonly DiscordClient _client;
+        private readonly Config _config;
         private readonly IEventLogger _logger;
 
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Moderator;
 
-        public AssignEliteCommand(DiscordClient client, IEventLogger logger)
+        public AssignEliteCommand(DiscordClient client, Config config, IEventLogger logger)
         {
             _client = client;
+            _config = config;
             _logger = logger;
         }
 
@@ -36,7 +39,7 @@
             if (command.Args.Count != 1) return;
 
             var mention = command.Args[0];
-            var userId = ConvertMentionToUserId(mention);
+            var userId = DiscordHelpers.ConvertMentionToUserId(mention);
             if (userId == 0)
             {
                 await message.RespondAsync($"{message.Author.Mention}, failed to find user {mention}.");
@@ -50,65 +53,17 @@
                 return;
             }
 
-            var role = _client.GetRoleFromName(TeamEliteRole);
-            if (role == null)
+            if (!await _client.AssignRole(member, TeamEliteRole))
             {
-                _logger.Error($"Failed to find role '{TeamEliteRole}'.");
-                return;
+                await message.RespondAsync($"{message.Author.Mention} failed to assign {mention} the {TeamEliteRole} role. Please check my permissions and that the role exists.");
             }
 
-            if (!member.HasRole(role.Id))
+            if (!await _client.AssignRole(member, EastLA))
             {
-                //await message.RespondAsync($"{message.Author.Mention}, {member.Username} is already assigned {TeamEliteRole} role.");
-                //return;
-
-                try
-                {
-                    await member.GrantRoleAsync(role);
-                    await message.RespondAsync($"{message.Author.Mention} has assigned {mention} the {TeamEliteRole} role.");
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error(ex);
-                    await message.RespondAsync($"{message.Author.Mention}, failed to assign role {TeamEliteRole} to {mention}, please check my permissions.");
-                }
+                await message.RespondAsync($"{message.Author.Mention} failed to assign {mention} the {EastLA} role. Please check my permissions and that the role exists.");
             }
 
-            var laRole = _client.GetRoleFromName(EastLA);
-            if (laRole == null)
-            {
-                _logger.Error($"Failed to find role '{EastLA}'.");
-                return;
-            }
-
-            if (!member.HasRole(laRole.Id))
-            {
-                try
-                {
-                    await member.GrantRoleAsync(laRole);
-                    await message.RespondAsync($"{message.Author.Mention} has assigned {mention} the {EastLA} role.");
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error(ex);
-                    await message.RespondAsync($"{message.Author.Mention}, failed to assign role {EastLA} to {mention}, please check my permissions.");
-                }
-            }
-        }
-
-        private ulong ConvertMentionToUserId(string mention)
-        {
-            //<@201909896357216256>
-            mention = Utils.GetBetween(mention, "<", ">");
-            mention = mention.Replace("@", null);
-            mention = mention.Replace("!", null);
-
-            if (ulong.TryParse(mention, out ulong result))
-            {
-                return result;
-            }
-
-            return 0;
+            await message.RespondAsync($"{message.Author.Mention} assigned {mention} the {TeamEliteRole} and {EastLA} roles.");
         }
     }
 }

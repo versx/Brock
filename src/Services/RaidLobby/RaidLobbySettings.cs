@@ -6,7 +6,7 @@
 
     public class RaidLobbySettings
     {
-        public RaidLobby Lobby { get; set; }
+        //public RaidLobby Lobby { get; set; }
 
         public DiscordChannel OriginalRaidMessageChannel { get; set; }
 

@@ -9,6 +9,7 @@
 
     using BrockBot.Configuration;
     using BrockBot.Data;
+    using BrockBot.Data.Models;
     using BrockBot.Diagnostics;
     using BrockBot.Extensions;
     using BrockBot.Net;
@@ -16,10 +17,24 @@
 
     public class NotificationProcessor
     {
+        #region Constants
+
+        public const int NotificationTimeout = 10;
+        public const int MaxNotificationsPerDayNormal = 25;
+        public const int MaxNotificationsPerDaySupporter = 100;
+
+        #endregion
+
+        #region Variables
+
         private readonly DiscordClient _client;
         private readonly IDatabase _db;
         private readonly Config _config;
         private readonly IEventLogger _logger;
+
+        #endregion
+
+        #region Constructor
 
         public NotificationProcessor(DiscordClient client, IDatabase db, Config config, IEventLogger logger)
         {
@@ -28,6 +43,8 @@
             _config = config;
             _logger = logger;
         }
+
+        #endregion
 
         #region Public Methods
 
@@ -55,61 +72,26 @@
                 var pokemon = _db.Pokemon[subscribedPokemon.PokemonId.ToString()];
                 if (pokemon == null) continue;
 
-                //if (ignoreMissingCPIV && (pkmn.CP == "?" || pkmn.IV == "?") && subscribedPokemon.MinimumIV > 0) continue;
+                var matchesIV = MatchesIvFilter(pkmn.IV, subscribedPokemon.MinimumIV);
+                //var matchesCP = MatchesCpFilter(pkmn.CP, subscribedPokemon.MinimumCP);
+                //var matchesLvl = MatchesLvlFilter(pkmn.PlayerLevel, subscribedPokemon.MinimumLevel);
 
-                var matchesIV = false;
-                if (pkmn.IV != "?")
-                {
-                    if (!int.TryParse(pkmn.IV.Replace("%", ""), out int resultIV))
-                    {
-                        _logger.Error($"Failed to parse pokemon IV value '{pkmn.IV}', skipping filter check.");
-                        continue;
-                    }
-
-                    matchesIV |= resultIV >= subscribedPokemon.MinimumIV;
-                }
-
-                //var matchesCP = false;
-                //if (pkmn.CP != "?")
-                //{
-                //    if (!int.TryParse(pkmn.CP, out int resultCP))
-                //    {
-                //        Logger.Error($"Failed to parse pokemon CP {pkmn.CP}, skipping filter check.");
-                //        continue;
-                //    }
-
-                //    matchesCP |= resultCP >= subscribedPokemon.MinimumCP;
-                //}
-
-                //var matchesLvl = false;
-                //if (pkmn.PlayerLevel != "?")
-                //{
-                //    if (!int.TryParse(pkmn.PlayerLevel, out int resultLvl))
-                //    {
-                //        _logger.Error($"Failed to parse pokemon level value '{pkmn.PlayerLevel}', skipping filter check.");
-                //        continue;
-                //    }
-
-                //    matchesLvl |= resultLvl >= subscribedPokemon.MinimumLevel;
-                //}
-
-                if (pkmn.IV == "?" && subscribedPokemon.MinimumIV == 0)
-                {
-                    matchesIV = true;
-                }
-
-                if (!matchesIV) continue;
                 //if (!(matchesIV || matchesCP || matchesLvl)) continue;
+                if (!matchesIV) continue;
 
                 _logger.Info($"Notifying user {discordUser.Username} that a {pokemon.Name} CP{pkmn.CP} {pkmn.IV} IV L{pkmn.PlayerLevel} has spawned...");
 
                 var embed = await BuildEmbedPokemon(pkmn, user.UserId);
                 if (embed == null) continue;
 
+                if (await CheckIfExceededNotificationLimit(user)) return;
+
+                user.NotificationsToday++;
+
                 Notify(pokemon.Name, embed);
 
                 await _client.SendDirectMessage(discordUser, string.Empty, embed);
-                await Utils.Wait(10);
+                await Utils.Wait(NotificationTimeout);
             }
         }
 
@@ -144,10 +126,14 @@
                 var embed = await BuildEmbedRaid(raid, user.UserId);
                 if (embed == null) continue;
 
+                if (await CheckIfExceededNotificationLimit(user)) return;
+
+                user.NotificationsToday++;
+
                 Notify(pokemon.Name, embed);
 
                 await _client.SendDirectMessage(discordUser, string.Empty, embed);
-                await Utils.Wait(10);
+                await Utils.Wait(NotificationTimeout);
             }
         }
 
@@ -192,12 +178,12 @@
 
             var eb = new DiscordEmbedBuilder
             {
-                Title = loc == null || string.IsNullOrEmpty(loc.City) ? "DIRECTIONS" : loc.City,
-                Description = $"{pkmn.Name}{Helpers.GetPokemonGender(pokemon.Gender)} {pokemon.CP}CP {pokemon.IV} LV{pokemon.PlayerLevel} has spawned!",
-                Url = string.Format(HttpServer.GoogleMaps, pokemon.Latitude, pokemon.Longitude),
-                ImageUrl = string.Format(HttpServer.GoogleMapsImage, pokemon.Latitude, pokemon.Longitude),
+                Title        = loc == null || string.IsNullOrEmpty(loc.City) ? "DIRECTIONS" : loc.City,
+                Description  = $"{pkmn.Name}{Helpers.GetPokemonGender(pokemon.Gender)} {pokemon.CP}CP {pokemon.IV} LV{pokemon.PlayerLevel} has spawned!",
+                Url          = string.Format(HttpServer.GoogleMaps, pokemon.Latitude, pokemon.Longitude),
+                ImageUrl     = string.Format(HttpServer.GoogleMapsImage, pokemon.Latitude, pokemon.Longitude),
                 ThumbnailUrl = string.Format(HttpServer.PokemonImage, pokemon.PokemonId),
-                Color = DiscordHelpers.BuildColor(pokemon.IV)
+                Color        = DiscordHelpers.BuildColor(pokemon.IV)
             };
 
             eb.AddField($"{pkmn.Name} (#{pokemon.PokemonId}, {pokemon.Gender})", $"CP: {pokemon.CP} IV: {pokemon.IV} (Sta: {pokemon.Stamina}/Atk: {pokemon.Attack}/Def: {pokemon.Defense}) LV: {pokemon.PlayerLevel}");
@@ -249,12 +235,12 @@
 
             var eb = new DiscordEmbedBuilder
             {
-                Title = loc == null || string.IsNullOrEmpty(loc.City) ? "DIRECTIONS" : loc.City,
-                Description = $"{pkmn.Name} raid is available!",
-                Url = string.Format(HttpServer.GoogleMaps, raid.Latitude, raid.Longitude),
-                ImageUrl = string.Format(HttpServer.GoogleMapsImage, raid.Latitude, raid.Longitude),
+                Title        = loc == null || string.IsNullOrEmpty(loc.City) ? "DIRECTIONS" : loc.City,
+                Description  = $"{pkmn.Name} raid is available!",
+                Url          = string.Format(HttpServer.GoogleMaps, raid.Latitude, raid.Longitude),
+                ImageUrl     = string.Format(HttpServer.GoogleMapsImage, raid.Latitude, raid.Longitude),
                 ThumbnailUrl = string.Format(HttpServer.PokemonImage, raid.PokemonId),
-                Color = DiscordHelpers.BuildRaidColor(Convert.ToInt32(raid.Level))
+                Color        = DiscordHelpers.BuildRaidColor(Convert.ToInt32(raid.Level))
             };
 
             var fixedEndTime = DateTime.Parse(raid.EndTime.ToLongTimeString());
@@ -302,9 +288,9 @@
             Console.WriteLine($"********** {pokemon} FOUND **********");
             Console.WriteLine("***********************************");
             Console.WriteLine(DateTime.Now.ToString());
-            //Console.WriteLine("Title: \t\t{0}", embed.Title); //DIRECTIONS
-            Console.WriteLine(embed.Description); //CP, IV, etc...
-            Console.WriteLine(embed.Url); //GMaps link
+            Console.WriteLine("Title: \t\t{0}", embed.Title);
+            Console.WriteLine(embed.Description);
+            Console.WriteLine(embed.Url);
             Console.WriteLine("***********************************");
             Console.WriteLine();
             Console.ResetColor();
@@ -315,7 +301,115 @@
             return city
                 .Replace("Rancho Cucamonga", "Upland")
                 .Replace("La Verne", "Pomona")
+                .Replace("Los Angeles", "EastLA")
+                .Replace("East Los Angeles", "EastLA")
+                .Replace("Commerce", "EastLA")
                 .Replace("Santa Fe Springs", "Whittier");
+        }
+
+        private async Task<bool> CheckIfExceededNotificationLimit(Subscription<Pokemon> user)
+        {
+            var hasExceeded = await HasExceededNotificationLimit(user);
+            if (hasExceeded)
+            {
+                var discordUser = await _client.GetUser(user.UserId);
+                if (discordUser == null)
+                {
+                    _logger.Error($"Failed to find user with id {user.UserId}.");
+                    return false;
+                }
+
+                if (user.Notified) return true;
+
+                //TODO: Send direct message explaining to adjust settings.
+                await _client.SendDirectMessage(discordUser, "You've exceeded the maximum amount of notifications for today, to increase this limit please consider donating in order to keep the feeds active. You may want to adjust your notification settings so you don't exceed this limit again and possibly miss an important one.", null);
+                user.Notified = true;
+            }
+
+            return hasExceeded;
+        }
+
+        private async Task<bool> HasExceededNotificationLimit(Subscription<Pokemon> user)
+        {
+            var isModerator = user.UserId.IsModeratorOrHigher(_config);
+            if (isModerator) return false;
+
+            var isSupporter = await _client.HasSupporterRole(user.UserId, _config.SupporterRoleId);
+            if (isSupporter)
+            {
+                if (user.NotificationsToday >= MaxNotificationsPerDaySupporter)
+                {
+                    return true;
+                }
+            }
+
+            if (user.NotificationsToday >= MaxNotificationsPerDayNormal)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        #endregion
+
+        #region Filter Checks
+
+        private bool MatchesIvFilter(string iv, int minimumIV)
+        {
+            var matchesIV = false;
+            if (iv != "?")
+            {
+                if (!double.TryParse(iv.Replace("%", ""), out double resultIV))
+                {
+                    _logger.Error($"Failed to parse pokemon IV value '{iv}', skipping filter check.");
+                    return false;
+                }
+
+                matchesIV |= Math.Round(resultIV) >= minimumIV;
+            }
+
+            matchesIV |= (iv == "?" && minimumIV == 0);
+
+            return matchesIV;
+        }
+
+        private bool MatchesCpFilter(string cp, int minimumCP)
+        {
+            var matchesCP = false;
+            if (cp != "?")
+            {
+                if (!int.TryParse(cp, out int resultCP))
+                {
+                    _logger.Error($"Failed to parse pokemon CP value '{cp}', skipping filter check.");
+                    return false;
+                }
+
+                matchesCP |= resultCP >= minimumCP;
+            }
+
+            matchesCP |= (cp == "?" && minimumCP == 0);
+
+            return matchesCP;
+        }
+
+        private bool MatchesLvlFilter(string lvl, int minimumLvl)
+        {
+            var matchesLvl = false;
+            if (lvl != "?")
+            {
+                if (!int.TryParse(lvl, out int resultLvl))
+                {
+                    _logger.Error($"Failed to parse pokemon level value '{lvl}', skipping filter check.");
+                    return false;
+                }
+
+                matchesLvl |= resultLvl >= minimumLvl;
+            }
+
+            matchesLvl |= (lvl == "?" && minimumLvl == 0);
+
+            return matchesLvl;
         }
 
         #endregion

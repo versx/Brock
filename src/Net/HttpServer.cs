@@ -75,8 +75,14 @@
             var server = new HttpListener();
             try
             {
+                //TODO: Requires administrative privileges
+                var internalAddr = NetUtils.GetLocalIPv4();
+                if (!server.Prefixes.Contains($"http://{internalAddr}:{_config.WebHookPort}/"))
+                    server.Prefixes.Add($"http://{internalAddr}:{_config.WebHookPort}/");
+
                 if (!server.Prefixes.Contains($"http://127.0.0.1:{_config.WebHookPort}/"))
                     server.Prefixes.Add($"http://127.0.0.1:{_config.WebHookPort}/");
+
                 if (!server.Prefixes.Contains($"http://localhost:{_config.WebHookPort}/"))
                     server.Prefixes.Add($"http://localhost:{_config.WebHookPort}/");
             }

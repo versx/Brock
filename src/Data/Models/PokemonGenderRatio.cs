@@ -11,14 +11,4 @@
         [JsonProperty("female")]
         public double Female { get; set; }
     }
-
-    //[JsonObject("genderRatio")]
-    //public class PokemonGenderRatioOld
-    //{
-    //    [JsonProperty("M")]
-    //    public double Male { get; set; }
-
-    //    [JsonProperty("F")]
-    //    public double Female { get; set; }
-    //}
 }

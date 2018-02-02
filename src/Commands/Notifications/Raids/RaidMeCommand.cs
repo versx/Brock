@@ -19,7 +19,7 @@
         "\tExample: `.raidme Tyranitar,Magikarp` (Subscribe to Tyranitar and Magikarp raid notifications.)",
         "raidme"
     )]
-    public class RaidMeCommand: ICustomCommand
+    public class RaidMeCommand : ICustomCommand
     {
         public const int MaxRaidSubscriptions = 5;
 
@@ -58,8 +58,6 @@
             var author = message.Author.Id;
             var cmd = command.Args[0];
 
-            var isSupporter = await _client.HasSupporterRole(author, _config.SupporterRoleId);
-
             var alreadySubscribed = new List<string>();
             var subscribed = new List<string>();
 
@@ -84,6 +82,7 @@
                 var subs = _db[author];
                 if (!subs.Raids.Exists(x => x.PokemonId == pokeId))
                 {
+                    var isSupporter = await _client.IsSupporterOrHigher(author, _config);
                     if (!isSupporter && _db[author].Raids.Count >= MaxRaidSubscriptions)
                     {
                         await message.RespondAsync($"{message.Author.Mention} non-supporter members have a limited notification amount of {MaxRaidSubscriptions} different raid bosses, please consider donating to lift this to every raid Pokemon. Otherwise you will need to remove some subscriptions in order to subscribe to new raid Pokemon.");

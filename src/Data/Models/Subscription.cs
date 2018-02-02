@@ -10,23 +10,23 @@
     [JsonObject("subscription")]
     public class Subscription<T>
     {
-        [XmlAttribute("userId")]
         [JsonProperty("userId")]
         public ulong UserId { get; set; }
-
-        [XmlArrayItem("pokemon")]
-        [XmlArray("pokemonSubscriptions")]
+        
         [JsonProperty("pokemon")]
         public List<T> Pokemon { get; set; }
-
-        [XmlArrayItem("raid")]
-        [XmlArray("raidSubscriptions")]
+        
         [JsonProperty("raids")]
         public List<T> Raids { get; set; }
         
-        [XmlAttribute("enabled")]
         [JsonProperty("enabled")]
         public bool Enabled { get; set; }
+
+        [JsonProperty("notificationsToday")]
+        public ulong NotificationsToday { get; set; }
+
+        [JsonIgnore]
+        public bool Notified { get; set; }
 
         public Subscription()
         {
@@ -41,6 +41,12 @@
             Pokemon = pokemon;
             Raids = raids;
             Enabled = true;
+        }
+
+        public void ResetNotifications()
+        {
+            NotificationsToday = 0;
+            Notified = false;
         }
     }
 }

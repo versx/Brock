@@ -21,31 +21,29 @@
     using DSharpPlus.Entities;
     using DSharpPlus.EventArgs;
 
-    using Stream = Tweetinvi.Stream;
-    using Tweetinvi;
-    using Tweetinvi.Models;
-    using Tweetinvi.Streaming;
-    using Tweetinvi.Streaming.Parameters;
-
     //TODO: Add rate limiter to prevent spam.
     //TODO: Notify via SMS or Email or Twilio or w/e.
     //TODO: Add support for pokedex # or name for Pokemon and Raid subscriptions.
     //TODO: Keep track of supporters, have a command to check if a paypal email etc or username rather has donated.
     //TODO: Add response messages to invalid commands/arguments provided.
 
-    //TODO: Parse feed cities with spaces, or replace all feeds with a single command?
+    //TODO: Keep track of notifications a day per user, add a limit per day, etc.
+    //TODO: Cut off normal user's notifications after the free limit.
+    //TODO: Notify the user if their settings are too low and are sending too many notifications.
+
+    //TODO: Debug DM responses for raid lobbies.
+    //TODO: Add RaidLobbyEta.Late
 
     public class FilterBot
     {
         #region Constants
 
         public const string BotName = "Brock";
-        public static string DefaultAdvertisementMessage;
-        public const int DefaultAdvertisementMessageDifference = 10;
         public const int OneSecond = 1000;
         public const int OneMinute = OneSecond * 60;
         public const int OneHour = OneMinute * 60;
         public const string UnauthorizedAttemptsFileName = "unauthorized_attempts.txt";
+        public const string DefaultCrashMessage = "I JUST CRASHED!";
 
         #endregion
 
@@ -56,11 +54,24 @@
         private readonly Database _db;
         private readonly Random _rand;
         private Timer _timer;
-        private Timer _adTimer;
-        private IFilteredStream _twitterStream;
 
         private readonly ReminderService _reminderSvc;
         private readonly NotificationProcessor _notificationProcessor;
+        private AdvertisementService _advertSvc;
+        private readonly TweetService _tweetSvc;
+        private List<string> _validRaidEmojis = new List<string>
+        {
+            "➡",
+            "✅",
+            "❌",
+            "1⃣",
+            "2⃣",
+            "3⃣",
+            "4⃣",
+            "5⃣",
+            "🔟",
+            "🔄"
+        };
 
         #endregion
 
@@ -112,6 +123,7 @@
 
             _reminderSvc = new ReminderService(_client, _db, Logger);
             _notificationProcessor = new NotificationProcessor(_client, _db, _config, Logger);
+            _tweetSvc = new TweetService(_client, _config, Logger);
         }
 
         #endregion
@@ -155,12 +167,12 @@
             }
 
             await Utils.Wait(3 * OneSecond);
-            await Init();
 
-            _adTimer = new Timer { Interval = _config.Advertisement.PostInterval * OneMinute };
-            _adTimer.Elapsed += AdvertisementTimer_Elapsed;
-            _adTimer.Start();
-            //AdvertisementTimer_Elapsed(this, null);
+            if (_advertSvc == null)
+            {
+                _advertSvc = new AdvertisementService(_client, _config, Logger);
+                await _advertSvc.Start();
+            }
         }
 
         private async Task Client_MessageCreated(MessageCreateEventArgs e)
@@ -271,28 +283,33 @@
 
         private async Task Client_MessageReactionAdded(MessageReactionAddEventArgs e)
         {
-            var isSupporter = await _client.HasSupporterRole(e.User.Id, _config.SupporterRoleId);
-            var isOwner = e.Message.Author.Id == _config.OwnerId;
-            if (!(isSupporter || isOwner))
-            {
-                await e.Message.RespondAsync($"{e.User.Username} does not have the supporter role assigned.");
-                return;
-            }
+            if (!_validRaidEmojis.Contains(e.Emoji.Name)) return;
 
             if (e.Message.Channel.Guild == null)
             {
+                if (e.User.IsBot) return;
+
+                var hasPrivilege = await _client.IsSupporterOrHigher(e.User.Id, _config);
+                if (!hasPrivilege)
+                {
+                    await e.Message.RespondAsync($"{e.User.Username} does not have the supporter role assigned.");
+                    return;
+                }
+
                 var origMessageId = Convert.ToUInt64(Utils.GetBetween(e.Message.Content, "#", "#"));
-                var settings = await GetRaidLobbySettings(origMessageId, e.Message, e.Channel);
+                var lobby = GetLobby(e.Channel, ref origMessageId);
 
-                await e.Message.DeleteReactionAsync(e.Emoji, e.User);
-
-                var lobMessage = default(DiscordMessage);
-                var embedMsg = settings.RaidMessage?.Embeds[0];
+                var settings = await GetRaidLobbySettings(lobby, origMessageId, e.Message, e.Channel);
                 if (settings == null)
                 {
                     Logger.Error($"Failed to find raid lobby settings for original raid message id {origMessageId}.");
                     return;
                 }
+
+                await e.Message.DeleteReactionAsync(e.Emoji, e.User);
+
+                var lobMessage = default(DiscordMessage);
+                var embedMsg = settings.RaidMessage?.Embeds[0];
 
                 switch (e.Emoji.Name)
                 {
@@ -305,25 +322,27 @@
                     //case "4⃣":
                     //    break;
                     case "5⃣":
-                        settings.Lobby.UsersComing[e.User.Id].Eta = RaidLobbyEta.Five;
-                        settings.Lobby.UsersComing[e.User.Id].EtaStart = DateTime.Now;
-                        lobMessage = await UpdateRaidLobbyMessage(settings.Lobby, settings.RaidLobbyChannel, embedMsg);
+                        lobby.UsersComing[e.User.Id].Eta = RaidLobbyEta.Five;
+                        lobby.UsersComing[e.User.Id].EtaStart = DateTime.Now;
+                        lobMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embedMsg);
                         await e.Message.DeleteAllReactionsAsync();
                         break;
                     case "🔟":
-                        settings.Lobby.UsersComing[e.User.Id].Eta = RaidLobbyEta.Ten;
-                        settings.Lobby.UsersComing[e.User.Id].EtaStart = DateTime.Now;
-                        lobMessage = await UpdateRaidLobbyMessage(settings.Lobby, settings.RaidLobbyChannel, embedMsg);
+                        lobby.UsersComing[e.User.Id].Eta = RaidLobbyEta.Ten;
+                        lobby.UsersComing[e.User.Id].EtaStart = DateTime.Now;
+                        lobMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embedMsg);
                         await e.Message.DeleteAllReactionsAsync();
                         break;
                     case "❌":
-                        if (!settings.Lobby.UsersComing.ContainsKey(e.User.Id))
+                        if (!lobby.UsersComing.ContainsKey(e.User.Id))
                         {
-                            settings.Lobby.UsersComing.Remove(e.User.Id);
-                            lobMessage = await UpdateRaidLobbyMessage(settings.Lobby, settings.RaidLobbyChannel, embedMsg);
+                            lobby.UsersComing.Remove(e.User.Id);
+                            lobMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embedMsg);
                         }
                         break;
                 }
+                _config.RaidLobbies.ActiveLobbies[origMessageId] = lobby;
+                _config.Save();
             }
             else
             {
@@ -333,7 +352,22 @@
                 if (!result) return;
                 if (e.User.IsBot) return;
 
-                var settings = await GetRaidLobbySettings(e.Message.Id, e.Message, e.Channel);
+                var hasPrivilege = await _client.IsSupporterOrHigher(e.User.Id, _config);
+                if (!hasPrivilege)
+                {
+                    await e.Message.RespondAsync($"{e.User.Username} does not have the supporter role assigned.");
+                    return;
+                }
+
+                var originalMessageId = e.Message.Id;
+                var lobby = GetLobby(e.Channel, ref originalMessageId);
+
+                var settings = await GetRaidLobbySettings(lobby, e.Message.Id, e.Message, e.Channel);
+                if (settings == null)
+                {
+                    Logger.Error($"Failed to find raid lobby settings for original raid message id {originalMessageId}.");
+                    return;
+                }
 
                 #region
                 //var raidLobbyChannel = await _client.GetChannel(_config.RaidLobbies.RaidLobbiesChannelId);
@@ -401,17 +435,17 @@
                 {
                     case "➡":
                         #region Coming
-                        if (!settings.Lobby.UsersComing.ContainsKey(e.User.Id))
+                        if (!lobby.UsersComing.ContainsKey(e.User.Id))
                         {
-                            settings.Lobby.UsersComing.Add(e.User.Id, new RaidLobbyUser { Id = e.User.Id, Eta = RaidLobbyEta.NotSet, Players = 1 });
+                            lobby.UsersComing.Add(e.User.Id, new RaidLobbyUser { Id = e.User.Id, Eta = RaidLobbyEta.NotSet, Players = 1 });
                         }
 
-                        if (settings.Lobby.UsersReady.ContainsKey(e.User.Id))
+                        if (lobby.UsersReady.ContainsKey(e.User.Id))
                         {
-                            settings.Lobby.UsersReady.Remove(e.User.Id);
+                            lobby.UsersReady.Remove(e.User.Id);
                         }
 
-                        lobbyMessage = await UpdateRaidLobbyMessage(settings.Lobby, settings.RaidLobbyChannel, embed);
+                        lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
                         await _client.SetAccountsReactions
                         (
                             _config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id
@@ -422,43 +456,52 @@
                     #endregion
                     case "✅":
                         #region Ready
-                        if (settings.Lobby.UsersComing.ContainsKey(e.User.Id))
+                        if (lobby.UsersComing.ContainsKey(e.User.Id))
                         {
-                            settings.Lobby.UsersComing.Remove(e.User.Id);
+                            lobby.UsersComing.Remove(e.User.Id);
                         }
 
-                        if (!settings.Lobby.UsersReady.ContainsKey(e.User.Id))
+                        if (!lobby.UsersReady.ContainsKey(e.User.Id))
                         {
-                            settings.Lobby.UsersReady.Add(e.User.Id, new RaidLobbyUser { Id = e.User.Id, Eta = RaidLobbyEta.Here, Players = 1 });
+                            lobby.UsersReady.Add(e.User.Id, new RaidLobbyUser { Id = e.User.Id, Eta = RaidLobbyEta.Here, Players = 1 });
                         }
 
-                        lobbyMessage = await UpdateRaidLobbyMessage(settings.Lobby, settings.RaidLobbyChannel, embed);
-                        await _client.SetDefaultRaidReactions
-                        (
-                            _config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id
-                            ? lobbyMessage
-                            : e.Message,
-                            _config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id
-                        );
+                        lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
+                        if (_config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id)
+                        {
+                            await _client.SetDefaultRaidReactions(lobbyMessage, true);
+                        }
+                        else
+                        {
+                            await _client.SetDefaultRaidReactions(lobbyMessage, true);
+                            await _client.SetDefaultRaidReactions(e.Message, false);
+                        }
                         break;
-                    #endregion
+                        #endregion
                     case "❌":
-                        #region Close Lobby
-                        lobbyMessage = await settings.RaidLobbyChannel.GetMessage(settings.Lobby.LobbyMessageId);
-                        if (lobbyMessage != null)
+                        #region Remove User From Lobby
+                        if (lobby.UsersComing.ContainsKey(e.User.Id)) lobby.UsersComing.Remove(e.User.Id);
+                        if (lobby.UsersReady.ContainsKey(e.User.Id)) lobby.UsersReady.Remove(e.User.Id);
+
+                        if (lobby.UsersComing.Count == 0 && lobby.UsersReady.Count == 0)
                         {
-                            await lobbyMessage.DeleteAsync();
-                            lobbyMessage = null;
+                            //TODO: Delete lobby.
+                            lobbyMessage = await settings.RaidLobbyChannel.GetMessage(lobby.LobbyMessageId);
+                            if (lobbyMessage != null)
+                            {
+                                await lobbyMessage.DeleteAsync();
+                                lobbyMessage = null;
+                            }
                         }
 
-                        _config.RaidLobbies.ActiveLobbies.Remove(settings.Lobby.OriginalRaidMessageId);
+                        _config.RaidLobbies.ActiveLobbies.Remove(lobby.OriginalRaidMessageId);
                         _config.Save();
                         break;
                     #endregion
                     case "1⃣":
                         #region 1 Account
-                        settings.Lobby.UsersComing[e.User.Id].Players = 1;
-                        lobbyMessage = await UpdateRaidLobbyMessage(settings.Lobby, settings.RaidLobbyChannel, embed);
+                        lobby.UsersComing[e.User.Id].Players = 1;
+                        lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
                         await _client.SetEtaReactions
                         (
                             _config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id
@@ -469,8 +512,8 @@
                     #endregion
                     case "2⃣":
                         #region 2 Accounts
-                        settings.Lobby.UsersComing[e.User.Id].Players = 2;
-                        lobbyMessage = await UpdateRaidLobbyMessage(settings.Lobby, settings.RaidLobbyChannel, embed);
+                        lobby.UsersComing[e.User.Id].Players = 2;
+                        lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
                         await _client.SetEtaReactions
                         (
                             _config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id
@@ -481,8 +524,8 @@
                     #endregion
                     case "3⃣":
                         #region 3 Accounts
-                        settings.Lobby.UsersComing[e.User.Id].Players = 3;
-                        lobbyMessage = await UpdateRaidLobbyMessage(settings.Lobby, settings.RaidLobbyChannel, embed);
+                        lobby.UsersComing[e.User.Id].Players = 3;
+                        lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
                         await _client.SetEtaReactions
                         (
                             _config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id
@@ -493,8 +536,8 @@
                     #endregion
                     case "4⃣":
                         #region 4 Accounts
-                        settings.Lobby.UsersComing[e.User.Id].Players = 4;
-                        lobbyMessage = await UpdateRaidLobbyMessage(settings.Lobby, settings.RaidLobbyChannel, embed);
+                        lobby.UsersComing[e.User.Id].Players = 4;
+                        lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
                         await _client.SetEtaReactions
                         (
                             _config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id
@@ -505,9 +548,9 @@
                     #endregion
                     case "5⃣":
                         #region 5mins ETA
-                        settings.Lobby.UsersComing[e.User.Id].Eta = RaidLobbyEta.Five;
-                        settings.Lobby.UsersComing[e.User.Id].EtaStart = DateTime.Now;
-                        lobbyMessage = await UpdateRaidLobbyMessage(settings.Lobby, settings.RaidLobbyChannel, embed);
+                        lobby.UsersComing[e.User.Id].Eta = RaidLobbyEta.Five;
+                        lobby.UsersComing[e.User.Id].EtaStart = DateTime.Now;
+                        lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
                         if (_config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id)
                         {
                             await _client.SetDefaultRaidReactions(lobbyMessage, true);
@@ -521,9 +564,9 @@
                     #endregion
                     case "🔟":
                         #region 10mins ETA
-                        settings.Lobby.UsersComing[e.User.Id].Eta = RaidLobbyEta.Ten;
-                        settings.Lobby.UsersComing[e.User.Id].EtaStart = DateTime.Now;
-                        lobbyMessage = await UpdateRaidLobbyMessage(settings.Lobby, settings.RaidLobbyChannel, embed);
+                        lobby.UsersComing[e.User.Id].Eta = RaidLobbyEta.Ten;
+                        lobby.UsersComing[e.User.Id].EtaStart = DateTime.Now;
+                        lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
                         if (_config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id)
                         {
                             await _client.SetDefaultRaidReactions(lobbyMessage, true);
@@ -537,7 +580,7 @@
                     #endregion
                     case "🔄":
                         #region Refresh
-                        lobbyMessage = await UpdateRaidLobbyMessage(settings.Lobby, settings.RaidLobbyChannel, embed);
+                        lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
                         await _client.SetDefaultRaidReactions
                         (
                             _config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id
@@ -548,6 +591,11 @@
                         break;
                         #endregion
                 }
+                if (lobby != null)
+                {
+                    _config.RaidLobbies.ActiveLobbies[originalMessageId] = lobby;
+                }
+                _config.Save();
             }
         }
 
@@ -576,97 +624,28 @@
 
             if (_timer == null)
             {
-                _timer = new Timer(60000);
-#pragma warning disable RECS0165
-                _timer.Elapsed += async (sender, e) =>
-#pragma warning restore RECS0165
-                {
-                    CheckTwitterFollows();
-
-                    if (_twitterStream == null) return;
-                    switch (_twitterStream.StreamState)
-                    {
-                        case StreamState.Running:
-                            break;
-                        case StreamState.Pause:
-                            _twitterStream.ResumeStream();
-                            break;
-                        case StreamState.Stop:
-                            await _twitterStream.StartStreamMatchingAllConditionsAsync();
-                            break;
-                    }
-
-                    if (_client == null) return;
-
-                    try
-                    {
-                        foreach (var lobby in _config.RaidLobbies.ActiveLobbies)
-                        {
-                            if (!lobby.Value.IsExpired) continue;
-
-                            if (_config.RaidLobbies.ActiveLobbies.ContainsKey(lobby.Key))
-                            {
-                                if (!await DeleteExpiredRaidLobby(lobby.Key))
-                                {
-                                    Logger.Error($"Failed to delete raid lobby message with id {lobby.Key}.");
-                                }
-
-                                _config.RaidLobbies.ActiveLobbies.Remove(lobby.Key);
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Error(ex);
-                    }
-
-                    #region Old Raid Lobby System
-                    // if (_client == null) return;
-                    // try
-                    // {
-                    //     foreach (var lobby in _db.Lobbies)
-                    //     {
-                    //         if (lobby.IsExpired)
-                    //         {
-                    //             var channel = await _client.GetChannel(lobby.ChannelId);
-                    //             if (channel == null)
-                    //             {
-                    //                 Logger.Error($"Failed to delete expired raid lobby channel because channel {lobby.LobbyName} ({lobby.ChannelId}) does not exist.");
-                    //                 continue;
-                    //             }
-                    //             //await channel.DeleteAsync($"Raid lobby {lobby.LobbyName} ({lobby.ChannelId}) no longer needed.");
-                    //         }
-                    //         await _client.UpdateLobbyStatus(lobby);
-                    //     }
-
-                    //     //_db.Servers.ForEach(server => server.Lobbies.RemoveAll(lobby => lobby.IsExpired));
-                    //     _db.Lobbies.RemoveAll(lobby => lobby.IsExpired);
-                    // }
-                    //#pragma warning disable RECS0022
-                    // catch { }
-                    //#pragma warning restore RECS0022
-                    #endregion
-                };
+                _timer = new Timer(OneMinute);
+                _timer.Elapsed += MinuteTimerEventHandler;
                 _timer.Start();
             }
 
             Logger.Info("Connecting to discord server...");
             await _client.ConnectAsync();
 
-            var creds = new TwitterCredentials(_config.TwitterUpdates.ConsumerKey, _config.TwitterUpdates.ConsumerSecret, _config.TwitterUpdates.AccessToken, _config.TwitterUpdates.AccessTokenSecret);
-            Auth.SetCredentials(creds);
+            //var creds = new TwitterCredentials(_config.TwitterUpdates.ConsumerKey, _config.TwitterUpdates.ConsumerSecret, _config.TwitterUpdates.AccessToken, _config.TwitterUpdates.AccessTokenSecret);
+            //Auth.SetCredentials(creds);
 
-            _twitterStream = Stream.CreateFilteredStream(creds);
-            _twitterStream.Credentials = creds;
-            _twitterStream.StallWarnings = true;
-            _twitterStream.FilterLevel = StreamFilterLevel.None;
-            _twitterStream.StreamStarted += (sender, e) => Logger.Info("Successfully started.");
-            _twitterStream.StreamStopped += (sender, e) => Console.WriteLine($"Stream stopped.\r\n{e.Exception}\r\n{e.DisconnectMessage}");
-            _twitterStream.DisconnectMessageReceived += (sender, e) => Console.WriteLine($"Disconnected.\r\n{e.DisconnectMessage}");
-            _twitterStream.WarningFallingBehindDetected += (sender, e) => Console.WriteLine($"Warning Falling Behind Detected: {e.WarningMessage}");
-            CheckTwitterFollows();
-            await _twitterStream.StartStreamMatchingAllConditionsAsync();
+            //_twitterStream = Stream.CreateFilteredStream(creds);
+            //_twitterStream.Credentials = creds;
+            //_twitterStream.StallWarnings = true;
+            //_twitterStream.FilterLevel = StreamFilterLevel.None;
+            //_twitterStream.StreamStarted += (sender, e) => Logger.Debug("Successfully started.");
+            //_twitterStream.StreamStopped += (sender, e) => Logger.Debug($"Stream stopped.\r\n{e.Exception}\r\n{e.DisconnectMessage}");
+            //_twitterStream.DisconnectMessageReceived += (sender, e) => Logger.Debug($"Disconnected.\r\n{e.DisconnectMessage}");
+            //_twitterStream.WarningFallingBehindDetected += (sender, e) => Logger.Debug($"Warning Falling Behind Detected: {e.WarningMessage}");
+            //CheckTwitterFollows();
 
+            //await _twitterStream.StartStreamMatchingAllConditionsAsync();
             await Task.Delay(-1);
         }
 
@@ -781,6 +760,8 @@
 
         public async Task AlertOwnerOfCrash()
         {
+            Logger.Trace($"FilterBot::AlertOwnerOfCrash");
+
             var owner = await _client.GetUser(_config.OwnerId);
             if (owner == null)
             {
@@ -788,31 +769,12 @@
                 return;
             }
 
-            await _client.SendDirectMessage(owner, "I JUST CRASHED!", null);
+            await _client.SendDirectMessage(owner, DefaultCrashMessage, null);
         }
 
         #endregion
 
         #region Private Methods
-
-        private async Task Init()
-        {
-            var channel = await _client.GetChannel(_config.CommandsChannelId);
-            if (channel == null) return;
-            //DefaultAdvertisementMessage = $":arrows_counterclockwise: Welcome to **{(channel.Guild == null ? "versx" : channel.Guild.Name)}**'s server! To assign or unassign yourself to or from a city feed or team please review the pinned messages in the {channel.Mention} channel or type `.help`. Please also read the #faq channel if you have any questions, otherwise post them.";
-            //":arrows_counterclockwise: Welcome to versx's server, in order to see a city feed you will need to assign yourself to a city role using the .feed command followed by one or more of the available cities separated by a comma (,): {0}, or None.";
-            DefaultAdvertisementMessage = @"Hello {username}, welcome to **versx**'s server!
-My name is Brock and I'm here to assist you with certain things. Most commands that you'll send me will need to be sent to the #bot channel in the server but I can also process some commands via direct message.
-
-First things first you might want to set your team, there are three available teams: Valor, Mystic, and Instinct. To set your team you'll want to use the `.team Valor/Mystic/Instinct` command, although this is optional. For more details please read the pinned message in the #bot channel titled Team Assignment.
-Next you'll need to assign youself to some city feeds to see Pokemon spawns and Raids. Quickest way is to type the `.feedme all` command, otherwise please read the pinned message in the #bot channel titled City Feeds for more details.
-Lastly if you'd like to get direct messages from me when a certain Pokemon with a specific IV percentage or raid appears, to do so please read the pinned message in the #bot channel titled Pokemon Notifications.
-
-I will only send you direct message notifications of Pokemon or raids for city feeds that you are assigned to.
-**To see a full list of my available commands please send me a direct message containing `.help`.**
-
-Once you've completed the above steps you'll be all set to go catch those elusive monsters, be safe and have fun!";
-        }
 
         private async Task CheckSponsoredRaids(DiscordMessage message)
         {
@@ -837,6 +799,8 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
 
         private async Task SendStartupMessage()
         {
+            Logger.Trace($"FilterBot::SendStartupMessage");
+
             var randomWelcomeMessage = _config.StartupMessages[_rand.Next(0, _config.StartupMessages.Count - 1)];
             await _client.SendMessage(_config.StartupMessageWebHook, randomWelcomeMessage);
         }
@@ -948,13 +912,69 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
             Console.WriteLine($"**************************************");
         }
 
-        private async void AdvertisementTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        private async void MinuteTimerEventHandler(object sender, System.Timers.ElapsedEventArgs e)
         {
-            await CheckFeedStatus();
+            if (_db.LastChecked.Day != DateTime.Now.Day)
+            {
+                _db.LastChecked = DateTime.Now;
+                _db.Subscriptions.ForEach(x => x.ResetNotifications());
+                _db.Save();
+            }
 
-            //await CheckSupporterStatus(_client.Guilds[0].Id);
+            if (_client == null) return;
 
-            await PostAdvertisement();
+            try
+            {
+                var keys = new ulong[_config.RaidLobbies.ActiveLobbies.Keys.Count];
+                _config.RaidLobbies.ActiveLobbies.Keys.CopyTo(keys, 0);
+
+                for (int i = 0; i < keys.Length; ++i)
+                {
+                    var lobby = _config.RaidLobbies.ActiveLobbies[keys[i]];
+                    if (!lobby.IsExpired) continue;
+
+                    if (_config.RaidLobbies.ActiveLobbies.ContainsKey(keys[i]))
+                    {
+                        if (!await DeleteExpiredRaidLobby(keys[i]))
+                        {
+                            Logger.Error($"Failed to delete raid lobby message with id {keys[i]}.");
+                        }
+
+                        _config.RaidLobbies.ActiveLobbies.Remove(keys[i]);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex);
+            }
+
+            #region Old Raid Lobby System
+            // if (_client == null) return;
+            // try
+            // {
+            //     foreach (var lobby in _db.Lobbies)
+            //     {
+            //         if (lobby.IsExpired)
+            //         {
+            //             var channel = await _client.GetChannel(lobby.ChannelId);
+            //             if (channel == null)
+            //             {
+            //                 Logger.Error($"Failed to delete expired raid lobby channel because channel {lobby.LobbyName} ({lobby.ChannelId}) does not exist.");
+            //                 continue;
+            //             }
+            //             //await channel.DeleteAsync($"Raid lobby {lobby.LobbyName} ({lobby.ChannelId}) no longer needed.");
+            //         }
+            //         await _client.UpdateLobbyStatus(lobby);
+            //     }
+
+            //     //_db.Servers.ForEach(server => server.Lobbies.RemoveAll(lobby => lobby.IsExpired));
+            //     _db.Lobbies.RemoveAll(lobby => lobby.IsExpired);
+            // }
+            //#pragma warning disable RECS0022
+            // catch { }
+            //#pragma warning restore RECS0022
+            #endregion
         }
 
         private async Task CheckFeedStatus()
@@ -1035,100 +1055,6 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
             }
         }
 
-        private async Task PostAdvertisement()
-        {
-            if (!_config.Advertisement.Enabled) return;
-            if (_config.Advertisement.ChannelId == 0) return;
-
-            try
-            {
-                var advertisementChannel = await _client.GetChannel(_config.Advertisement.ChannelId);
-                if (advertisementChannel == null)
-                {
-                    Logger.Error($"Failed to retrieve advertisement channel with id {_config.Advertisement.ChannelId}.");
-                    return;
-                }
-
-                var cmdChannel = await _client.GetChannel(_config.CommandsChannelId);
-                if (cmdChannel == null)
-                {
-                    Logger.Error($"Failed to retrieve commands channel with id {_config.CommandsChannelId}.");
-                    return;
-                }
-
-                if (_config.Advertisement.LastMessageId == 0)
-                {
-                    var msg = (string.IsNullOrEmpty(_config.Advertisement.Message)
-                        ? DefaultAdvertisementMessage
-                        : _config.Advertisement.Message)
-                        .Replace("{server}", advertisementChannel.Guild.Name)
-                        .Replace("{bot}", cmdChannel.Mention);
-                    var sentMessage = await advertisementChannel.SendMessageAsync(msg);
-                    _config.Advertisement.LastMessageId = sentMessage.Id;
-                    _config.Save();
-                    return;
-                }
-
-                var messages = await advertisementChannel.GetMessagesAsync();
-                if (messages == null)
-                {
-                    Logger.Error($"Failed to retrieve the list of messages from the advertisement channel {advertisementChannel.Name}.");
-                    return;
-                }
-
-                var lastBotMessageIndex = -1;
-                for (int i = 0; i < messages.Count; i++)
-                {
-                    if (messages[i].Id == _config.Advertisement.LastMessageId && messages[i].Author.IsBot)
-                    {
-                        lastBotMessageIndex = i;
-                    }
-                }
-
-                if (lastBotMessageIndex > _config.Advertisement.MessageThreshold || lastBotMessageIndex == -1)
-                {
-                    var guild = await _client.GetGuildAsync(advertisementChannel.GuildId);
-                    if (guild == null)
-                    {
-                        Logger.Error($"Failed to retrieve guild from channel guild id.");
-                        return;
-                    }
-
-                    var latestMessage = await advertisementChannel.GetMessage(advertisementChannel.LastMessageId);
-                    if (latestMessage == null)
-                    {
-                        Logger.Error($"Failed to retrieve the latest message from the advertisement channel {advertisementChannel.Name} with message id {advertisementChannel.LastMessageId}.");
-                        return;
-                    }
-
-                    //Check if it's been at least 5 minutes since someone wrote a message in order to not be intrusive.
-                    var canPost = false;
-                    var ts = DateTime.Now.Subtract(new DateTime(latestMessage.Timestamp.Ticks));
-                    if (ts.Minutes > 5) canPost = true;
-
-                    if (!canPost) return;
-
-                    var message = await advertisementChannel.GetMessage(_config.Advertisement.LastMessageId);
-                    if (message != null)
-                    {
-                        await message.DeleteAsync();
-                    }
-
-                    var msg = (string.IsNullOrEmpty(_config.Advertisement.Message)
-                        ? DefaultAdvertisementMessage
-                        : _config.Advertisement.Message)
-                        .Replace("{server}", advertisementChannel.Guild.Name)
-                        .Replace("{bot}", cmdChannel.Mention);
-                    var sentMessage = await advertisementChannel.SendMessageAsync(msg);
-                    _config.Advertisement.LastMessageId = sentMessage.Id;
-                    _config.Save();
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex);
-            }
-        }
 
         #endregion
 
@@ -1150,7 +1076,7 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
                     return;
                 }
 
-                var isOwner = message.Author.Id == _config.OwnerId;
+                var isOwner = message.Author.Id.IsAdmin(_config);
                 switch (Commands[command.Name].PermissionLevel)
                 {
                     case CommandPermissionLevel.Admin:
@@ -1162,19 +1088,18 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
                         }
                         break;
                     case CommandPermissionLevel.Moderator:
-                        //var isModerator = await _client.HasModeratorRole(message.Author.Id, _config.ModeratorRoleId);
-                        var isModerator = _config.Moderators.Contains(message.Author.Id);
-                        if (!(isModerator || isOwner))
+                        var isModerator = message.Author.Id.IsModeratorOrHigher(_config);
+                        if (!isModerator)
                         {
-                            await message.RespondAsync($"Command {_config.CommandsPrefix}{command.Name} is only available to Moderators.");
+                            await message.RespondAsync($"Command `{_config.CommandsPrefix}{command.Name}` is only available to Moderators.");
                             return;
                         }
                         break;
                     case CommandPermissionLevel.Supporter:
-                        var isSupporter = await _client.HasSupporterRole(message.Author.Id, _config.SupporterRoleId);
-                        if (!(isSupporter || isOwner))
+                        var isSupporter = await _client.IsSupporterOrHigher(message.Author.Id, _config);
+                        if (!isSupporter)
                         {
-                            await message.RespondAsync($"Command {_config.CommandsPrefix}{command.Name} is only available to Supporters.");
+                            await message.RespondAsync($"Command `{_config.CommandsPrefix}{command.Name}` is only available to Supporters.");
                             return;
                         }
                         break;
@@ -1187,6 +1112,13 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
             }
             else if (_config.CustomCommands.ContainsKey(command.Name))
             {
+                var isSupporter = await _client.IsSupporterOrHigher(message.Author.Id, _config);
+                if (!isSupporter)
+                {
+                    await message.RespondAsync($"Only supporters have access to custom commands, please consider donating in order to unlock this feature.");
+                    return;
+                }
+
                 await message.RespondAsync(_config.CustomCommands[command.Name]);
             }
         }
@@ -1196,20 +1128,20 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
             var eb = new DiscordEmbedBuilder();
             eb.WithTitle("Help Command Information");
 
-            var categories = GetCommandsByCategory();
+            var isOwner = message.Author.Id.IsAdmin(_config);
+            var categories = Commands.GetCommandsByCategory();
             if (command.HasArgs && command.Args.Count == 1)
             {
-                var category = ParseCategory(command.Args[0]);
+                var category = Commands.ParseCategory(command.Args[0]);
                 if (string.IsNullOrEmpty(category))
                 {
-                    await message.RespondAsync("You have entered an invalid help command category.");
+                    await message.RespondAsync($"{message.Author.Mention} has entered an invalid help command category.");
                     return;
                 }
 
                 eb.AddField(category, "-");
                 foreach (var cmd in categories[category])
                 {
-                    var isOwner = message.Author.Id == _config.OwnerId;
                     if (cmd.PermissionLevel == CommandPermissionLevel.Admin && !isOwner) continue;
 
                     //TODO: Sort by index or something.
@@ -1225,83 +1157,60 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
             {
                 foreach (var category in categories)
                 {
+                    if (category.Value.Exists(x => x.PermissionLevel == CommandPermissionLevel.Admin && !isOwner)) continue;
                     eb.AddField(category.Key, $"{_config.CommandsPrefix}help {category.Key.ToLower().Replace(" ", "")}");
                 }
             }
 
-            var embed = eb
-                .WithFooter($"Developed by versx\r\nVersion {AssemblyUtils.AssemblyVersion}")
-                .Build();
+            eb.WithFooter($"Developed by **versx**\r\nVersion **{AssemblyUtils.AssemblyVersion}**");
+
+            if (eb.Fields.Count == 0) return;
+
+            var embed = eb.Build();
+            if (embed == null) return;
+
             await message.RespondAsync(string.Empty, false, embed);
-        }
-
-        private Dictionary<string, List<ICustomCommand>> GetCommandsByCategory()
-        {
-            var categories = new Dictionary<string, List<ICustomCommand>>();
-            foreach (var cmd in Commands)
-            {
-                var attr = cmd.Value.GetType().GetAttribute<CommandAttribute>();
-                if (!categories.ContainsKey(attr.Category))
-                {
-                    categories.Add(attr.Category, new List<ICustomCommand>());
-                }
-                categories[attr.Category].Add(cmd.Value);
-            }
-            return categories;
-        }
-
-        private string ParseCategory(string shorthandCategory)
-        {
-            var helpCategory = shorthandCategory.ToLower();
-            foreach (var key in GetCommandsByCategory())
-            {
-                if (key.Key.ToLower().Replace(" ", "") == helpCategory)
-                {
-                    helpCategory = key.Key;
-                }
-            }
-            return helpCategory;
-        }
-
-        #endregion
-
-        #region Twitter
-
-        private void CheckTwitterFollows()
-        {
-            if (_twitterStream == null) return;
-
-            foreach (var user in _config.TwitterUpdates.TwitterUsers)
-            {
-                var userId = Convert.ToInt64(user);
-                if (_twitterStream.ContainsFollow(userId)) continue;
-
-#pragma warning disable RECS0165
-                _twitterStream.AddFollow(userId, async x =>
-#pragma warning restore RECS0165
-                {
-                    if (userId != x.CreatedBy.Id) return;
-                    //if (x.IsRetweet) return;
-
-                    await SendTwitterNotification(x.CreatedBy.Id, x.Url);
-                });
-            }
-        }
-
-        private async Task SendTwitterNotification(long ownerId, string url)
-        {
-            if (!_config.TwitterUpdates.PostTwitterUpdates) return;
-
-            Console.WriteLine($"Tweet [Owner={ownerId}, Url={url}]");
-            await _client.SendMessage(_config.TwitterUpdates.UpdatesChannelWebHook, url);
         }
 
         #endregion
 
         #region Raid Lobby
 
+        private RaidLobby GetLobby(DiscordChannel channel, ref ulong originalMessageId)
+        {
+            RaidLobby lobby = null;
+            if (channel.Id == _config.RaidLobbies.RaidLobbiesChannelId)
+            {
+                foreach (var item in _config.RaidLobbies.ActiveLobbies)
+                {
+                    if (item.Value.LobbyMessageId == originalMessageId)
+                    {
+                        originalMessageId = item.Value.OriginalRaidMessageId;
+                        lobby = item.Value;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                if (_config.RaidLobbies.ActiveLobbies.ContainsKey(originalMessageId))
+                {
+                    lobby = _config.RaidLobbies.ActiveLobbies[originalMessageId];
+                }
+                else
+                {
+                    lobby = new RaidLobby { OriginalRaidMessageId = originalMessageId, OriginalRaidMessageChannelId = channel.Id, Started = DateTime.Now };
+                    _config.RaidLobbies.ActiveLobbies.Add(originalMessageId, lobby);
+                }
+            }
+
+            return lobby;
+        }
+
         private async Task<bool> DeleteExpiredRaidLobby(ulong originalMessageId)
         {
+            Logger.Trace($"FilterBot::DeleteExpiredRaidLobby [OriginalMessageId={originalMessageId}]");
+
             if (!_config.RaidLobbies.ActiveLobbies.ContainsKey(originalMessageId)) return false;
 
             var lobby = _config.RaidLobbies.ActiveLobbies[originalMessageId];
@@ -1332,33 +1241,9 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
             return false;
         }
 
-        private async Task<RaidLobbySettings> GetRaidLobbySettings(ulong originalMessageId, DiscordMessage message, DiscordChannel channel)
+        private async Task<RaidLobbySettings> GetRaidLobbySettings(RaidLobby lobby, ulong originalMessageId, DiscordMessage message, DiscordChannel channel)
         {
-            RaidLobby lobby = null;
-            if (channel.Id == _config.RaidLobbies.RaidLobbiesChannelId)
-            {
-                foreach (var item in _config.RaidLobbies.ActiveLobbies)
-                {
-                    if (item.Value.LobbyMessageId == originalMessageId)
-                    {
-                        originalMessageId = item.Value.OriginalRaidMessageId;
-                        lobby = item.Value;
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                if (_config.RaidLobbies.ActiveLobbies.ContainsKey(originalMessageId))
-                {
-                    lobby = _config.RaidLobbies.ActiveLobbies[originalMessageId];
-                }
-                else
-                {
-                    lobby = new RaidLobby { OriginalRaidMessageId = originalMessageId, OriginalRaidMessageChannelId = channel.Id, Started = DateTime.Now };
-                    _config.RaidLobbies.ActiveLobbies.Add(originalMessageId, lobby);
-                }
-            }
+            Logger.Trace($"FilterBot::GetRaidLobbySettings [OriginalMessageId={originalMessageId}, DiscordMessage={message.Content}, DiscordChannel={channel.Name}]");
 
             var raidLobbyChannel = await _client.GetChannel(_config.RaidLobbies.RaidLobbiesChannelId);
             if (raidLobbyChannel == null)
@@ -1388,9 +1273,11 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
                 raidMessage = await GetRaidMessage(_config.SponsoredRaids, originalMessageId);
             }
 
+            _config.Save();
+
             return new RaidLobbySettings
             {
-                Lobby = lobby,
+                //Lobby = lobby,
                 OriginalRaidMessageChannel = origChannel,
                 RaidMessage = raidMessage,
                 RaidLobbyChannel = raidLobbyChannel
@@ -1399,6 +1286,8 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
 
         private async Task<DiscordMessage> UpdateRaidLobbyMessage(RaidLobby lobby, DiscordChannel raidLobbyChannel, DiscordEmbed raidMessage)
         {
+            Logger.Trace($"FilterBot::UpdateRaidLobbyMessage [RaidLobby={lobby.LobbyMessageId}, DiscordChannel={raidLobbyChannel.Name}, DiscordMessage={raidMessage.Title}]");
+
             var coming = await GetUsernames(lobby.UsersComing);
             var ready = await GetUsernames(lobby.UsersReady);
 
@@ -1435,13 +1324,15 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
             }
             catch (Exception ex)
             {
-                Utils.LogError(ex);
+                Logger.Error(ex);
                 return 0;
             }
         }
 
         private async Task<DiscordMessage> GetRaidMessage(List<SponsoredRaidsConfig> sponsoredRaids, ulong messageId)
         {
+            Logger.Trace($"FilterBot::GetRaidMessage [SponsoredRaids={sponsoredRaids.Count}, MessageId={messageId}]");
+
             foreach (var sponsored in sponsoredRaids)
             {
                 foreach (var channelId in sponsored.ChannelPool)
@@ -1449,15 +1340,12 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
                     var channel = await _client.GetChannel(channelId);
                     if (channel == null)
                     {
-                        Console.WriteLine($"Failed to find channel {channelId}.");
+                        Logger.Error($"Failed to find channel {channelId}.");
                         continue;
                     }
 
                     var message = await channel.GetMessage(messageId);
-                    if (message == null)
-                    {
-                        continue;
-                    }
+                    if (message == null) continue;
 
                     return message;
                 }
@@ -1478,23 +1366,25 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
                     continue;
                 }
 
-                var timeLeft = TimeLeft(item.Value.EtaStart);
-                if (timeLeft == 0)
-                {
-                    //User is late, send DM.
-                    var dm = await _client.SendDirectMessage(user, $"{user.Mention} you're late for the raid, do you want to extend your time? If not please click the red cross button below to remove yourself from the raid lobby.\r\n#{item.Key}#", null);
-                    if (dm == null)
-                    {
-                        Logger.Error($"Failed to send {user.Username} a direct message letting them know they are late for the raid.");
-                        continue;
-                    }
+                //TODO: Fix Eta countdown.
+                var timeLeft = item.Value.Eta;// TimeLeft(item.Value.EtaStart);
+                //if (timeLeft == 0)
+                //{
+                //    //User is late, send DM.
+                //    var dm = await _client.SendDirectMessage(user, $"{user.Mention} you're late for the raid, do you want to extend your time? If not please click the red cross button below to remove yourself from the raid lobby.\r\n#{item.Key}#", null);
+                //    if (dm == null)
+                //    {
+                //        Logger.Error($"Failed to send {user.Username} a direct message letting them know they are late for the raid.");
+                //        continue;
+                //    }
 
-                    await dm.CreateReactionAsync(DiscordEmoji.FromName(_client, ":five:"));
-                    await dm.CreateReactionAsync(DiscordEmoji.FromName(_client, ":keycap_ten:"));
-                    await dm.CreateReactionAsync(DiscordEmoji.FromName(_client, ":x"));
-                }
+                //    await dm.CreateReactionAsync(DiscordEmoji.FromName(_client, ":five:"));
+                //    await dm.CreateReactionAsync(DiscordEmoji.FromName(_client, ":keycap_ten:"));
+                //    await dm.CreateReactionAsync(DiscordEmoji.FromName(_client, ":x:"));
+                //}
 
-                var eta = (item.Value.Eta != RaidLobbyEta.Here && item.Value.Eta != RaidLobbyEta.NotSet ? $"{timeLeft} minutes" : item.Value.Eta.ToString());
+                //var eta = (item.Value.Eta != RaidLobbyEta.Here && item.Value.Eta != RaidLobbyEta.NotSet ? $"{timeLeft} minute{(timeLeft == 1 ? null : "s")}" : item.Value.Eta.ToString());
+                var eta = (item.Value.Eta != RaidLobbyEta.Here && item.Value.Eta != RaidLobbyEta.NotSet ? $"{timeLeft} minute" : item.Value.Eta.ToString());
                 list.Add($"{user.Username} ({item.Value.Players} account{(item.Value.Players == 1 ? "" : "s")}, ETA: {eta})");
             }
             return list;

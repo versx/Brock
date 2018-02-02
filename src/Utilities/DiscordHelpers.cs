@@ -37,5 +37,20 @@
 
             return DiscordColor.White;
         }
+
+        public static ulong ConvertMentionToUserId(string mention)
+        {
+            //<@201909896357216256>
+            mention = Utils.GetBetween(mention, "<", ">");
+            mention = mention.Replace("@", null);
+            mention = mention.Replace("!", null);
+
+            if (ulong.TryParse(mention, out ulong result))
+            {
+                return result;
+            }
+
+            return 0;
+        }
     }
 }

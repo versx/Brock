@@ -68,8 +68,8 @@
         [JsonProperty("supporterRoleId")]
         public ulong SupporterRoleId { get; set; }
 
-        //[JsonProperty("moderatorRoleId")]
-        //public ulong ModeratorRoleId { get; set; }
+        [JsonProperty("teamEliteRoleId")]
+        public ulong TeamEliteRoleId { get; set; }
 
         [JsonProperty("moderators")]
         public List<ulong> Moderators { get; set; }

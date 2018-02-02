@@ -33,30 +33,27 @@
 
         #region Properties
 
-        [XmlArrayItem("lobby")]
-        [XmlArray("lobbies")]
+        [JsonProperty("lastChecked")]
+        public DateTime LastChecked { get; set; }
+
         [JsonProperty("lobbies")]
         public List<RaidLobby> Lobbies { get; set; }
 
-        [XmlElement("subscriptions")]
         [JsonProperty("subscriptions")]
         public List<Subscription<Pokemon>> Subscriptions { get; set; }
 
         [JsonProperty("reminders")]
         public ConcurrentDictionary<ulong, List<Reminder>> Reminders { get; set; }
 
-        [XmlIgnore]
         [JsonIgnore]
         public Dictionary<string, PokemonInfo> Pokemon { get; }
 
-        [XmlIgnore]
         [JsonIgnore]
         public Dictionary<string, Moveset> Movesets { get; }
 
         /// <summary>
         /// Gets the config full config file path.
         /// </summary>
-        [XmlIgnore]
         [JsonIgnore]
         public static string ConfigFilePath
         {
@@ -70,7 +67,6 @@
             }
         }
 
-        [XmlIgnore]
         [JsonIgnore]
         public Subscription<Pokemon> this[ulong userId]
         {
