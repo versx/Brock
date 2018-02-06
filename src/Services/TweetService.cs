@@ -57,21 +57,25 @@
 
         #region Public Methods
 
-        public async Task Start()
+        public void Start()
         {
-            if (_twitterStream != null)
-            {
-                await _twitterStream.StartStreamMatchingAllConditionsAsync();
-            }
+            _logger.Trace("TweetService::Start");
 
             if (!_timer.Enabled)
             {
                 _timer.Start();
             }
+
+            //if (_twitterStream != null)
+            //{
+            //    await _twitterStream.StartStreamMatchingAllConditionsAsync();
+            //}
         }
 
         public void Stop()
         {
+            _logger.Trace("TweetService::Stop");
+
             if (_twitterStream != null)
             {
                 _twitterStream.StopStream();
@@ -89,6 +93,8 @@
 
         private TwitterCredentials SetCredentials(TwitterUpdatesConfig config)
         {
+            _logger.Trace("TweetService::SetCredentials");
+
             var creds = new TwitterCredentials(config.ConsumerKey, config.ConsumerSecret, config.AccessToken, config.AccessTokenSecret);
             if (creds == null)
             {

@@ -14,7 +14,7 @@
         [JsonProperty("minimumIV")]
         public int MinimumIV { get; set; }
 
-        [JsonIgnore]
+        [JsonProperty("minimumLvl")]
         public int MinimumLevel { get; set; }
     }
 }

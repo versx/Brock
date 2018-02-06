@@ -27,7 +27,7 @@
 
         #region Methods
 
-        bool SubscriptionExists(ulong userId);
+        bool Exists(ulong userId);
 
         bool RemoveAllPokemon(ulong userId);
 

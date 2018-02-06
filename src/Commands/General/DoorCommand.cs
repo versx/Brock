@@ -6,8 +6,8 @@
     using DSharpPlus.Entities;
 
     [Command(
-        Categories.Voting,
-        "Shows the specified user the door.",
+        Categories.General,
+        "Shows the specified user the door (Jokingly).",
         "\tExample: `.door`\r\n" +
         "\tExample: `.door @mention`",
         "door", "out"

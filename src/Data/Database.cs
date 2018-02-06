@@ -105,14 +105,14 @@
 
         #region Public Methods
 
-        public bool SubscriptionExists(ulong userId)
+        public bool Exists(ulong userId)
         {
             return this[userId] != null;
         }
 
         public bool RemoveAllPokemon(ulong userId)
         {
-            if (SubscriptionExists(userId))
+            if (Exists(userId))
             {
                 var sub = this[userId];
                 sub.Pokemon.Clear();
@@ -124,7 +124,7 @@
 
         public bool RemoveAllRaids(ulong userId)
         {
-            if (SubscriptionExists(userId))
+            if (Exists(userId))
             {
                 var sub = this[userId];
                 sub.Raids.Clear();

@@ -9,7 +9,6 @@
 
     using BrockBot.Configuration;
     using BrockBot.Data;
-    using BrockBot.Data.Models;
     using BrockBot.Diagnostics;
     using BrockBot.Extensions;
     using BrockBot.Net;
@@ -20,8 +19,8 @@
         #region Constants
 
         public const int NotificationTimeout = 10;
-        public const int MaxNotificationsPerDayNormal = 25;
-        public const int MaxNotificationsPerDaySupporter = 100;
+        public const int MaxNotificationsPerDayNormal = 100;
+        public const int MaxNotificationsPerDaySupporter = 1000;
 
         #endregion
 
@@ -30,6 +29,7 @@
         private readonly DiscordClient _client;
         private readonly IDatabase _db;
         private readonly Config _config;
+        private readonly GeofenceService _geofence;
         private readonly IEventLogger _logger;
 
         #endregion
@@ -42,6 +42,8 @@
             _db = db;
             _config = config;
             _logger = logger;
+
+            _geofence = new GeofenceService(Geofence.Load(_config.GeofenceFolder, _config.CityRoles));
         }
 
         #endregion
@@ -74,17 +76,22 @@
 
                 var matchesIV = MatchesIvFilter(pkmn.IV, subscribedPokemon.MinimumIV);
                 //var matchesCP = MatchesCpFilter(pkmn.CP, subscribedPokemon.MinimumCP);
-                //var matchesLvl = MatchesLvlFilter(pkmn.PlayerLevel, subscribedPokemon.MinimumLevel);
+                var matchesLvl = MatchesLvlFilter(pkmn.PlayerLevel, subscribedPokemon.MinimumLevel);
+                //var matchesGender = MatchesGenderFilter(pkmn.Gender, subscribedPokemon.MinimumGender);
+                //var matchesAtk = MatchesAttackFilter(pkmn.Attack, subscribedPokemon.MinimumAtk);
+                //var matchesDef = MatchesDefenseFilter(pkmn.Defense, subscribedPokemon.MinimumDef);
+                //var matchesSta = MatchesStaminaFilter(pkmn.Stamina, subscribedPokemon.MinimumSta);
+                //var matchesGeofence = MatchesGeofenceFilter(null, new Location(pkmn.Latitude, pkmn.Longitude));
 
-                //if (!(matchesIV || matchesCP || matchesLvl)) continue;
-                if (!matchesIV) continue;
+                //if (!(matchesIV || matchesCP || matchesLvl || matchesGender || matchesAtk || matchesDef || matchesSta)) continue;
+                if (!(matchesIV || matchesLvl)) continue;
 
-                _logger.Info($"Notifying user {discordUser.Username} that a {pokemon.Name} CP{pkmn.CP} {pkmn.IV} IV L{pkmn.PlayerLevel} has spawned...");
+                _logger.Info($"Notifying user {discordUser.Username} that a {pokemon.Name} {pkmn.CP}CP {pkmn.IV} IV L{pkmn.PlayerLevel} has spawned...");
 
                 var embed = await BuildEmbedPokemon(pkmn, user.UserId);
                 if (embed == null) continue;
 
-                if (await CheckIfExceededNotificationLimit(user)) return;
+                //if (await CheckIfExceededNotificationLimit(user)) return;
 
                 user.NotificationsToday++;
 
@@ -126,7 +133,7 @@
                 var embed = await BuildEmbedRaid(raid, user.UserId);
                 if (embed == null) continue;
 
-                if (await CheckIfExceededNotificationLimit(user)) return;
+                //if (await CheckIfExceededNotificationLimit(user)) return;
 
                 user.NotificationsToday++;
 
@@ -157,28 +164,30 @@
                 return null;
             }
 
-            var loc = Utils.GetGoogleAddress(pokemon.Latitude, pokemon.Longitude, _config.GmapsKey);
+            //var loc = Utils.GetGoogleAddress(pokemon.Latitude, pokemon.Longitude, _config.GmapsKey);
+            var loc = _geofence.GetGeofence(new Location(pokemon.Latitude, pokemon.Longitude)); 
             if (loc == null)
             {
                 _logger.Error($"Failed to lookup city for coordinates {pokemon.Latitude},{pokemon.Longitude}, skipping...");
                 return null;
             }
 
-            if (!_config.CityRoles.Exists(x => string.Compare(x, loc.City, true) == 0))
+            if (!_config.CityRoles.Exists(x => string.Compare(x, loc.Name, true) == 0))
             {
-                File.AppendAllText("cities.txt", $"City: {loc.City}\r\n");
+                File.AppendAllText("cities.txt", $"City: {loc.Name}\r\n");
                 return null;
             }
 
-            if (!_client.HasRole(user, SanitizeCityName(loc.City)))
+            //if (!_client.HasRole(user, SanitizeCityName(loc.Name)))
+            if (!_client.HasRole(user, loc.Name))
             {
-                _logger.Debug($"Skipping notification for user {user.DisplayName} ({user.Id}) for Pokemon {pkmn.Name} because they do not have the city role '{loc.City}'.");
+                _logger.Debug($"Skipping notification for user {user.DisplayName} ({user.Id}) for Pokemon {pkmn.Name} because they do not have the city role '{loc.Name}'.");
                 return null;
             }
 
             var eb = new DiscordEmbedBuilder
             {
-                Title        = loc == null || string.IsNullOrEmpty(loc.City) ? "DIRECTIONS" : loc.City,
+                Title        = loc == null || string.IsNullOrEmpty(loc.Name) ? "DIRECTIONS" : loc.Name,
                 Description  = $"{pkmn.Name}{Helpers.GetPokemonGender(pokemon.Gender)} {pokemon.CP}CP {pokemon.IV} LV{pokemon.PlayerLevel} has spawned!",
                 Url          = string.Format(HttpServer.GoogleMaps, pokemon.Latitude, pokemon.Longitude),
                 ImageUrl     = string.Format(HttpServer.GoogleMapsImage, pokemon.Latitude, pokemon.Longitude),
@@ -188,10 +197,10 @@
 
             eb.AddField($"{pkmn.Name} (#{pokemon.PokemonId}, {pokemon.Gender})", $"CP: {pokemon.CP} IV: {pokemon.IV} (Sta: {pokemon.Stamina}/Atk: {pokemon.Attack}/Def: {pokemon.Defense}) LV: {pokemon.PlayerLevel}");
             eb.AddField("Available Until:", $"{pokemon.DespawnTime.ToLongTimeString()} ({pokemon.SecondsLeft} remaining)");
-            if (loc != null)
-            {
-                eb.AddField("Address:", loc.Address);
-            }
+            //if (loc != null)
+            //{
+            //    eb.AddField("Address:", loc.Address);
+            //}
             eb.AddField("Location:", $"{pokemon.Latitude},{pokemon.Longitude}");
             eb.WithImageUrl(string.Format(HttpServer.GoogleMapsImage, pokemon.Latitude, pokemon.Longitude) + $"&key={_config.GmapsKey}");
             var embed = eb.Build();
@@ -215,27 +224,29 @@
                 return null;
             }
 
-            var loc = Utils.GetGoogleAddress(raid.Latitude, raid.Longitude, _config.GmapsKey);
+            //var loc = Utils.GetGoogleAddress(raid.Latitude, raid.Longitude, _config.GmapsKey);
+            var loc = _geofence.GetGeofence(new Location(raid.Latitude, raid.Longitude));
             if (loc == null)
             {
                 _logger.Error($"Failed to lookup city for coordinates {raid.Longitude},{raid.Longitude}, skipping...");
                 return null;
             }
 
-            if (!_config.CityRoles.Exists(x => string.Compare(x, loc.City, true) == 0))
+            if (!_config.CityRoles.Exists(x => string.Compare(x, loc.Name, true) == 0))
             {
-                File.AppendAllText("cities.txt", $"City: {loc.City}\r\n");
+                File.AppendAllText("cities.txt", $"City: {loc.Name}\r\n");
             }
 
-            if (!_client.HasRole(user, SanitizeCityName(loc.City)))
+            //if (!_client.HasRole(user, SanitizeCityName(loc.City)))
+            if (!_client.HasRole(user, loc.Name))
             {
-                _logger.Debug($"Skipping notification for user {user.DisplayName} ({user.Id}) for Pokemon {pkmn.Name} because they do not have the city role '{loc.City}'.");
+                _logger.Debug($"Skipping notification for user {user.DisplayName} ({user.Id}) for Pokemon {pkmn.Name} because they do not have the city role '{loc.Name}'.");
                 return null;
             }
 
             var eb = new DiscordEmbedBuilder
             {
-                Title        = loc == null || string.IsNullOrEmpty(loc.City) ? "DIRECTIONS" : loc.City,
+                Title        = loc == null || string.IsNullOrEmpty(loc.Name) ? "DIRECTIONS" : loc.Name,
                 Description  = $"{pkmn.Name} raid is available!",
                 Url          = string.Format(HttpServer.GoogleMaps, raid.Latitude, raid.Longitude),
                 ImageUrl     = string.Format(HttpServer.GoogleMapsImage, raid.Latitude, raid.Longitude),
@@ -261,10 +272,10 @@
                 eb.AddField("Charge Move:", $"{chargeMove.Name} ({chargeMove.Type}, {chargeMove.Damage} dmg, {chargeMove.DamagePerSecond} dps)");
             }
 
-            if (loc != null)
-            {
-                eb.AddField("Address:", loc.Address);
-            }
+            //if (loc != null)
+            //{
+            //    eb.AddField("Address:", loc.Address);
+            //}
             eb.AddField("Location:", $"{raid.Latitude},{raid.Longitude}");
             eb.WithImageUrl(string.Format(HttpServer.GoogleMapsImage, raid.Latitude, raid.Longitude));
             var embed = eb.Build();
@@ -296,60 +307,56 @@
             Console.ResetColor();
         }
 
-        private string SanitizeCityName(string city)
-        {
-            return city
-                .Replace("Rancho Cucamonga", "Upland")
-                .Replace("La Verne", "Pomona")
-                .Replace("Los Angeles", "EastLA")
-                .Replace("East Los Angeles", "EastLA")
-                .Replace("Commerce", "EastLA")
-                .Replace("Santa Fe Springs", "Whittier");
-        }
+        //private string SanitizeCityName(string city)
+        //{
+        //    return city
+        //        .Replace("Rancho Cucamonga", "Upland")
+        //        .Replace("La Verne", "Pomona")
+        //        .Replace("Diamond Bar", "Pomona")
+        //        .Replace("Los Angeles", "EastLA")
+        //        .Replace("East Los Angeles", "EastLA")
+        //        .Replace("Commerce", "EastLA")
+        //        .Replace("Santa Fe Springs", "Whittier");
+        //}
 
-        private async Task<bool> CheckIfExceededNotificationLimit(Subscription<Pokemon> user)
-        {
-            var hasExceeded = await HasExceededNotificationLimit(user);
-            if (hasExceeded)
-            {
-                var discordUser = await _client.GetUser(user.UserId);
-                if (discordUser == null)
-                {
-                    _logger.Error($"Failed to find user with id {user.UserId}.");
-                    return false;
-                }
+        //private async Task<bool> CheckIfExceededNotificationLimit(Subscription<Pokemon> user)
+        //{
+        //    var hasExceeded = await HasExceededNotificationLimit(user);
+        //    if (hasExceeded)
+        //    {
+        //        var discordUser = await _client.GetUser(user.UserId);
+        //        if (discordUser == null)
+        //        {
+        //            _logger.Error($"Failed to find user with id {user.UserId}.");
+        //            return false;
+        //        }
 
-                if (user.Notified) return true;
+        //        if (user.Notified) return true;
 
-                //TODO: Send direct message explaining to adjust settings.
-                await _client.SendDirectMessage(discordUser, "You've exceeded the maximum amount of notifications for today, to increase this limit please consider donating in order to keep the feeds active. You may want to adjust your notification settings so you don't exceed this limit again and possibly miss an important one.", null);
-                user.Notified = true;
-            }
+        //        //TODO: Send direct message explaining to adjust settings.
+        //        await _client.SendDirectMessage(discordUser, "You've exceeded the maximum amount of notifications for today, to increase this limit please consider donating in order to keep the feeds active. You may want to adjust your notification settings so you don't exceed this limit again and possibly miss an important one.", null);
+        //        user.Notified = true;
+        //    }
 
-            return hasExceeded;
-        }
+        //    return hasExceeded;
+        //}
 
-        private async Task<bool> HasExceededNotificationLimit(Subscription<Pokemon> user)
-        {
-            var isModerator = user.UserId.IsModeratorOrHigher(_config);
-            if (isModerator) return false;
+        //private async Task<bool> HasExceededNotificationLimit(Subscription<Pokemon> user)
+        //{
+        //    var isModerator = user.UserId.IsModeratorOrHigher(_config);
+        //    if (isModerator) return false;
 
-            var isSupporter = await _client.HasSupporterRole(user.UserId, _config.SupporterRoleId);
-            if (isSupporter)
-            {
-                if (user.NotificationsToday >= MaxNotificationsPerDaySupporter)
-                {
-                    return true;
-                }
-            }
+        //    var isSupporter = await _client.HasSupporterRole(user.UserId, _config.SupporterRoleId);
+        //    if (isSupporter)
+        //    {
+        //        if (user.NotificationsToday >= MaxNotificationsPerDaySupporter)
+        //        {
+        //            return true;
+        //        }
+        //    }
 
-            if (user.NotificationsToday >= MaxNotificationsPerDayNormal)
-            {
-                return true;
-            }
-
-            return false;
-        }
+        //    return user.NotificationsToday >= MaxNotificationsPerDayNormal;
+        //}
 
         #endregion
 
@@ -410,6 +417,75 @@
             matchesLvl |= (lvl == "?" && minimumLvl == 0);
 
             return matchesLvl;
+        }
+
+        private bool MatchesGeofenceFilter(Geofence geofence, Location location)
+        {
+            return _geofence.Contains(geofence, location);
+        }
+
+        private bool MatchesGenderFilter(PokemonGender gender, PokemonGender desiredGender)
+        {
+            return gender == desiredGender ||
+                   (gender == PokemonGender.Unset ||
+                   gender == PokemonGender.Genderless);
+        }
+
+        private bool MatchesAttackFilter(string atk, int minimumAtk)
+        {
+            var matchesAtk = false;
+            if (atk != "?")
+            {
+                if (!int.TryParse(atk, out int resultAtk))
+                {
+                    _logger.Error($"Failed to parse pokemon attack IV value '{atk}', skipping filter check.");
+                    return false;
+                }
+
+                matchesAtk |= resultAtk >= minimumAtk;
+            }
+
+            matchesAtk |= (atk == "?" && minimumAtk == 0);
+
+            return matchesAtk;
+        }
+
+        private bool MatchesDefenseFilter(string def, int minimumDef)
+        {
+            var matchesDef = false;
+            if (def != "?")
+            {
+                if (!int.TryParse(def, out int resultAtk))
+                {
+                    _logger.Error($"Failed to parse pokemon defense IV value '{def}', skipping filter check.");
+                    return false;
+                }
+
+                matchesDef |= resultAtk >= minimumDef;
+            }
+
+            matchesDef |= (def == "?" && minimumDef == 0);
+
+            return matchesDef;
+        }
+
+        private bool MatchesStaminaFilter(string sta, int minimumSta)
+        {
+            var matchesSta = false;
+            if (sta != "?")
+            {
+                if (!int.TryParse(sta, out int resultAtk))
+                {
+                    _logger.Error($"Failed to parse pokemon stamina IV value '{sta}', skipping filter check.");
+                    return false;
+                }
+
+                matchesSta |= resultAtk >= minimumSta;
+            }
+
+            matchesSta |= (sta == "?" && minimumSta == 0);
+
+            return matchesSta;
         }
 
         #endregion

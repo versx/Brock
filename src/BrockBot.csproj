@@ -187,11 +187,14 @@
     <Compile Include="Core\CommandPermissionLevel.cs" />
     <Compile Include="Extensions\HelpExtensions.cs" />
     <Compile Include="Services\AdvertisementService.cs" />
+    <Compile Include="Services\Geofence.cs" />
+    <Compile Include="Services\GeofenceService.cs" />
     <Compile Include="Services\RaidLobby\RaidLobbyEta.cs" />
+    <Compile Include="Services\RaidLobby\RaidLobbyManager.cs" />
     <Compile Include="Services\RaidLobby\RaidLobbySettings.cs" />
     <Compile Include="Data\Models\Donator.cs" />
     <Compile Include="Core\FilterBot.cs" />
-    <Compile Include="Core\Location.cs" />
+    <Compile Include="Services\Location.cs" />
     <Compile Include="Data\Models\Pokemon.cs" />
     <Compile Include="Core\Roles.cs" />
     <Compile Include="Core\WeatherType.cs" />

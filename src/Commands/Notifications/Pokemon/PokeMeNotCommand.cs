@@ -8,14 +8,15 @@
     using DSharpPlus.Entities;
 
     using BrockBot.Data;
-    using BrockBot.Extensions;
+
+    //TODO: Add confirmation when deleting user subscriptions.
 
     [Command(
         Categories.Notifications,
         "Unsubscribe from a one or more or even all subscribed Pokemon notifications.",
         "\tExample: `.pokemenot 149`\r\n" +
         "\tExample: `.pokemenot 3,6,9,147,148,149`\r\n" +
-        "\tExample: `.pokemenot` (Removes all subscribed Pokemon notifications.)",
+        "\tExample: `.pokemenot all` (Removes all subscribed Pokemon notifications.)",
         "pokemenot"
     )]
     public class PokeMeNotCommand : ICustomCommand
@@ -41,17 +42,24 @@
 
         public async Task Execute(DiscordMessage message, Command command)
         {
+            if (!command.HasArgs) return;
+
             //await message.IsDirectMessageSupported();
 
             var author = message.Author.Id;
 
-            if (!_db.SubscriptionExists(author))
+            if (!_db.Exists(author))
             {
                 await message.RespondAsync($"{message.Author.Mention} is not subscribed to any Pokemon notifications.");
                 return;
             }
 
-            if (!(command.HasArgs && command.Args.Count == 1))
+            var notSubscribed = new List<string>();
+            var unsubscribed = new List<string>();
+
+            var cmd = command.Args[0];
+
+            if (cmd == "*" || string.Compare(cmd.ToLower(), "all", true) == 0)
             {
                 if (!_db.RemoveAllPokemon(author))
                 {
@@ -63,10 +71,6 @@
                 return;
             }
 
-            var notSubscribed = new List<string>();
-            var unsubscribed = new List<string>();
-
-            var cmd = command.Args[0];
             foreach (var arg in cmd.Split(','))
             {
                 var index = Convert.ToUInt32(arg);
@@ -82,7 +86,6 @@
                 {
                     if (_db[author].Pokemon.Remove(unsubscribePokemon))
                     {
-                        //msg += $"**{pokemon.Name}**";
                         unsubscribed.Add(pokemon.Name);
                     }
                 }
@@ -98,7 +101,7 @@
                     ? $"{message.Author.Mention} has unsubscribed from **{string.Join("**, **", unsubscribed)}** notifications."
                     : string.Empty) +
                 (notSubscribed.Count > 0 
-                    ? $" {message.Author.Mention} is not subscribed to {string.Join(", ", notSubscribed)} notifications." 
+                    ? $" {message.Author.Mention} is not subscribed to **{string.Join("**, **", notSubscribed)}** notifications." 
                     : string.Empty)
             );
         }

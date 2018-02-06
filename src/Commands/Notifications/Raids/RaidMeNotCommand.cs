@@ -14,7 +14,7 @@
         "Unsubscribe from a one or more or even all subscribed Raid notifications.",
         "\tExample: `.raidmenot Absol`\r\n" +
         "\tExample: `.raidmenot Tyranitar,Snorlax`\r\n" +
-        "\tExample: `.raidmenot` (Removes all subscribed Raid notifications.)",
+        "\tExample: `.raidmenot all` (Removes all subscribed Raid notifications.)",
         "raidmenot"
     )]
     public class RaidMeNotCommand : ICustomCommand
@@ -40,29 +40,31 @@
 
         public async Task Execute(DiscordMessage message, Command command)
         {
+            if (!command.HasArgs) return;
+            if (command.Args.Count != 1) return;
+
             //await message.IsDirectMessageSupported();
 
             var author = message.Author.Id;
 
-            if (!_db.SubscriptionExists(author))
+            if (!_db.Exists(author))
             {
                 await message.RespondAsync($"{message.Author.Mention} is not subscribed to any raid notifications.");
                 return;
             }
 
-            if (!command.HasArgs)
+            var notSubscribed = new List<string>();
+            var unsubscribed = new List<string>();
+
+            var cmd = command.Args[0];
+
+            if (cmd == "*" || string.Compare(cmd.ToLower(), "all", true) == 0)
             {
                 _db.RemoveAllRaids(author);
                 await message.RespondAsync($"{message.Author.Mention} has unsubscribed from **all** raid notifications!");
                 return;
             }
 
-            if (command.Args.Count != 1) return;
-
-            var notSubscribed = new List<string>();
-            var unsubscribed = new List<string>();
-
-            var cmd = command.Args[0];
             foreach (var arg in cmd.Split(','))
             {
                 var pokeId = Helpers.PokemonIdFromName(_db, arg);

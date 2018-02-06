@@ -42,7 +42,7 @@
             await message.IsDirectMessageSupported();
 
             var author = message.Author.Id;
-            if (!_db.SubscriptionExists(author))
+            if (!_db.Exists(author))
             {
                 await message.RespondAsync($"{message.Author.Mention} is not currently subscribed to any Pokemon or Raid notifications.");
                 return;

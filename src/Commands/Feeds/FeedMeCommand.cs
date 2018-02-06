@@ -1,6 +1,7 @@
 ﻿namespace BrockBot.Commands
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
 
     using DSharpPlus;
@@ -51,6 +52,12 @@
 
             //await message.IsDirectMessageSupported();
 
+            if (!(command.Args.Count == 1))
+            {
+                await message.RespondAsync($"{message.Author.Mention} please provide correct values such as `{_config.CommandsPrefix}{command.Name} <city_name>`, `{_config.CommandsPrefix}{command.Name} <city1>,<city2>,<city3>`");
+                return;
+            }
+
             if (message.Channel.Guild == null)
             {
                 var channel = await _client.GetChannel(_config.CommandsChannelId);
@@ -62,66 +69,60 @@
 
             try
             {
-                var guild = message.Channel.Guild;
-
-                if (command.Args.Count == 1)
+                var member = await _client.GetMemberFromUserId(message.Author.Id);
+                if (member == null)
                 {
-                    var msg = string.Empty;
-                    var cmd = command.Args[0];
-                    if (string.Compare(cmd, FeedAll, true) == 0)
-                    {
-                        var member = await guild.GetMemberAsync(message.Author.Id);
-                        if (member == null)
-                        {
-                            await message.RespondAsync($"Failed to find member with id {message.Author.Id}.");
-                            return;
-                        }
-
-                        await AssignAllDefaultFeedRoles(message, member);
-                        return;
-                    }
-
-                    var cities = cmd.Replace(" ", "").Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
-                    foreach (var city in cities)
-                    {
-                        if (!_config.CityRoles.Exists(x => string.Compare(city, x, true) == 0))
-                        {
-                            await message.RespondAsync($"{message.Author.Mention} has entered an incorrect city name, please enter one of the following: {(string.Join(",", _config.CityRoles))}, or {FeedAll}.");
-                            continue;
-                        }
-
-                        var member = await _client.GetMemberFromUserId(message.Author.Id);
-                        var cityRole = _client.GetRoleFromName(city);
-                        var reason = $"User initiated city assignment via {AssemblyUtils.AssemblyName}.";
-                        var alreadyAssigned = false;
-
-                        if (cityRole == null)
-                        {
-                            if (!string.IsNullOrEmpty(msg)) msg += "\r\n";
-                            msg += $"{city} is not a valid city feed.";
-                            continue;
-                        }
-
-                        foreach (var role in member.Roles)
-                        {
-                            alreadyAssigned |= role.Name == cityRole.Name;
-                        }
-
-                        if (alreadyAssigned)
-                        {
-                            if (!string.IsNullOrEmpty(msg)) msg += "\r\n";
-                            msg += $"{message.Author.Mention} is already assigned to city feed {cityRole.Name}. ";
-                            continue;
-                        }
-
-                        await message.Channel.Guild.GrantRoleAsync(member, cityRole, reason);
-
-                        if (!string.IsNullOrEmpty(msg)) msg += "\r\n";
-                        msg += $"{message.Author.Mention} has joined city feed {cityRole.Name}. ";
-                    }
-
-                    await message.RespondAsync(msg);
+                    await message.RespondAsync($"Failed to find member with id {message.Author.Id}.");
+                    return;
                 }
+
+                var guild = message.Channel.Guild;
+                var cmd = command.Args[0];
+                if (string.Compare(cmd, FeedAll, true) == 0)
+                {
+                    await AssignAllDefaultFeedRoles(message, member);
+                    return;
+                }
+
+                var assigned = new List<string>();
+                var alreadyAssigned = new List<string>();
+
+                var cities = cmd.Replace(" ", "").Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var city in cities)
+                {
+                    if (!_config.CityRoles.Exists(x => string.Compare(city, x, true) == 0))
+                    {
+                        await message.RespondAsync($"{message.Author.Mention} has entered an incorrect city name, please enter one of the following: {(string.Join(",", _config.CityRoles))}, or {FeedAll}.");
+                        continue;
+                    }
+
+                    var reason = $"User initiated city assignment via {AssemblyUtils.AssemblyName}.";
+                    var cityRole = _client.GetRoleFromName(city);
+                    if (cityRole == null)
+                    {
+                        await message.RespondAsync($"{message.Author.Mention} {city} is not a valid city feed name.");
+                        continue;
+                    }
+
+                    if (member.HasRole(cityRole.Id))
+                    {
+                        alreadyAssigned.Add(cityRole.Name);
+                        continue;
+                    }
+
+                    await message.Channel.Guild.GrantRoleAsync(member, cityRole, reason);
+                    assigned.Add(cityRole.Name);
+                }
+
+                await message.RespondAsync
+                (
+                    (assigned.Count > 0
+                        ? $"{message.Author.Mention} has joined city feed{(assigned.Count > 1 ? "s" : null)} **{string.Join("**, **", assigned)}**."
+                        : string.Empty) +
+                    (alreadyAssigned.Count > 0
+                        ? $" {message.Author.Mention} is already assigned to **{string.Join("**, **", alreadyAssigned)}** city feed{(alreadyAssigned.Count > 1 ? "s" : null)}."
+                        : string.Empty)
+                );
             }
             catch (Exception ex)
             {

@@ -16,7 +16,8 @@
         Categories.Notifications,
         "Subscribe to Pokemon raid notifications.",
         "\tExample: `.raidme Absol` (Subscribe to Absol raid notifications.)\r\n" +
-        "\tExample: `.raidme Tyranitar,Magikarp` (Subscribe to Tyranitar and Magikarp raid notifications.)",
+        "\tExample: `.raidme Tyranitar,Magikarp` (Subscribe to Tyranitar and Magikarp raid notifications.)\r\n" +
+        "\tExample: `.raidme all` (Subscribe to all raid boss notifications.)",
         "raidme"
     )]
     public class RaidMeCommand : ICustomCommand
@@ -53,10 +54,47 @@
             //await message.IsDirectMessageSupported();
 
             if (!command.HasArgs) return;
-            if (command.Args.Count != 1) return;
+            if (command.Args.Count != 1)
+            {
+                await message.RespondAsync($"{message.Author.Mention} please provide correct values such as `{_config.CommandsPrefix}{command.Name} tyranitar`, `{_config.CommandsPrefix}{command.Name} Magikarp,Absol,Mawile`");
+                return;
+            }
 
             var author = message.Author.Id;
             var cmd = command.Args[0];
+
+            if (string.Compare(cmd, "all", true) == 0)
+            {
+                var isSupporter = await _client.IsSupporterOrHigher(author, _config);
+                if (!isSupporter)
+                {
+                    await message.RespondAsync($"{message.Author.Mention} non-supporter members have a limited raid boss notification amount of {MaxRaidSubscriptions}, thus you may not use the 'all' parameter. Please narrow down your raid boss notification subscriptions to be more specific and try again.");
+                    return;
+                }
+
+                for (uint i = 1; i < 390; i++)
+                {
+                    if (!FilterBot.ValidRaidBosses.Contains(i)) continue;
+
+                    var pokemon = _db.Pokemon[i.ToString()];
+                    if (!_db.Exists(author))
+                    {
+                        _db.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon>(), new List<Pokemon> { new Pokemon { PokemonId = i } }));
+                        continue;
+                    }
+
+                    //User has already subscribed before, check if their new requested sub already exists.
+                    var subs = _db[author];
+                    if (!subs.Raids.Exists(x => x.PokemonId == i))
+                    {
+                        subs.Raids.Add(new Pokemon { PokemonId = i });
+                        continue;
+                    }
+                }
+
+                await message.RespondAsync($"{message.Author.Mention} subscribed to **all** raid boss notifications.");
+                return;
+            }
 
             var alreadySubscribed = new List<string>();
             var subscribed = new List<string>();
@@ -71,7 +109,13 @@
                 }
 
                 var pokemon = _db.Pokemon[pokeId.ToString()];
-                if (!_db.SubscriptionExists(author))
+                if (!FilterBot.IsValidRaidBoss(pokeId))
+                {
+                    await message.RespondAsync($"{pokemon.Name} ({pokeId}) is not a valid raid boss.");
+                    return;
+                }
+
+                if (!_db.Exists(author))
                 {
                     _db.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon>(), new List<Pokemon> { new Pokemon { PokemonId = pokeId } }));
                     subscribed.Add(pokemon.Name);

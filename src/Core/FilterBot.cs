@@ -9,7 +9,6 @@
     using BrockBot.Commands;
     using BrockBot.Configuration;
     using BrockBot.Data;
-    using BrockBot.Data.Models;
     using BrockBot.Diagnostics;
     using BrockBot.Extensions;
     using BrockBot.Net;
@@ -27,12 +26,11 @@
     //TODO: Keep track of supporters, have a command to check if a paypal email etc or username rather has donated.
     //TODO: Add response messages to invalid commands/arguments provided.
 
-    //TODO: Keep track of notifications a day per user, add a limit per day, etc.
-    //TODO: Cut off normal user's notifications after the free limit.
     //TODO: Notify the user if their settings are too low and are sending too many notifications.
-
     //TODO: Debug DM responses for raid lobbies.
     //TODO: Add RaidLobbyEta.Late
+    //TODO: Add confirmation for removing Pokemon subscriptions.
+    //TODO: Fix new geofence lookup, Upland picked up as Montclair.
 
     public class FilterBot
     {
@@ -59,27 +57,78 @@
         private readonly NotificationProcessor _notificationProcessor;
         private AdvertisementService _advertSvc;
         private readonly TweetService _tweetSvc;
-        private List<string> _validRaidEmojis = new List<string>
-        {
-            "➡",
-            "✅",
-            "❌",
-            "1⃣",
-            "2⃣",
-            "3⃣",
-            "4⃣",
-            "5⃣",
-            "🔟",
-            "🔄"
-        };
+        private readonly RaidLobbyManager _lobbyManager;
 
         #endregion
 
         #region Properties
 
-        public IEventLogger Logger { get; set; }
+        public IEventLogger Logger { get; }
 
-        public CommandList Commands { get; private set; }
+        public CommandList Commands { get; }
+
+        public static List<uint> ValidRaidBosses => new List<uint>
+        {
+            2,
+            3,
+            5,
+            6,
+            8,
+            9,
+            11,
+            28,
+            31,
+            34,
+            38,
+            59,
+            62,
+            65,
+            68,
+            71,
+            73,
+            76,
+            82,
+            89,
+            91,
+            94,
+            103,
+            105,
+            110,
+            112,
+            123,
+            125,
+            126,
+            129,
+            131,
+            134,
+            135,
+            136,
+            137,
+            139,
+            143,
+            144,
+            145,
+            146,
+            150,
+            151,
+            153,
+            156,
+            159,
+            243,
+            244,
+            245,
+            248,
+            249,
+            250,
+            251,
+            302,
+            303,
+            306,
+            320,
+            359,
+            382,
+            383
+        };
 
         #endregion
 
@@ -93,7 +142,7 @@
             _db = Database.Load();
             if (_db == null)
             {
-                Utils.LogError(new Exception("Failed to load database, exiting..."));
+                Logger.Error("Failed to load database, exiting...");
                 Environment.Exit(-1);
             }
 
@@ -124,6 +173,7 @@
             _reminderSvc = new ReminderService(_client, _db, Logger);
             _notificationProcessor = new NotificationProcessor(_client, _db, _config, Logger);
             _tweetSvc = new TweetService(_client, _config, Logger);
+            _lobbyManager = new RaidLobbyManager(_client, _config, Logger);
         }
 
         #endregion
@@ -166,13 +216,15 @@
                 Console.WriteLine($"User: {user.Key}: {user.Value.User.Username}");
             }
 
-            await Utils.Wait(3 * OneSecond);
+            //await Utils.Wait(3 * OneSecond);
 
             if (_advertSvc == null)
             {
                 _advertSvc = new AdvertisementService(_client, _config, Logger);
                 await _advertSvc.Start();
             }
+
+            _tweetSvc.Start();
         }
 
         private async Task Client_MessageCreated(MessageCreateEventArgs e)
@@ -283,320 +335,326 @@
 
         private async Task Client_MessageReactionAdded(MessageReactionAddEventArgs e)
         {
-            if (!_validRaidEmojis.Contains(e.Emoji.Name)) return;
+            #region
+            //if (!_lobbyManager.ValidRaidEmojis.Contains(e.Emoji.Name)) return;
 
-            if (e.Message.Channel.Guild == null)
-            {
-                if (e.User.IsBot) return;
+            //if (e.Channel.Guild == null)
+            //{
+            //    if (e.User.IsBot) return;
 
-                var hasPrivilege = await _client.IsSupporterOrHigher(e.User.Id, _config);
-                if (!hasPrivilege)
-                {
-                    await e.Message.RespondAsync($"{e.User.Username} does not have the supporter role assigned.");
-                    return;
-                }
+            //    var hasPrivilege = await _client.IsSupporterOrHigher(e.User.Id, _config);
+            //    if (!hasPrivilege)
+            //    {
+            //        await e.Message.RespondAsync($"{e.User.Username} does not have the supporter role assigned.");
+            //        return;
+            //    }
 
-                var origMessageId = Convert.ToUInt64(Utils.GetBetween(e.Message.Content, "#", "#"));
-                var lobby = GetLobby(e.Channel, ref origMessageId);
+            //    var origMessageId = Convert.ToUInt64(Utils.GetBetween(e.Message.Content, "#", "#"));
+            //    var lobby = GetLobby(e.Channel, ref origMessageId);
 
-                var settings = await GetRaidLobbySettings(lobby, origMessageId, e.Message, e.Channel);
-                if (settings == null)
-                {
-                    Logger.Error($"Failed to find raid lobby settings for original raid message id {origMessageId}.");
-                    return;
-                }
+            //    var settings = await GetRaidLobbySettings(lobby, origMessageId, e.Message, e.Channel);
+            //    if (settings == null)
+            //    {
+            //        Logger.Error($"Failed to find raid lobby settings for original raid message id {origMessageId}.");
+            //        return;
+            //    }
 
-                await e.Message.DeleteReactionAsync(e.Emoji, e.User);
+            //    await e.Message.DeleteReactionAsync(e.Emoji, e.User);
 
-                var lobMessage = default(DiscordMessage);
-                var embedMsg = settings.RaidMessage?.Embeds[0];
+            //    var lobMessage = default(DiscordMessage);
+            //    var embedMsg = settings.RaidMessage?.Embeds[0];
 
-                switch (e.Emoji.Name)
-                {
-                    //case "1⃣":
-                    //    break;
-                    //case "2⃣":
-                    //    break;
-                    //case "3⃣":
-                    //    break;
-                    //case "4⃣":
-                    //    break;
-                    case "5⃣":
-                        lobby.UsersComing[e.User.Id].Eta = RaidLobbyEta.Five;
-                        lobby.UsersComing[e.User.Id].EtaStart = DateTime.Now;
-                        lobMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embedMsg);
-                        await e.Message.DeleteAllReactionsAsync();
-                        break;
-                    case "🔟":
-                        lobby.UsersComing[e.User.Id].Eta = RaidLobbyEta.Ten;
-                        lobby.UsersComing[e.User.Id].EtaStart = DateTime.Now;
-                        lobMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embedMsg);
-                        await e.Message.DeleteAllReactionsAsync();
-                        break;
-                    case "❌":
-                        if (!lobby.UsersComing.ContainsKey(e.User.Id))
-                        {
-                            lobby.UsersComing.Remove(e.User.Id);
-                            lobMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embedMsg);
-                        }
-                        break;
-                }
-                _config.RaidLobbies.ActiveLobbies[origMessageId] = lobby;
-                _config.Save();
-            }
-            else
-            {
-                var result = _config.SponsoredRaids.Exists(x => x.ChannelPool.Contains(e.Channel.Id)) ||
-                             _config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id;
+            //    switch (e.Emoji.Name)
+            //    {
+            //        //case "1⃣":
+            //        //    break;
+            //        //case "2⃣":
+            //        //    break;
+            //        //case "3⃣":
+            //        //    break;
+            //        //case "4⃣":
+            //        //    break;
+            //        case "5⃣":
+            //            lobby.UsersComing[e.User.Id].Eta = RaidLobbyEta.Five;
+            //            lobby.UsersComing[e.User.Id].EtaStart = DateTime.Now;
+            //            lobMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embedMsg);
+            //            await e.Message.DeleteAllReactionsAsync();
+            //            break;
+            //        case "🔟":
+            //            lobby.UsersComing[e.User.Id].Eta = RaidLobbyEta.Ten;
+            //            lobby.UsersComing[e.User.Id].EtaStart = DateTime.Now;
+            //            lobMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embedMsg);
+            //            await e.Message.DeleteAllReactionsAsync();
+            //            break;
+            //        case "❌":
+            //            if (!lobby.UsersComing.ContainsKey(e.User.Id))
+            //            {
+            //                lobby.UsersComing.Remove(e.User.Id);
+            //                lobMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embedMsg);
+            //            }
+            //            break;
+            //    }
+            //    _config.RaidLobbies.ActiveLobbies[origMessageId] = lobby;
+            //    _config.Save();
+            //}
+            //else
+            //{
+            //    var result = _config.SponsoredRaids.Exists(x => x.ChannelPool.Contains(e.Channel.Id)) ||
+            //                 _config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id;
 
-                if (!result) return;
-                if (e.User.IsBot) return;
+            //    if (!result) return;
+            //    if (e.User.IsBot) return;
 
-                var hasPrivilege = await _client.IsSupporterOrHigher(e.User.Id, _config);
-                if (!hasPrivilege)
-                {
-                    await e.Message.RespondAsync($"{e.User.Username} does not have the supporter role assigned.");
-                    return;
-                }
+            //    var hasPrivilege = await _client.IsSupporterOrHigher(e.User.Id, _config);
+            //    if (!hasPrivilege)
+            //    {
+            //        await e.Message.RespondAsync($"{e.User.Username} does not have the supporter role assigned.");
+            //        return;
+            //    }
 
-                var originalMessageId = e.Message.Id;
-                var lobby = GetLobby(e.Channel, ref originalMessageId);
+            //    var originalMessageId = e.Message.Id;
+            //    var lobby = GetLobby(e.Channel, ref originalMessageId);
 
-                var settings = await GetRaidLobbySettings(lobby, e.Message.Id, e.Message, e.Channel);
-                if (settings == null)
-                {
-                    Logger.Error($"Failed to find raid lobby settings for original raid message id {originalMessageId}.");
-                    return;
-                }
+            //    var settings = await GetRaidLobbySettings(lobby, e.Message.Id, e.Message, e.Channel);
+            //    if (settings == null)
+            //    {
+            //        Logger.Error($"Failed to find raid lobby settings for original raid message id {originalMessageId}.");
+            //        return;
+            //    }
 
-                #region
-                //var raidLobbyChannel = await _client.GetChannel(_config.RaidLobbies.RaidLobbiesChannelId);
-                //if (raidLobbyChannel == null)
-                //{
-                //    Logger.Error($"Failed to retrieve the raid lobbies channel with id {_config.RaidLobbies.RaidLobbiesChannelId}.");
-                //    return;
-                //}
+            //    #region
+            //    //var raidLobbyChannel = await _client.GetChannel(_config.RaidLobbies.RaidLobbiesChannelId);
+            //    //if (raidLobbyChannel == null)
+            //    //{
+            //    //    Logger.Error($"Failed to retrieve the raid lobbies channel with id {_config.RaidLobbies.RaidLobbiesChannelId}.");
+            //    //    return;
+            //    //}
 
-                //RaidLobby lobby = null;
-                //var originalMessageId = e.Message.Id;
-                //if (e.Channel.Id == _config.RaidLobbies.RaidLobbiesChannelId)
-                //{
-                //    foreach (var item in _config.RaidLobbies.ActiveLobbies)
-                //    {
-                //        if (item.Value.LobbyMessageId == e.Message.Id)
-                //        {
-                //            originalMessageId = item.Value.OriginalRaidMessageId;
-                //            lobby = item.Value;
-                //            break;
-                //        }
-                //    }
-                //}
-                //else
-                //{
-                //    if (_config.RaidLobbies.ActiveLobbies.ContainsKey(originalMessageId))
-                //    {
-                //        lobby = _config.RaidLobbies.ActiveLobbies[originalMessageId];
-                //    }
-                //    else
-                //    {
-                //        lobby = new RaidLobby { OriginalRaidMessageId = originalMessageId, OriginalRaidMessageChannelId = e.Channel.Id };
-                //        _config.RaidLobbies.ActiveLobbies.Add(originalMessageId, lobby);
-                //    }
-                //}
+            //    //RaidLobby lobby = null;
+            //    //var originalMessageId = e.Message.Id;
+            //    //if (e.Channel.Id == _config.RaidLobbies.RaidLobbiesChannelId)
+            //    //{
+            //    //    foreach (var item in _config.RaidLobbies.ActiveLobbies)
+            //    //    {
+            //    //        if (item.Value.LobbyMessageId == e.Message.Id)
+            //    //        {
+            //    //            originalMessageId = item.Value.OriginalRaidMessageId;
+            //    //            lobby = item.Value;
+            //    //            break;
+            //    //        }
+            //    //    }
+            //    //}
+            //    //else
+            //    //{
+            //    //    if (_config.RaidLobbies.ActiveLobbies.ContainsKey(originalMessageId))
+            //    //    {
+            //    //        lobby = _config.RaidLobbies.ActiveLobbies[originalMessageId];
+            //    //    }
+            //    //    else
+            //    //    {
+            //    //        lobby = new RaidLobby { OriginalRaidMessageId = originalMessageId, OriginalRaidMessageChannelId = e.Channel.Id };
+            //    //        _config.RaidLobbies.ActiveLobbies.Add(originalMessageId, lobby);
+            //    //    }
+            //    //}
 
-                //if (lobby == null)
-                //{
-                //    Logger.Error($"Failed to find raid lobby, it may have already expired, deleting message with id {e.Message.Id}...");
-                //    await e.Message.DeleteAsync("Raid lobby does not exist anymore.");
-                //    return;
-                //}
+            //    //if (lobby == null)
+            //    //{
+            //    //    Logger.Error($"Failed to find raid lobby, it may have already expired, deleting message with id {e.Message.Id}...");
+            //    //    await e.Message.DeleteAsync("Raid lobby does not exist anymore.");
+            //    //    return;
+            //    //}
 
-                //var channel = await _client.GetChannel(lobby.OriginalRaidMessageChannelId);
-                //if (channel == null)
-                //{
-                //    Logger.Error($"Failed to find original raid message channel with id {lobby.OriginalRaidMessageChannelId}.");
-                //    return;
-                //}
+            //    //var channel = await _client.GetChannel(lobby.OriginalRaidMessageChannelId);
+            //    //if (channel == null)
+            //    //{
+            //    //    Logger.Error($"Failed to find original raid message channel with id {lobby.OriginalRaidMessageChannelId}.");
+            //    //    return;
+            //    //}
 
-                //var raidMessage = await channel.GetMessage(originalMessageId);
-                //if (raidMessage == null)
-                //{
-                //    Logger.Warn($"Failed to find original raid message with {originalMessageId}, searching server...");
-                //    raidMessage = await GetRaidMessage(_config.SponsoredRaids, originalMessageId);
-                //}
-                #endregion
+            //    //var raidMessage = await channel.GetMessage(originalMessageId);
+            //    //if (raidMessage == null)
+            //    //{
+            //    //    Logger.Warn($"Failed to find original raid message with {originalMessageId}, searching server...");
+            //    //    raidMessage = await GetRaidMessage(_config.SponsoredRaids, originalMessageId);
+            //    //}
+            //    #endregion
 
-                await e.Message.DeleteAllReactionsAsync();
+            //    await e.Message.DeleteAllReactionsAsync();
 
-                var lobbyMessage = default(DiscordMessage);
-                var embed = settings.RaidMessage?.Embeds[0];
+            //    var lobbyMessage = default(DiscordMessage);
+            //    var embed = settings.RaidMessage?.Embeds[0];
 
-                switch (e.Emoji.Name)
-                {
-                    case "➡":
-                        #region Coming
-                        if (!lobby.UsersComing.ContainsKey(e.User.Id))
-                        {
-                            lobby.UsersComing.Add(e.User.Id, new RaidLobbyUser { Id = e.User.Id, Eta = RaidLobbyEta.NotSet, Players = 1 });
-                        }
+            //    switch (e.Emoji.Name)
+            //    {
+            //        case "➡":
+            //            #region Coming
+            //            if (!lobby.UsersComing.ContainsKey(e.User.Id))
+            //            {
+            //                lobby.UsersComing.Add(e.User.Id, new RaidLobbyUser { Id = e.User.Id, Eta = RaidLobbyEta.NotSet, Players = 1 });
+            //            }
 
-                        if (lobby.UsersReady.ContainsKey(e.User.Id))
-                        {
-                            lobby.UsersReady.Remove(e.User.Id);
-                        }
+            //            if (lobby.UsersReady.ContainsKey(e.User.Id))
+            //            {
+            //                lobby.UsersReady.Remove(e.User.Id);
+            //            }
 
-                        lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
-                        await _client.SetAccountsReactions
-                        (
-                            _config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id
-                            ? lobbyMessage
-                            : e.Message
-                        );
-                        break;
-                    #endregion
-                    case "✅":
-                        #region Ready
-                        if (lobby.UsersComing.ContainsKey(e.User.Id))
-                        {
-                            lobby.UsersComing.Remove(e.User.Id);
-                        }
+            //            lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
+            //            await _client.SetAccountsReactions
+            //            (
+            //                _config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id
+            //                ? lobbyMessage
+            //                : e.Message
+            //            );
+            //            break;
+            //            #endregion
+            //        case "✅":
+            //            #region Ready
+            //            if (!lobby.UsersReady.ContainsKey(e.User.Id))
+            //            {
+            //                var players = lobby.UsersComing.ContainsKey(e.User.Id) ? lobby.UsersComing[e.User.Id].Players : 1;
+            //                lobby.UsersReady.Add(e.User.Id, new RaidLobbyUser { Id = e.User.Id, Eta = RaidLobbyEta.Here, Players = players });
+            //            }
 
-                        if (!lobby.UsersReady.ContainsKey(e.User.Id))
-                        {
-                            lobby.UsersReady.Add(e.User.Id, new RaidLobbyUser { Id = e.User.Id, Eta = RaidLobbyEta.Here, Players = 1 });
-                        }
+            //            if (lobby.UsersComing.ContainsKey(e.User.Id))
+            //            {
+            //                lobby.UsersComing.Remove(e.User.Id);
+            //            }
 
-                        lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
-                        if (_config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id)
-                        {
-                            await _client.SetDefaultRaidReactions(lobbyMessage, true);
-                        }
-                        else
-                        {
-                            await _client.SetDefaultRaidReactions(lobbyMessage, true);
-                            await _client.SetDefaultRaidReactions(e.Message, false);
-                        }
-                        break;
-                        #endregion
-                    case "❌":
-                        #region Remove User From Lobby
-                        if (lobby.UsersComing.ContainsKey(e.User.Id)) lobby.UsersComing.Remove(e.User.Id);
-                        if (lobby.UsersReady.ContainsKey(e.User.Id)) lobby.UsersReady.Remove(e.User.Id);
+            //            lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
+            //            if (_config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id)
+            //            {
+            //                await _client.SetDefaultRaidReactions(lobbyMessage, true);
+            //            }
+            //            else
+            //            {
+            //                await _client.SetDefaultRaidReactions(lobbyMessage, true);
+            //                await _client.SetDefaultRaidReactions(e.Message, false);
+            //            }
+            //            break;
+            //            #endregion
+            //        case "❌":
+            //            #region Remove User From Lobby
+            //            if (lobby.UsersComing.ContainsKey(e.User.Id)) lobby.UsersComing.Remove(e.User.Id);
+            //            if (lobby.UsersReady.ContainsKey(e.User.Id)) lobby.UsersReady.Remove(e.User.Id);
 
-                        if (lobby.UsersComing.Count == 0 && lobby.UsersReady.Count == 0)
-                        {
-                            //TODO: Delete lobby.
-                            lobbyMessage = await settings.RaidLobbyChannel.GetMessage(lobby.LobbyMessageId);
-                            if (lobbyMessage != null)
-                            {
-                                await lobbyMessage.DeleteAsync();
-                                lobbyMessage = null;
-                            }
-                        }
+            //            if (lobby.UsersComing.Count == 0 && lobby.UsersReady.Count == 0)
+            //            {
+            //                lobbyMessage = await settings.RaidLobbyChannel.GetMessage(lobby.LobbyMessageId);
+            //                if (lobbyMessage != null)
+            //                {
+            //                    await lobbyMessage.DeleteAsync();
+            //                    lobbyMessage = null;
+            //                }
 
-                        _config.RaidLobbies.ActiveLobbies.Remove(lobby.OriginalRaidMessageId);
-                        _config.Save();
-                        break;
-                    #endregion
-                    case "1⃣":
-                        #region 1 Account
-                        lobby.UsersComing[e.User.Id].Players = 1;
-                        lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
-                        await _client.SetEtaReactions
-                        (
-                            _config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id
-                            ? lobbyMessage
-                            : e.Message
-                        );
-                        break;
-                    #endregion
-                    case "2⃣":
-                        #region 2 Accounts
-                        lobby.UsersComing[e.User.Id].Players = 2;
-                        lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
-                        await _client.SetEtaReactions
-                        (
-                            _config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id
-                            ? lobbyMessage
-                            : e.Message
-                        );
-                        break;
-                    #endregion
-                    case "3⃣":
-                        #region 3 Accounts
-                        lobby.UsersComing[e.User.Id].Players = 3;
-                        lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
-                        await _client.SetEtaReactions
-                        (
-                            _config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id
-                            ? lobbyMessage
-                            : e.Message
-                        );
-                        break;
-                    #endregion
-                    case "4⃣":
-                        #region 4 Accounts
-                        lobby.UsersComing[e.User.Id].Players = 4;
-                        lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
-                        await _client.SetEtaReactions
-                        (
-                            _config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id
-                            ? lobbyMessage
-                            : e.Message
-                        );
-                        break;
-                    #endregion
-                    case "5⃣":
-                        #region 5mins ETA
-                        lobby.UsersComing[e.User.Id].Eta = RaidLobbyEta.Five;
-                        lobby.UsersComing[e.User.Id].EtaStart = DateTime.Now;
-                        lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
-                        if (_config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id)
-                        {
-                            await _client.SetDefaultRaidReactions(lobbyMessage, true);
-                        }
-                        else
-                        {
-                            await _client.SetDefaultRaidReactions(lobbyMessage, true);
-                            await _client.SetDefaultRaidReactions(e.Message, false);
-                        }
-                        break;
-                    #endregion
-                    case "🔟":
-                        #region 10mins ETA
-                        lobby.UsersComing[e.User.Id].Eta = RaidLobbyEta.Ten;
-                        lobby.UsersComing[e.User.Id].EtaStart = DateTime.Now;
-                        lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
-                        if (_config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id)
-                        {
-                            await _client.SetDefaultRaidReactions(lobbyMessage, true);
-                        }
-                        else
-                        {
-                            await _client.SetDefaultRaidReactions(lobbyMessage, true);
-                            await _client.SetDefaultRaidReactions(e.Message, false);
-                        }
-                        break;
-                    #endregion
-                    case "🔄":
-                        #region Refresh
-                        lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
-                        await _client.SetDefaultRaidReactions
-                        (
-                            _config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id
-                            ? lobbyMessage
-                            : e.Message,
-                            _config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id
-                        );
-                        break;
-                        #endregion
-                }
-                if (lobby != null)
-                {
-                    _config.RaidLobbies.ActiveLobbies[originalMessageId] = lobby;
-                }
-                _config.Save();
-            }
+            //                _config.RaidLobbies.ActiveLobbies.Remove(lobby.OriginalRaidMessageId);
+            //            }
+            //            break;
+            //            #endregion
+            //        case "1⃣":
+            //            #region 1 Account
+            //            lobby.UsersComing[e.User.Id].Players = 1;
+            //            lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
+            //            await _client.SetEtaReactions
+            //            (
+            //                _config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id
+            //                ? lobbyMessage
+            //                : e.Message
+            //            );
+            //            break;
+            //        #endregion
+            //        case "2⃣":
+            //            #region 2 Accounts
+            //            lobby.UsersComing[e.User.Id].Players = 2;
+            //            lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
+            //            await _client.SetEtaReactions
+            //            (
+            //                _config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id
+            //                ? lobbyMessage
+            //                : e.Message
+            //            );
+            //            break;
+            //        #endregion
+            //        case "3⃣":
+            //            #region 3 Accounts
+            //            lobby.UsersComing[e.User.Id].Players = 3;
+            //            lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
+            //            await _client.SetEtaReactions
+            //            (
+            //                _config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id
+            //                ? lobbyMessage
+            //                : e.Message
+            //            );
+            //            break;
+            //        #endregion
+            //        case "4⃣":
+            //            #region 4 Accounts
+            //            lobby.UsersComing[e.User.Id].Players = 4;
+            //            lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
+            //            await _client.SetEtaReactions
+            //            (
+            //                _config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id
+            //                ? lobbyMessage
+            //                : e.Message
+            //            );
+            //            break;
+            //        #endregion
+            //        case "5⃣":
+            //            #region 5mins ETA
+            //            lobby.UsersComing[e.User.Id].Eta = RaidLobbyEta.Five;
+            //            lobby.UsersComing[e.User.Id].EtaStart = DateTime.Now;
+            //            lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
+            //            if (_config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id)
+            //            {
+            //                await _client.SetDefaultRaidReactions(lobbyMessage, true);
+            //            }
+            //            else
+            //            {
+            //                await _client.SetDefaultRaidReactions(lobbyMessage, true);
+            //                await _client.SetDefaultRaidReactions(e.Message, false);
+            //            }
+            //            break;
+            //        #endregion
+            //        case "🔟":
+            //            #region 10mins ETA
+            //            lobby.UsersComing[e.User.Id].Eta = RaidLobbyEta.Ten;
+            //            lobby.UsersComing[e.User.Id].EtaStart = DateTime.Now;
+            //            lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
+            //            if (_config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id)
+            //            {
+            //                await _client.SetDefaultRaidReactions(lobbyMessage, true);
+            //            }
+            //            else
+            //            {
+            //                await _client.SetDefaultRaidReactions(lobbyMessage, true);
+            //                await _client.SetDefaultRaidReactions(e.Message, false);
+            //            }
+            //            break;
+            //        #endregion
+            //        case "🔄":
+            //            #region Refresh
+            //            lobbyMessage = await UpdateRaidLobbyMessage(lobby, settings.RaidLobbyChannel, embed);
+            //            await _client.SetDefaultRaidReactions
+            //            (
+            //                _config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id
+            //                ? lobbyMessage
+            //                : e.Message,
+            //                _config.RaidLobbies.RaidLobbiesChannelId == e.Channel.Id
+            //            );
+            //            break;
+            //            #endregion
+            //    }
+            //    if (lobby != null)
+            //    {
+            //        if (_config.RaidLobbies.ActiveLobbies.ContainsKey(originalMessageId))
+            //        {
+            //            _config.RaidLobbies.ActiveLobbies[originalMessageId] = lobby;
+            //        }
+            //    }
+            //    _config.Save();
+            //}
+            #endregion
+
+            await _lobbyManager.ProcessReaction(e);
         }
 
         private async Task Client_MessageReactionRemoved(MessageReactionRemoveEventArgs e)
@@ -916,12 +974,16 @@
         {
             if (_db.LastChecked.Day != DateTime.Now.Day)
             {
+                await WriteNotificationStatistics();
+
                 _db.LastChecked = DateTime.Now;
                 _db.Subscriptions.ForEach(x => x.ResetNotifications());
                 _db.Save();
             }
 
             if (_client == null) return;
+
+            if (_lobbyManager == null) return;
 
             try
             {
@@ -935,7 +997,7 @@
 
                     if (_config.RaidLobbies.ActiveLobbies.ContainsKey(keys[i]))
                     {
-                        if (!await DeleteExpiredRaidLobby(keys[i]))
+                        if (!await _lobbyManager.DeleteExpiredRaidLobby(keys[i]))
                         {
                             Logger.Error($"Failed to delete raid lobby message with id {keys[i]}.");
                         }
@@ -1009,10 +1071,10 @@
                 }
 
                 await _client.SendDirectMessage(owner, $"DISCORD FEED **{channel.Name}** IS DOWN!", null);
-                await Utils.Wait(200);
+                await Utils.Wait(100);
             }
 
-            await Utils.Wait(500);
+            await Utils.Wait(100);
         }
 
         private bool IsFeedUp(DateTime created, int thresholdMinutes = 15)
@@ -1055,6 +1117,23 @@
             }
         }
 
+        private async Task WriteNotificationStatistics()
+        {
+            var msg = string.Empty;
+            var subs = _db.Subscriptions;
+            foreach (var sub in _db.Subscriptions)
+            {
+                var user = await _client.GetUser(sub.UserId);
+                if (user == null)
+                {
+                    Logger.Error($"Failed to get discord user from id {sub.UserId}.");
+                }
+
+                msg += $"{user.Username} ({sub.UserId}): Pokemon Subscriptions: {sub.Pokemon.Count}, Raid Subscriptions: {sub.Raids.Count}, Total Notifications: {sub.NotificationsToday}\r\n";
+            }
+            var now = DateTime.Now;
+            File.WriteAllText($"notification_stats-{now.ToString("yyyy-MM-dd_hhmmss")}.txt", msg);
+        }
 
         #endregion
 
@@ -1115,7 +1194,7 @@
                 var isSupporter = await _client.IsSupporterOrHigher(message.Author.Id, _config);
                 if (!isSupporter)
                 {
-                    await message.RespondAsync($"Only supporters have access to custom commands, please consider donating in order to unlock this feature.");
+                    await message.RespondAsync($"{message.Author.Mention} Only supporters have access to custom commands, please consider donating in order to unlock this feature.");
                     return;
                 }
 
@@ -1143,6 +1222,7 @@
                 foreach (var cmd in categories[category])
                 {
                     if (cmd.PermissionLevel == CommandPermissionLevel.Admin && !isOwner) continue;
+                    if (cmd.PermissionLevel == CommandPermissionLevel.Moderator && !message.Author.Id.IsModerator(_config)) continue;
 
                     //TODO: Sort by index or something.
                     var attr = cmd.GetType().GetAttribute<CommandAttribute>();
@@ -1162,7 +1242,7 @@
                 }
             }
 
-            eb.WithFooter($"Developed by **versx**\r\nVersion **{AssemblyUtils.AssemblyVersion}**");
+            eb.WithFooter($"Developed by versx, Version {AssemblyUtils.AssemblyVersion}");
 
             if (eb.Fields.Count == 0) return;
 
@@ -1174,223 +1254,232 @@
 
         #endregion
 
-        #region Raid Lobby
+        #region Static Methods
 
-        private RaidLobby GetLobby(DiscordChannel channel, ref ulong originalMessageId)
+        public static bool IsValidRaidBoss(uint pokeId)
         {
-            RaidLobby lobby = null;
-            if (channel.Id == _config.RaidLobbies.RaidLobbiesChannelId)
-            {
-                foreach (var item in _config.RaidLobbies.ActiveLobbies)
-                {
-                    if (item.Value.LobbyMessageId == originalMessageId)
-                    {
-                        originalMessageId = item.Value.OriginalRaidMessageId;
-                        lobby = item.Value;
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                if (_config.RaidLobbies.ActiveLobbies.ContainsKey(originalMessageId))
-                {
-                    lobby = _config.RaidLobbies.ActiveLobbies[originalMessageId];
-                }
-                else
-                {
-                    lobby = new RaidLobby { OriginalRaidMessageId = originalMessageId, OriginalRaidMessageChannelId = channel.Id, Started = DateTime.Now };
-                    _config.RaidLobbies.ActiveLobbies.Add(originalMessageId, lobby);
-                }
-            }
-
-            return lobby;
-        }
-
-        private async Task<bool> DeleteExpiredRaidLobby(ulong originalMessageId)
-        {
-            Logger.Trace($"FilterBot::DeleteExpiredRaidLobby [OriginalMessageId={originalMessageId}]");
-
-            if (!_config.RaidLobbies.ActiveLobbies.ContainsKey(originalMessageId)) return false;
-
-            var lobby = _config.RaidLobbies.ActiveLobbies[originalMessageId];
-            var raidLobbyChannel = await _client.GetChannel(_config.RaidLobbies.RaidLobbiesChannelId);
-            if (raidLobbyChannel == null)
-            {
-                Logger.Error($"Failed to find raid lobby channel with id {_config.RaidLobbies.RaidLobbiesChannelId}, does it exist?");
-                return false;
-            }
-
-            var lobbyMessage = await raidLobbyChannel.GetMessage(lobby.LobbyMessageId);
-            if (lobbyMessage == null)
-            {
-                Logger.Error($"Failed to find raid lobby message with id {lobby.LobbyMessageId}, must have already been deleted.");
-                return true;
-            }
-
-            try
-            {
-                await lobbyMessage.DeleteAsync();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex);
-            }
-
-            return false;
-        }
-
-        private async Task<RaidLobbySettings> GetRaidLobbySettings(RaidLobby lobby, ulong originalMessageId, DiscordMessage message, DiscordChannel channel)
-        {
-            Logger.Trace($"FilterBot::GetRaidLobbySettings [OriginalMessageId={originalMessageId}, DiscordMessage={message.Content}, DiscordChannel={channel.Name}]");
-
-            var raidLobbyChannel = await _client.GetChannel(_config.RaidLobbies.RaidLobbiesChannelId);
-            if (raidLobbyChannel == null)
-            {
-                Logger.Error($"Failed to retrieve the raid lobbies channel with id {_config.RaidLobbies.RaidLobbiesChannelId}.");
-                return null;
-            }
-
-            if (lobby == null)
-            {
-                Logger.Error($"Failed to find raid lobby, it may have already expired, deleting message with id {message.Id}...");
-                await message.DeleteAsync("Raid lobby does not exist anymore.");
-                return null;
-            }
-
-            var origChannel = await _client.GetChannel(lobby.OriginalRaidMessageChannelId);
-            if (origChannel == null)
-            {
-                Logger.Error($"Failed to find original raid message channel with id {lobby.OriginalRaidMessageChannelId}.");
-                return null;
-            }
-
-            var raidMessage = await origChannel.GetMessage(originalMessageId);
-            if (raidMessage == null)
-            {
-                Logger.Warn($"Failed to find original raid message with {originalMessageId}, searching server...");
-                raidMessage = await GetRaidMessage(_config.SponsoredRaids, originalMessageId);
-            }
-
-            _config.Save();
-
-            return new RaidLobbySettings
-            {
-                //Lobby = lobby,
-                OriginalRaidMessageChannel = origChannel,
-                RaidMessage = raidMessage,
-                RaidLobbyChannel = raidLobbyChannel
-            };
-        }
-
-        private async Task<DiscordMessage> UpdateRaidLobbyMessage(RaidLobby lobby, DiscordChannel raidLobbyChannel, DiscordEmbed raidMessage)
-        {
-            Logger.Trace($"FilterBot::UpdateRaidLobbyMessage [RaidLobby={lobby.LobbyMessageId}, DiscordChannel={raidLobbyChannel.Name}, DiscordMessage={raidMessage.Title}]");
-
-            var coming = await GetUsernames(lobby.UsersComing);
-            var ready = await GetUsernames(lobby.UsersReady);
-
-            var msg = $"**Trainers on the way:**{Environment.NewLine}```{string.Join(Environment.NewLine, coming)}  ```{Environment.NewLine}**Trainers at the raid:**{Environment.NewLine}```{string.Join(Environment.NewLine, ready)}  ```";
-            var lobbyMessage = await raidLobbyChannel.GetMessage(lobby.LobbyMessageId);
-            if (lobbyMessage != null)
-            {
-                await lobbyMessage.DeleteAsync();
-                lobbyMessage = null;
-            }
-
-            if (lobbyMessage == null)
-            {
-                lobbyMessage = await raidLobbyChannel.SendMessageAsync(msg, false, raidMessage);
-                lobby.LobbyMessageId = lobbyMessage.Id;
-            }
-            _config.Save();
-
-            if (lobbyMessage == null)
-            {
-                Logger.Error($"Failed to set default raid reactions to message {lobby.LobbyMessageId}, couldn't find message...");
-                return null;
-            }
-
-            lobby.LobbyMessageId = lobbyMessage.Id;
-            return lobbyMessage;
-        }
-
-        private uint TimeLeft(DateTime etaStart)
-        {
-            try
-            {
-                return Convert.ToUInt32((etaStart.AddMinutes(5) - DateTime.Now).Minutes);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex);
-                return 0;
-            }
-        }
-
-        private async Task<DiscordMessage> GetRaidMessage(List<SponsoredRaidsConfig> sponsoredRaids, ulong messageId)
-        {
-            Logger.Trace($"FilterBot::GetRaidMessage [SponsoredRaids={sponsoredRaids.Count}, MessageId={messageId}]");
-
-            foreach (var sponsored in sponsoredRaids)
-            {
-                foreach (var channelId in sponsored.ChannelPool)
-                {
-                    var channel = await _client.GetChannel(channelId);
-                    if (channel == null)
-                    {
-                        Logger.Error($"Failed to find channel {channelId}.");
-                        continue;
-                    }
-
-                    var message = await channel.GetMessage(messageId);
-                    if (message == null) continue;
-
-                    return message;
-                }
-            }
-
-            return null;
-        }
-
-        private async Task<List<string>> GetUsernames(Dictionary<ulong, RaidLobbyUser> users)
-        {
-            var list = new List<string>();
-            foreach (var item in users)
-            {
-                var user = await _client.GetUser(item.Key);
-                if (user == null)
-                {
-                    Logger.Error($"Failed to find discord user with id {item.Key}.");
-                    continue;
-                }
-
-                //TODO: Fix Eta countdown.
-                var timeLeft = item.Value.Eta;// TimeLeft(item.Value.EtaStart);
-                //if (timeLeft == 0)
-                //{
-                //    //User is late, send DM.
-                //    var dm = await _client.SendDirectMessage(user, $"{user.Mention} you're late for the raid, do you want to extend your time? If not please click the red cross button below to remove yourself from the raid lobby.\r\n#{item.Key}#", null);
-                //    if (dm == null)
-                //    {
-                //        Logger.Error($"Failed to send {user.Username} a direct message letting them know they are late for the raid.");
-                //        continue;
-                //    }
-
-                //    await dm.CreateReactionAsync(DiscordEmoji.FromName(_client, ":five:"));
-                //    await dm.CreateReactionAsync(DiscordEmoji.FromName(_client, ":keycap_ten:"));
-                //    await dm.CreateReactionAsync(DiscordEmoji.FromName(_client, ":x:"));
-                //}
-
-                //var eta = (item.Value.Eta != RaidLobbyEta.Here && item.Value.Eta != RaidLobbyEta.NotSet ? $"{timeLeft} minute{(timeLeft == 1 ? null : "s")}" : item.Value.Eta.ToString());
-                var eta = (item.Value.Eta != RaidLobbyEta.Here && item.Value.Eta != RaidLobbyEta.NotSet ? $"{timeLeft} minute" : item.Value.Eta.ToString());
-                list.Add($"{user.Username} ({item.Value.Players} account{(item.Value.Players == 1 ? "" : "s")}, ETA: {eta})");
-            }
-            return list;
+            return ValidRaidBosses.Contains(pokeId);
         }
 
         #endregion
+
+        //#region Raid Lobby
+
+        //private RaidLobby GetLobby(DiscordChannel channel, ref ulong originalMessageId)
+        //{
+        //    RaidLobby lobby = null;
+        //    if (channel.Id == _config.RaidLobbies.RaidLobbiesChannelId)
+        //    {
+        //        foreach (var item in _config.RaidLobbies.ActiveLobbies)
+        //        {
+        //            if (item.Value.LobbyMessageId == originalMessageId)
+        //            {
+        //                originalMessageId = item.Value.OriginalRaidMessageId;
+        //                lobby = item.Value;
+        //                break;
+        //            }
+        //        }
+        //    }
+        //    else
+        //    {
+        //        if (_config.RaidLobbies.ActiveLobbies.ContainsKey(originalMessageId))
+        //        {
+        //            lobby = _config.RaidLobbies.ActiveLobbies[originalMessageId];
+        //        }
+        //        else
+        //        {
+        //            lobby = new RaidLobby { OriginalRaidMessageId = originalMessageId, OriginalRaidMessageChannelId = channel.Id, Started = DateTime.Now };
+        //            _config.RaidLobbies.ActiveLobbies.Add(originalMessageId, lobby);
+        //        }
+        //    }
+
+        //    return lobby;
+        //}
+
+        //private async Task<bool> DeleteExpiredRaidLobby(ulong originalMessageId)
+        //{
+        //    Logger.Trace($"FilterBot::DeleteExpiredRaidLobby [OriginalMessageId={originalMessageId}]");
+
+        //    if (!_config.RaidLobbies.ActiveLobbies.ContainsKey(originalMessageId)) return false;
+
+        //    var lobby = _config.RaidLobbies.ActiveLobbies[originalMessageId];
+        //    var raidLobbyChannel = await _client.GetChannel(_config.RaidLobbies.RaidLobbiesChannelId);
+        //    if (raidLobbyChannel == null)
+        //    {
+        //        Logger.Error($"Failed to find raid lobby channel with id {_config.RaidLobbies.RaidLobbiesChannelId}, does it exist?");
+        //        return false;
+        //    }
+
+        //    var lobbyMessage = await raidLobbyChannel.GetMessage(lobby.LobbyMessageId);
+        //    if (lobbyMessage == null)
+        //    {
+        //        Logger.Error($"Failed to find raid lobby message with id {lobby.LobbyMessageId}, must have already been deleted.");
+        //        return true;
+        //    }
+
+        //    try
+        //    {
+        //        await lobbyMessage.DeleteAsync();
+        //        return true;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Logger.Error(ex);
+        //    }
+
+        //    return false;
+        //}
+
+        //private async Task<RaidLobbySettings> GetRaidLobbySettings(RaidLobby lobby, ulong originalMessageId, DiscordMessage message, DiscordChannel channel)
+        //{
+        //    Logger.Trace($"FilterBot::GetRaidLobbySettings [OriginalMessageId={originalMessageId}, DiscordMessage={message.Content}, DiscordChannel={channel.Name}]");
+
+        //    var raidLobbyChannel = await _client.GetChannel(_config.RaidLobbies.RaidLobbiesChannelId);
+        //    if (raidLobbyChannel == null)
+        //    {
+        //        Logger.Error($"Failed to retrieve the raid lobbies channel with id {_config.RaidLobbies.RaidLobbiesChannelId}.");
+        //        return null;
+        //    }
+
+        //    if (lobby == null)
+        //    {
+        //        Logger.Error($"Failed to find raid lobby, it may have already expired, deleting message with id {message.Id}...");
+        //        await message.DeleteAsync("Raid lobby does not exist anymore.");
+        //        return null;
+        //    }
+
+        //    var origChannel = await _client.GetChannel(lobby.OriginalRaidMessageChannelId);
+        //    if (origChannel == null)
+        //    {
+        //        Logger.Error($"Failed to find original raid message channel with id {lobby.OriginalRaidMessageChannelId}.");
+        //        return null;
+        //    }
+
+        //    var raidMessage = await origChannel.GetMessage(originalMessageId);
+        //    if (raidMessage == null)
+        //    {
+        //        Logger.Warn($"Failed to find original raid message with {originalMessageId}, searching server...");
+        //        raidMessage = await GetRaidMessage(_config.SponsoredRaids, originalMessageId);
+        //    }
+
+        //    _config.Save();
+
+        //    return new RaidLobbySettings
+        //    {
+        //        //Lobby = lobby,
+        //        OriginalRaidMessageChannel = origChannel,
+        //        RaidMessage = raidMessage,
+        //        RaidLobbyChannel = raidLobbyChannel
+        //    };
+        //}
+
+        //private async Task<DiscordMessage> UpdateRaidLobbyMessage(RaidLobby lobby, DiscordChannel raidLobbyChannel, DiscordEmbed raidMessage)
+        //{
+        //    Logger.Trace($"FilterBot::UpdateRaidLobbyMessage [RaidLobby={lobby.LobbyMessageId}, DiscordChannel={raidLobbyChannel.Name}, DiscordMessage={raidMessage.Title}]");
+
+        //    var coming = await GetUsernames(lobby.UsersComing);
+        //    var ready = await GetUsernames(lobby.UsersReady);
+
+        //    var msg = $"**Trainers on the way:**{Environment.NewLine}```{string.Join(Environment.NewLine, coming)}  ```{Environment.NewLine}**Trainers at the raid:**{Environment.NewLine}```{string.Join(Environment.NewLine, ready)}  ```";
+        //    var lobbyMessage = await raidLobbyChannel.GetMessage(lobby.LobbyMessageId);
+        //    if (lobbyMessage != null)
+        //    {
+        //        await lobbyMessage.DeleteAsync();
+        //        lobbyMessage = null;
+        //    }
+
+        //    if (lobbyMessage == null)
+        //    {
+        //        lobbyMessage = await raidLobbyChannel.SendMessageAsync(msg, false, raidMessage);
+        //        lobby.LobbyMessageId = lobbyMessage.Id;
+        //    }
+        //    _config.Save();
+
+        //    if (lobbyMessage == null)
+        //    {
+        //        Logger.Error($"Failed to set default raid reactions to message {lobby.LobbyMessageId}, couldn't find message...");
+        //        return null;
+        //    }
+
+        //    lobby.LobbyMessageId = lobbyMessage.Id;
+        //    return lobbyMessage;
+        //}
+
+        //private uint TimeLeft(DateTime etaStart)
+        //{
+        //    try
+        //    {
+        //        return Convert.ToUInt32((etaStart.AddMinutes(5) - DateTime.Now).Minutes);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Logger.Error(ex);
+        //        return 0;
+        //    }
+        //}
+
+        //private async Task<DiscordMessage> GetRaidMessage(List<SponsoredRaidsConfig> sponsoredRaids, ulong messageId)
+        //{
+        //    Logger.Trace($"FilterBot::GetRaidMessage [SponsoredRaids={sponsoredRaids.Count}, MessageId={messageId}]");
+
+        //    foreach (var sponsored in sponsoredRaids)
+        //    {
+        //        foreach (var channelId in sponsored.ChannelPool)
+        //        {
+        //            var channel = await _client.GetChannel(channelId);
+        //            if (channel == null)
+        //            {
+        //                Logger.Error($"Failed to find channel {channelId}.");
+        //                continue;
+        //            }
+
+        //            var message = await channel.GetMessage(messageId);
+        //            if (message == null) continue;
+
+        //            return message;
+        //        }
+        //    }
+
+        //    return null;
+        //}
+
+        //private async Task<List<string>> GetUsernames(Dictionary<ulong, RaidLobbyUser> users)
+        //{
+        //    var list = new List<string>();
+        //    foreach (var item in users)
+        //    {
+        //        var user = await _client.GetUser(item.Key);
+        //        if (user == null)
+        //        {
+        //            Logger.Error($"Failed to find discord user with id {item.Key}.");
+        //            continue;
+        //        }
+
+        //        //TODO: Fix Eta countdown.
+        //        var timeLeft = item.Value.Eta;// TimeLeft(item.Value.EtaStart);
+        //        //if (timeLeft == 0)
+        //        //{
+        //        //    //User is late, send DM.
+        //        //    var dm = await _client.SendDirectMessage(user, $"{user.Mention} you're late for the raid, do you want to extend your time? If not please click the red cross button below to remove yourself from the raid lobby.\r\n#{item.Key}#", null);
+        //        //    if (dm == null)
+        //        //    {
+        //        //        Logger.Error($"Failed to send {user.Username} a direct message letting them know they are late for the raid.");
+        //        //        continue;
+        //        //    }
+
+        //        //    await dm.CreateReactionAsync(DiscordEmoji.FromName(_client, ":five:"));
+        //        //    await dm.CreateReactionAsync(DiscordEmoji.FromName(_client, ":keycap_ten:"));
+        //        //    await dm.CreateReactionAsync(DiscordEmoji.FromName(_client, ":x:"));
+        //        //}
+
+        //        //var eta = (item.Value.Eta != RaidLobbyEta.Here && item.Value.Eta != RaidLobbyEta.NotSet ? $"{timeLeft} minute{(timeLeft == 1 ? null : "s")}" : item.Value.Eta.ToString());
+        //        var eta = (item.Value.Eta != RaidLobbyEta.Here && item.Value.Eta != RaidLobbyEta.NotSet ? $"{timeLeft} minute" : item.Value.Eta.ToString());
+        //        list.Add($"{user.Username} ({item.Value.Players} account{(item.Value.Players == 1 ? "" : "s")}, ETA: {eta})");
+        //    }
+        //    return list;
+        //}
+
+        //#endregion
     }
 
     public class Helpers

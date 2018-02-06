@@ -152,6 +152,9 @@
 
         #endregion
 
+        [JsonProperty("geofenceFolder")]
+        public string GeofenceFolder { get; set; }
+
         /// <summary>
         /// Gets the config full config file path.
         /// </summary>

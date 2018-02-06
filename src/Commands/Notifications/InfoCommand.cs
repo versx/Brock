@@ -7,6 +7,7 @@
     using DSharpPlus;
     using DSharpPlus.Entities;
 
+    using BrockBot.Configuration;
     using BrockBot.Data;
     using BrockBot.Diagnostics;
     using BrockBot.Extensions;
@@ -23,14 +24,16 @@
     {
         private readonly DiscordClient _client;
         private readonly IDatabase _db;
+        private readonly Config _config;
         private readonly IEventLogger _logger;
 
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
 
-        public InfoCommand(DiscordClient client, IDatabase db, IEventLogger logger)
+        public InfoCommand(DiscordClient client, IDatabase db, Config config, IEventLogger logger)
         {
             _client = client;
             _db = db;
+            _config = config;
             _logger = logger;
         }
 
@@ -39,17 +42,34 @@
             //await message.IsDirectMessageSupported();
 
             var author = message.Author.Id;
-            var isSubbed = _db.SubscriptionExists(author);
+            var isSubbed = _db.Exists(author);
             var hasPokemon = isSubbed && _db[author].Pokemon.Count > 0;
             var hasRaids = isSubbed && _db[author].Raids.Count > 0;
             var msg = string.Empty;
 
             if (hasPokemon)
             {
+                var member = await _client.GetMemberFromUserId(author);
+                if (member == null)
+                {
+                    await message.RespondAsync($"Failed to get discord member from id {author}.");
+                    return;
+                }
+
+                var feeds = new List<string>();
+                foreach (var role in member.Roles)
+                {
+                    if (_config.CityRoles.Contains(role.Name))
+                    {
+                        feeds.Add(role.Name);
+                    }
+                }
+
                 var pokemon = _db[author].Pokemon;
                 pokemon.Sort((x, y) => x.PokemonId.CompareTo(y.PokemonId));
 
                 msg = $"**{message.Author.Username} Notification Settings:**\r\n";
+                msg += $"Feeds: **{string.Join("**, **", feeds)}**\r\n";
                 msg += $"Enabled: **{(_db[author].Enabled ? "Yes" : "No")}**\r\n";
                 msg += $"Pokemon Subscriptions:\r\n```";
 
@@ -62,7 +82,7 @@
                     }
 
                     var pkmn = _db.Pokemon[sub.PokemonId.ToString()];
-                    msg += $"{sub.PokemonId}: {pkmn.Name} {sub.MinimumIV}%+\r\n";
+                    msg += $"{sub.PokemonId}: {pkmn.Name} {sub.MinimumIV}%+{(sub.MinimumLevel > 0 ? $", L{sub.MinimumLevel}+" : null)}\r\n";
                 }
                 msg += "```" + Environment.NewLine + Environment.NewLine;
             }
@@ -88,7 +108,7 @@
         private List<string> GetPokemonSubscriptionNames(ulong userId)
         {
             var list = new List<string>();
-            if (_db.SubscriptionExists(userId))
+            if (_db.Exists(userId))
             {
                 var subscribedPokemon = _db[userId].Pokemon;
                 subscribedPokemon.Sort((x, y) => x.PokemonId.CompareTo(y.PokemonId));
@@ -109,7 +129,7 @@
         private List<string> GetRaidSubscriptionNames(ulong userId)
         {
             var list = new List<string>();
-            if (_db.SubscriptionExists(userId))
+            if (_db.Exists(userId))
             {
                 var subscribedRaids = _db[userId].Raids;
                 subscribedRaids.Sort((x, y) => x.PokemonId.CompareTo(y.PokemonId));
