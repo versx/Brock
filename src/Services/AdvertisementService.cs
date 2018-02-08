@@ -170,9 +170,8 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
                     }
 
                     //Check if it's been at least 30 minutes since someone wrote a message in order to not be intrusive.
-                    var canPost = false;
                     var ts = DateTime.Now.Subtract(new DateTime(latestMessage.Timestamp.Ticks));
-                    if (ts.Minutes >= MaxAdvertisementWaitTimeoutMinutes) canPost = true;
+                    var canPost = ts.Minutes >= MaxAdvertisementWaitTimeoutMinutes;
 
                     if (!canPost) return;
 

@@ -112,7 +112,6 @@
                     }
 
                     alreadyUnassigned.Add(cityRole.Name);
-                    await message.RespondAsync($"{member.Mention} is not assigned to city feed {cityRole.Name}.");
                 }
 
                 await message.RespondAsync

@@ -84,9 +84,21 @@
                 return;
             }
 
+            if (iv < 0 || iv > 100)
+            {
+                await message.RespondAsync($"{message.Author.Mention}, {iv} must be within the range of 0-100.");
+                return;
+            }
+
             if (!int.TryParse(lvlArg.Replace("l", null).Replace("L", null), out int lvl))
             {
                 await message.RespondAsync($"{message.Author.Mention}, '{lvlArg}' is not a valid value for Level.");
+                return;
+            }
+
+            if (lvl < 0 || lvl > 35)
+            {
+                await message.RespondAsync($"{message.Author.Mention}, {lvl} must be within the range of 0-35.");
                 return;
             }
 
@@ -198,10 +210,10 @@
             await message.RespondAsync
             (
                 (subscribed.Count > 0
-                    ? $"{message.Author.Mention} has subscribed to **{string.Join("**, **", subscribed)}** notifications with a minimum IV of {iv}%{(command.Args.Count > 1 ? $" and a minimum level of L{lvl}" : null)}."
+                    ? $"{message.Author.Mention} has subscribed to **{string.Join("**, **", subscribed)}** notifications with a minimum IV of {iv}%{(command.Args.Count > 2 ? $" and a minimum level of {lvl}" : null)}."
                     : string.Empty) +
                 (alreadySubscribed.Count > 0
-                    ? $" {message.Author.Mention} is already subscribed to **{string.Join("**, **", alreadySubscribed)}** notifications with a minimum IV of {iv}%{(command.Args.Count > 1 ? $" and a minimum level of L{lvl}" : null)}."
+                    ? $" {message.Author.Mention} is already subscribed to **{string.Join("**, **", alreadySubscribed)}** notifications with a minimum IV of {iv}%{(command.Args.Count > 2 ? $" and a minimum level of {lvl}" : null)}."
                     : string.Empty)
             );
         }

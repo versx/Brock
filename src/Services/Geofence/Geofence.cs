@@ -1,36 +1,46 @@
-﻿namespace BrockBot.Services
+﻿namespace BrockBot.Services.Geofence
 {
     using System;
     using System.Collections.Generic;
     using System.IO;
 
-    public class Geofence
+    public class GeofenceItem
     {
+        #region Properties
+
         public string Name { get; set; }
 
         public List<Location> Polygons { get; }
 
-        public Geofence()
+        #endregion
+
+        #region Constructor(s)
+
+        public GeofenceItem()
         {
             Name = "Unnamed";
             Polygons = new List<Location>();
         }
 
-        public Geofence(string name)
+        public GeofenceItem(string name)
         {
             Name = name;
             Polygons = new List<Location>();
         }
 
-        public Geofence(string name, List<Location> polygons) : this()
+        public GeofenceItem(string name, List<Location> polygons) : this()
         {
             Name = name;
             Polygons = polygons;
         }
 
-        public static Geofence FromFile(string filePath)
+        #endregion
+
+        #region Static Methods
+
+        public static GeofenceItem FromFile(string filePath)
         {
-            var geofence = new Geofence();
+            var geofence = new GeofenceItem();
             var lines = File.ReadAllLines(filePath);
 
             foreach (var line in lines)
@@ -51,9 +61,9 @@
             return geofence;
         }
 
-        public static List<Geofence> FromFiles(List<string> filePaths)
+        public static List<GeofenceItem> FromFiles(List<string> filePaths)
         {
-            var list = new List<Geofence>();
+            var list = new List<GeofenceItem>();
 
             foreach (var filePath in filePaths)
             {
@@ -63,9 +73,9 @@
             return list;
         }
 
-        public static List<Geofence> Load(string geofenceFolder, List<string> cities)
+        public static List<GeofenceItem> Load(string geofenceFolder, List<string> cities)
         {
-            var list = new List<Geofence>();
+            var list = new List<GeofenceItem>();
             foreach (var city in cities)
             {
                 var filePath = Path.Combine(geofenceFolder, city + ".txt");
@@ -76,5 +86,7 @@
             }
             return list;
         }
+
+        #endregion
     }
 }

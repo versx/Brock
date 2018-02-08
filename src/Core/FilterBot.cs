@@ -28,7 +28,6 @@
 
     //TODO: Notify the user if their settings are too low and are sending too many notifications.
     //TODO: Debug DM responses for raid lobbies.
-    //TODO: Add RaidLobbyEta.Late
     //TODO: Add confirmation for removing Pokemon subscriptions.
     //TODO: Fix new geofence lookup, Upland picked up as Montclair.
 
@@ -57,6 +56,7 @@
         private readonly NotificationProcessor _notificationProcessor;
         private AdvertisementService _advertSvc;
         private readonly TweetService _tweetSvc;
+        private readonly FeedMonitorService _feedSvc;
         private readonly RaidLobbyManager _lobbyManager;
 
         #endregion
@@ -173,6 +173,7 @@
             _reminderSvc = new ReminderService(_client, _db, Logger);
             _notificationProcessor = new NotificationProcessor(_client, _db, _config, Logger);
             _tweetSvc = new TweetService(_client, _config, Logger);
+            _feedSvc = new FeedMonitorService(_client, _config, Logger);
             _lobbyManager = new RaidLobbyManager(_client, _config, Logger);
         }
 
@@ -689,21 +690,6 @@
 
             Logger.Info("Connecting to discord server...");
             await _client.ConnectAsync();
-
-            //var creds = new TwitterCredentials(_config.TwitterUpdates.ConsumerKey, _config.TwitterUpdates.ConsumerSecret, _config.TwitterUpdates.AccessToken, _config.TwitterUpdates.AccessTokenSecret);
-            //Auth.SetCredentials(creds);
-
-            //_twitterStream = Stream.CreateFilteredStream(creds);
-            //_twitterStream.Credentials = creds;
-            //_twitterStream.StallWarnings = true;
-            //_twitterStream.FilterLevel = StreamFilterLevel.None;
-            //_twitterStream.StreamStarted += (sender, e) => Logger.Debug("Successfully started.");
-            //_twitterStream.StreamStopped += (sender, e) => Logger.Debug($"Stream stopped.\r\n{e.Exception}\r\n{e.DisconnectMessage}");
-            //_twitterStream.DisconnectMessageReceived += (sender, e) => Logger.Debug($"Disconnected.\r\n{e.DisconnectMessage}");
-            //_twitterStream.WarningFallingBehindDetected += (sender, e) => Logger.Debug($"Warning Falling Behind Detected: {e.WarningMessage}");
-            //CheckTwitterFollows();
-
-            //await _twitterStream.StartStreamMatchingAllConditionsAsync();
             await Task.Delay(-1);
         }
 
@@ -1039,52 +1025,6 @@
             #endregion
         }
 
-        private async Task CheckFeedStatus()
-        {
-            if (!_config.FeedStatus.Enabled) return;
-            if (_config.FeedStatus.Channels.Count == 0) return;
-
-            for (int i = 0; i < _config.FeedStatus.Channels.Count; i++)
-            {
-                var channel = await _client.GetChannel(_config.FeedStatus.Channels[i]);
-                if (channel == null)
-                {
-                    Logger.Error($"Failed to find Discord channel with id {_config.FeedStatus.Channels[i]}.");
-                    continue;
-                }
-
-                var mostRecent = await channel.GetMessage(channel.LastMessageId);
-                if (mostRecent == null)
-                {
-                    Logger.Error($"Failed to retrieve last message for channel {channel.Name}.");
-                    continue;
-                }
-
-                if (IsFeedUp(mostRecent.CreationTimestamp.DateTime))
-                    continue;
-
-                var owner = await _client.GetUser(_config.OwnerId);
-                if (owner == null)
-                {
-                    Logger.Error($"Failed to find owner with id {_config.OwnerId}.");
-                    continue;
-                }
-
-                await _client.SendDirectMessage(owner, $"DISCORD FEED **{channel.Name}** IS DOWN!", null);
-                await Utils.Wait(100);
-            }
-
-            await Utils.Wait(100);
-        }
-
-        private bool IsFeedUp(DateTime created, int thresholdMinutes = 15)
-        {
-            var now = DateTime.Now;
-            var diff = now.Subtract(created);
-            var isUp = diff.TotalMinutes < thresholdMinutes;
-            return isUp;
-        }
-
         private async Task CheckSupporterStatus(ulong guildId)
         {
             if (!_client.Guilds.ContainsKey(guildId)) return;
@@ -1097,13 +1037,13 @@
                     {
                         Logger.Debug($"Removing supporter role from user {member.Id} because their time has expired...");
 
-                        if (_db.Subscriptions.Exists(x => x.UserId == member.Id))
-                        {
-                            _db.Subscriptions.Find(x => x.UserId == member.Id).Enabled = false;
-                            _db.Save();
+                        //if (_db.Subscriptions.Exists(x => x.UserId == member.Id))
+                        //{
+                        //    _db.Subscriptions.Find(x => x.UserId == member.Id).Enabled = false;
+                        //    _db.Save();
 
-                            Logger.Debug($"Disabled Pokemon and Raid notifications for user {member.Username} ({member.Id}).");
-                        }
+                        //    Logger.Debug($"Disabled Pokemon and Raid notifications for user {member.Username} ({member.Id}).");
+                        //}
 
                         //if (!await _client.RemoveRole(member.Id, guildId, _config.SupporterRoleId))
                         //{

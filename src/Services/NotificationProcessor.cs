@@ -12,6 +12,7 @@
     using BrockBot.Diagnostics;
     using BrockBot.Extensions;
     using BrockBot.Net;
+    using BrockBot.Services.Geofence;
     using BrockBot.Utilities;
 
     public class NotificationProcessor
@@ -43,7 +44,7 @@
             _config = config;
             _logger = logger;
 
-            _geofence = new GeofenceService(Geofence.Load(_config.GeofenceFolder, _config.CityRoles));
+            _geofence = new GeofenceService(GeofenceItem.Load(_config.GeofenceFolder, _config.CityRoles));
         }
 
         #endregion
@@ -84,7 +85,7 @@
                 //var matchesGeofence = MatchesGeofenceFilter(null, new Location(pkmn.Latitude, pkmn.Longitude));
 
                 //if (!(matchesIV || matchesCP || matchesLvl || matchesGender || matchesAtk || matchesDef || matchesSta)) continue;
-                if (!(matchesIV || matchesLvl)) continue;
+                if (!(matchesIV && matchesLvl)) continue;
 
                 _logger.Info($"Notifying user {discordUser.Username} that a {pokemon.Name} {pkmn.CP}CP {pkmn.IV} IV L{pkmn.PlayerLevel} has spawned...");
 
@@ -419,7 +420,7 @@
             return matchesLvl;
         }
 
-        private bool MatchesGeofenceFilter(Geofence geofence, Location location)
+        private bool MatchesGeofenceFilter(GeofenceItem geofence, Location location)
         {
             return _geofence.Contains(geofence, location);
         }

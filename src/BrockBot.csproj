@@ -42,9 +42,6 @@
       <HintPath>..\..\..\..\.nuget\packages\DSharpPlus.3.2.3\lib\net46\DSharpPlus.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="Microsoft.Win32.TaskScheduler, Version=2.7.2.0, Culture=neutral, PublicKeyToken=c416bc1b32d97233, processorArchitecture=MSIL">
-      <HintPath>..\..\..\..\.nuget\packages\TaskScheduler.2.7.2\lib\net452\Microsoft.Win32.TaskScheduler.dll</HintPath>
-    </Reference>
     <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\..\..\..\.nuget\packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
@@ -187,14 +184,15 @@
     <Compile Include="Core\CommandPermissionLevel.cs" />
     <Compile Include="Extensions\HelpExtensions.cs" />
     <Compile Include="Services\AdvertisementService.cs" />
-    <Compile Include="Services\Geofence.cs" />
-    <Compile Include="Services\GeofenceService.cs" />
+    <Compile Include="Services\FeedMonitorService.cs" />
+    <Compile Include="Services\Geofence\Geofence.cs" />
+    <Compile Include="Services\Geofence\GeofenceService.cs" />
     <Compile Include="Services\RaidLobby\RaidLobbyEta.cs" />
     <Compile Include="Services\RaidLobby\RaidLobbyManager.cs" />
     <Compile Include="Services\RaidLobby\RaidLobbySettings.cs" />
     <Compile Include="Data\Models\Donator.cs" />
     <Compile Include="Core\FilterBot.cs" />
-    <Compile Include="Services\Location.cs" />
+    <Compile Include="Services\Geofence\Location.cs" />
     <Compile Include="Data\Models\Pokemon.cs" />
     <Compile Include="Core\Roles.cs" />
     <Compile Include="Core\WeatherType.cs" />
