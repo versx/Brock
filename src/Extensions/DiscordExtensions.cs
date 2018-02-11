@@ -15,17 +15,24 @@
     {
         public static async Task<bool> IsSupporterOrHigher(this DiscordClient client, ulong userId, Config config)
         {
-            var isAdmin = userId == config.OwnerId;
-            if (isAdmin) return true;
+            try
+            {
+                var isAdmin = userId == config.OwnerId;
+                if (isAdmin) return true;
 
-            var isModerator = config.Moderators.Contains(userId);
-            if (isModerator) return true;
+                var isModerator = config.Moderators.Contains(userId);
+                if (isModerator) return true;
 
-            var isSupporter = await client.HasSupporterRole(userId, config.SupporterRoleId);
-            if (isSupporter) return true;
+                var isSupporter = await client.HasSupporterRole(userId, config.SupporterRoleId);
+                if (isSupporter) return true;
 
-            var isElite = await client.HasSupporterRole(userId, config.TeamEliteRoleId);
-            if (isElite) return true;
+                var isElite = await client.HasSupporterRole(userId, config.TeamEliteRoleId);
+                if (isElite) return true;
+            }
+            catch (Exception ex)
+            {
+                Utils.LogError(ex);
+            }
 
             return false;
         }

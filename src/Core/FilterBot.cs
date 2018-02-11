@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Threading.Tasks;
     using Timer = System.Timers.Timer;
 
@@ -22,11 +23,8 @@
 
     //TODO: Add rate limiter to prevent spam.
     //TODO: Notify via SMS or Email or Twilio or w/e.
-    //TODO: Add support for pokedex # or name for Pokemon and Raid subscriptions.
     //TODO: Keep track of supporters, have a command to check if a paypal email etc or username rather has donated.
-    //TODO: Add response messages to invalid commands/arguments provided.
 
-    //TODO: Notify the user if their settings are too low and are sending too many notifications.
     //TODO: Debug DM responses for raid lobbies.
     //TODO: Add confirmation for removing Pokemon subscriptions.
     //TODO: Fix new geofence lookup, Upland picked up as Montclair.
@@ -49,13 +47,14 @@
         private readonly DiscordClient _client;
         private readonly Config _config;
         private readonly Database _db;
+        private readonly IEventLogger _logger;
         private readonly Random _rand;
         private Timer _timer;
 
         private readonly ReminderService _reminderSvc;
         private readonly NotificationProcessor _notificationProcessor;
         private AdvertisementService _advertSvc;
-        private readonly TweetService _tweetSvc;
+        private TweetService _tweetSvc;
         private readonly FeedMonitorService _feedSvc;
         private readonly RaidLobbyManager _lobbyManager;
 
@@ -63,72 +62,7 @@
 
         #region Properties
 
-        public IEventLogger Logger { get; }
-
         public CommandList Commands { get; }
-
-        public static List<uint> ValidRaidBosses => new List<uint>
-        {
-            2,
-            3,
-            5,
-            6,
-            8,
-            9,
-            11,
-            28,
-            31,
-            34,
-            38,
-            59,
-            62,
-            65,
-            68,
-            71,
-            73,
-            76,
-            82,
-            89,
-            91,
-            94,
-            103,
-            105,
-            110,
-            112,
-            123,
-            125,
-            126,
-            129,
-            131,
-            134,
-            135,
-            136,
-            137,
-            139,
-            143,
-            144,
-            145,
-            146,
-            150,
-            151,
-            153,
-            156,
-            159,
-            243,
-            244,
-            245,
-            248,
-            249,
-            250,
-            251,
-            302,
-            303,
-            306,
-            320,
-            359,
-            382,
-            383
-        };
 
         #endregion
 
@@ -136,13 +70,13 @@
 
         public FilterBot(IEventLogger logger)
         {
-            Logger = logger;
+            _logger = logger;
             Commands = new CommandList();
 
             _db = Database.Load();
             if (_db == null)
             {
-                Logger.Error("Failed to load database, exiting...");
+                _logger.Error("Failed to load database, exiting...");
                 Environment.Exit(-1);
             }
 
@@ -155,6 +89,7 @@
                 {
                     AutoReconnect = true,
                     LogLevel = LogLevel.Debug,
+                    UseInternalLogHandler = true,
                     Token = _config.AuthToken,
                     TokenType = TokenType.Bot
                 }
@@ -170,11 +105,10 @@
             _client.MessageReactionAdded += Client_MessageReactionAdded;
             _client.MessageReactionRemoved += Client_MessageReactionRemoved;
 
-            _reminderSvc = new ReminderService(_client, _db, Logger);
-            _notificationProcessor = new NotificationProcessor(_client, _db, _config, Logger);
-            _tweetSvc = new TweetService(_client, _config, Logger);
-            _feedSvc = new FeedMonitorService(_client, _config, Logger);
-            _lobbyManager = new RaidLobbyManager(_client, _config, Logger);
+            _reminderSvc = new ReminderService(_client, _db, _logger);
+            _notificationProcessor = new NotificationProcessor(_client, _db, _config, _logger);
+            _feedSvc = new FeedMonitorService(_client, _config, _logger);
+            _lobbyManager = new RaidLobbyManager(_client, _config, _logger);
         }
 
         #endregion
@@ -201,9 +135,7 @@
 
         private async Task Client_Ready(ReadyEventArgs e)
         {
-            Logger.Trace($"FilterBot::Client_Ready [{e.Client.CurrentUser.Username}]");
-
-            //await DisplaySettings();
+            _logger.Trace($"FilterBot::Client_Ready [{e.Client.CurrentUser.Username}]");
 
             await _client.UpdateStatusAsync(new DiscordGame($"v{AssemblyUtils.AssemblyVersion}"));
 
@@ -216,23 +148,25 @@
             {
                 Console.WriteLine($"User: {user.Key}: {user.Value.User.Username}");
             }
-
-            //await Utils.Wait(3 * OneSecond);
-
+            
             if (_advertSvc == null)
             {
-                _advertSvc = new AdvertisementService(_client, _config, Logger);
+                _advertSvc = new AdvertisementService(_client, _config, _logger);
                 await _advertSvc.Start();
             }
 
-            _tweetSvc.Start();
+            if (_tweetSvc == null)
+            {
+                _tweetSvc = new TweetService(_client, _config, _logger);
+                _tweetSvc.Start();
+            }
         }
 
         private async Task Client_MessageCreated(MessageCreateEventArgs e)
         {
             if (!e.Message.Author.IsBot)
             {
-                Logger.Trace($"FilterBot::Client_MessageCreated [Username={e.Message.Author.Username} Message={e.Message.Content}]");
+                _logger.Trace($"FilterBot::Client_MessageCreated [Username={e.Message.Author.Username} Message={e.Message.Content}]");
             }
 
             if (e.Message.Author.Id == _client.CurrentUser.Id) return;
@@ -251,12 +185,12 @@
 
         private async Task Client_DmChannelCreated(DmChannelCreateEventArgs e)
         {
-            Logger.Trace($"FilterBot::Client_DmChannelCreated [{e.Channel.Name}]");
+            _logger.Trace($"FilterBot::Client_DmChannelCreated [{e.Channel.Name}]");
 
             var msg = await e.Channel.GetMessageAsync(e.Channel.LastMessageId);
             if (msg == null)
             {
-                Logger.Error($"Failed to find last direct message from id {e.Channel.LastMessageId}.");
+                _logger.Error($"Failed to find last direct message from id {e.Channel.LastMessageId}.");
                 return;
             }
 
@@ -265,12 +199,12 @@
 
         private async Task Client_GuildBanAdded(GuildBanAddEventArgs e)
         {
-            Logger.Trace($"FilterBot::Client_GuildBanAdded [Guild={e.Guild.Name}, Username={e.Member.Username}]");
+            _logger.Trace($"FilterBot::Client_GuildBanAdded [Guild={e.Guild.Name}, Username={e.Member.Username}]");
 
             var channel = await _client.GetChannel(_config.CommandsChannelId);
             if (channel == null)
             {
-                Logger.Error($"Failed to find channel with id {_config.CommandsChannelId}.");
+                _logger.Error($"Failed to find channel with id {_config.CommandsChannelId}.");
                 return;
             }
 
@@ -279,12 +213,12 @@
 
         private async Task Client_GuildBanRemoved(GuildBanRemoveEventArgs e)
         {
-            Logger.Trace($"FilterBot::Client_GuildBanRemoved [Guild={e.Guild.Name}, Username={e.Member.Username}]");
+            _logger.Trace($"FilterBot::Client_GuildBanRemoved [Guild={e.Guild.Name}, Username={e.Member.Username}]");
 
             var channel = await _client.GetChannel(_config.CommandsChannelId);
             if (channel == null)
             {
-                Logger.Error($"Failed to find channel {_config.CommandsChannelId}.");
+                _logger.Error($"Failed to find channel {_config.CommandsChannelId}.");
                 return;
             }
 
@@ -293,14 +227,14 @@
 
         private async Task Client_GuildMemberAdded(GuildMemberAddEventArgs e)
         {
-            Logger.Trace($"FilterBot::Client_GuildMemberAdded [Guild={e.Guild.Name}, Username={e.Member.Username}]");
+            _logger.Trace($"FilterBot::Client_GuildMemberAdded [Guild={e.Guild.Name}, Username={e.Member.Username}]");
 
             if (_config.NotifyNewMemberJoined)
             {
                 var channel = await _client.GetChannel(_config.CommandsChannelId);
                 if (channel == null)
                 {
-                    Logger.Error($"Failed to find channel with id {_config.CommandsChannelId}.");
+                    _logger.Error($"Failed to find channel with id {_config.CommandsChannelId}.");
                     return;
                 }
 
@@ -320,14 +254,14 @@
 
         private async Task Client_GuildMemberRemoved(GuildMemberRemoveEventArgs e)
         {
-            Logger.Trace($"FilterBot::Client_GuildMemberRemoved [Guild={e.Guild.Name}, Username={e.Member.Username}]");
+            _logger.Trace($"FilterBot::Client_GuildMemberRemoved [Guild={e.Guild.Name}, Username={e.Member.Username}]");
 
             if (_config.NotifyMemberLeft)
             {
                 var channel = await _client.GetChannel(_config.CommandsChannelId);
                 if (channel == null)
                 {
-                    Logger.Error($"Failed to find channel with id {_config.CommandsChannelId}.");
+                    _logger.Error($"Failed to find channel with id {_config.CommandsChannelId}.");
                     return;
                 }
                 await channel.SendMessageAsync($"Sorry to see you go {e.Member.Mention}, hope to see you back soon!");
@@ -669,15 +603,15 @@
 
         public async Task StartAsync()
         {
-            Logger.Trace($"FilterBot::Start");
+            _logger.Trace($"FilterBot::Start");
 
             if (_client == null)
             {
-                Logger.Error($"Really don't know how this happened?");
+                _logger.Error($"Really don't know how this happened?");
                 return;
             }
 
-            var http = new HttpServer(_config, Logger);
+            var http = new HttpServer(_config, _logger);
             http.PokemonReceived += PokemonReceived;
             http.RaidReceived += RaidReceived;
 
@@ -688,22 +622,21 @@
                 _timer.Start();
             }
 
-            Logger.Info("Connecting to discord server...");
+            _logger.Info("Connecting to discord server...");
             await _client.ConnectAsync();
-            await Task.Delay(-1);
         }
 
         public async Task StopAsync()
         {
-            Logger.Trace($"FilterBot::Stop");
+            _logger.Trace($"FilterBot::Stop");
 
             if (_client == null)
             {
-                Logger.Warn($"{AssemblyUtils.AssemblyName} has not been started, therefore it cannot be stopped.");
+                _logger.Warn($"{AssemblyUtils.AssemblyName} has not been started, therefore it cannot be stopped.");
                 return;
             }
 
-            Logger.Info($"Shutting down {AssemblyUtils.AssemblyName}...");
+            _logger.Info($"Shutting down {AssemblyUtils.AssemblyName}...");
 
             if (_client != null)
             {
@@ -716,7 +649,7 @@
 
         public bool RegisterCommand<T>(params object[] optionalParameters)
         {
-            Logger.Trace($"FilterBot::RegisterCommand [Type={typeof(T).FullName}, OptionalParameters={string.Join(", ", optionalParameters)}]");
+            _logger.Trace($"FilterBot::RegisterCommand [Type={typeof(T).FullName}, OptionalParameters={string.Join(", ", optionalParameters)}]");
 
             try
             {
@@ -736,7 +669,7 @@
                     else if (typeof(ReminderService) == pi.ParameterType)
                         args.Add(_reminderSvc);
                     else if (typeof(IEventLogger) == pi.ParameterType)
-                        args.Add(Logger);
+                        args.Add(_logger);
                     else
                     {
                         foreach (var obj in optionalParameters)
@@ -770,16 +703,16 @@
                 if (!Commands.ContainsKey(cmds) && !Commands.ContainsValue(command))
                 {
                     Commands.Add(cmds, command);
-                    Logger.Info($"Command{(cmds.Length > 1 ? "s" : null)} {string.Join(", ", cmds)} registered.");
+                    _logger.Info($"Command{(cmds.Length > 1 ? "s" : null)} {string.Join(", ", cmds)} registered.");
 
                     return true;
                 }
 
-                Logger.Error($"Failed to register command{(cmds.Length > 1 ? "s" : null)} {string.Join(", ", cmds)}");
+                _logger.Error($"Failed to register command{(cmds.Length > 1 ? "s" : null)} {string.Join(", ", cmds)}");
             }
             catch (Exception ex)
             {
-                Logger.Error(ex);
+                _logger.Error(ex);
             }
 
             return false;
@@ -787,29 +720,29 @@
 
         public void UnregisterCommand(string[] cmdNames)
         {
-            Logger.Trace($"FilterBot::UnregisterCommand [CommandNames={string.Join(", ", cmdNames)}]");
+            _logger.Trace($"FilterBot::UnregisterCommand [CommandNames={string.Join(", ", cmdNames)}]");
 
             if (!Commands.ContainsKey(cmdNames))
             {
-                Logger.Error($"Failed to unregister command {string.Join(", ", cmdNames)} because it is not currently registered.");
+                _logger.Error($"Failed to unregister command {string.Join(", ", cmdNames)} because it is not currently registered.");
                 return;
             }
 
             if (!Commands.Remove(cmdNames))
             {
-                Logger.Error($"Failed to unregister command {string.Join(", ", cmdNames)}");
+                _logger.Error($"Failed to unregister command {string.Join(", ", cmdNames)}");
                 return;
             }
         }
 
         public async Task AlertOwnerOfCrash()
         {
-            Logger.Trace($"FilterBot::AlertOwnerOfCrash");
+            _logger.Trace($"FilterBot::AlertOwnerOfCrash");
 
             var owner = await _client.GetUser(_config.OwnerId);
             if (owner == null)
             {
-                Logger.Error($"Failed to find owner with owner id {_config.OwnerId}...");
+                _logger.Error($"Failed to find owner with owner id {_config.OwnerId}...");
                 return;
             }
 
@@ -843,124 +776,17 @@
 
         private async Task SendStartupMessage()
         {
-            Logger.Trace($"FilterBot::SendStartupMessage");
+            _logger.Trace($"FilterBot::SendStartupMessage");
 
             var randomWelcomeMessage = _config.StartupMessages[_rand.Next(0, _config.StartupMessages.Count - 1)];
             await _client.SendMessage(_config.StartupMessageWebHook, randomWelcomeMessage);
-        }
-
-        private async Task DisplaySettings()
-        {
-            Logger.Trace($"FilterBot::DisplaySettings");
-
-            Console.WriteLine($"********** Current Settings **********");
-            var owner = await _client.GetUser(_config.OwnerId);
-            Console.WriteLine($"Owner: {owner?.Username} ({_config.OwnerId})");
-            Console.WriteLine($"Authentication Token: {_config.AuthToken}");
-            Console.WriteLine($"Commands Channel Id: {_config.CommandsChannelId}");
-            Console.WriteLine($"Commands Prefix: {_config.CommandsPrefix}");
-            Console.WriteLine($"Admin Commands Channel Id: {_config.AdminCommandsChannelId}");
-            Console.WriteLine($"Allow Team Assignment: {(_config.AllowTeamAssignment ? "Yes" : "No")}");
-            Console.WriteLine($"Team Roles: {string.Join(", ", _config.TeamRoles)}");
-            Console.WriteLine($"City Roles: {string.Join(", ", _config.CityRoles)}");
-            Console.WriteLine($"Notify New Member Joined: {(_config.NotifyNewMemberJoined ? "Yes" : "No")}");
-            Console.WriteLine($"Notify Member Left: {(_config.NotifyMemberLeft ? "Yes" : "No")}");
-            Console.WriteLine($"Notify Member Banned: {(_config.NotifyMemberBanned ? "Yes" : "No")}");
-            Console.WriteLine($"Notify Member Unbanned: {(_config.NotifyMemberUnbanned ? "Yes" : "No")}");
-            Console.WriteLine($"Send Startup Message: {(_config.SendStartupMessage ? "Yes" : "No")}");
-            Console.WriteLine($"Startup Messages: {string.Join(", ", _config.StartupMessages)}");
-            Console.WriteLine($"Startup Message WebHook: {_config.StartupMessageWebHook}");
-            Console.WriteLine($"Send Welcome Message: {_config.SendWelcomeMessage}");
-            Console.WriteLine($"Welcome Message: {_config.WelcomeMessage}");
-            //Console.WriteLine($"Sponsored Raid Channel Pool: {string.Join(", ", _config.SponsoredRaids.ChannelPool)}");
-            //Console.WriteLine($"Sponsored Raid Keywords: {string.Join(", ", _config.SponsoredRaids.Keywords)}");
-            //Console.WriteLine($"Sponsored Raids WebHook: {_config.SponsoredRaids.WebHook}");
-            Console.WriteLine();
-            Console.WriteLine($"Twitter Notification Settings:");
-            Console.WriteLine($"Post Twitter Updates: {_config.TwitterUpdates.PostTwitterUpdates}");
-            Console.WriteLine($"Consumer Key: {_config.TwitterUpdates.ConsumerKey}");
-            Console.WriteLine($"Consumer Secret: {_config.TwitterUpdates.ConsumerSecret}");
-            Console.WriteLine($"Access Token: {_config.TwitterUpdates.AccessToken}");
-            Console.WriteLine($"Access Token Secret: {_config.TwitterUpdates.AccessTokenSecret}");
-            Console.WriteLine($"Twitter Updates Channel WebHook: {_config.TwitterUpdates.UpdatesChannelWebHook}");
-            Console.WriteLine($"Subscribed Twitter Users: {string.Join(", ", _config.TwitterUpdates.TwitterUsers)}");
-            Console.WriteLine();
-            Console.WriteLine($"Custom User Commands:");
-            foreach (var cmd in _config.CustomCommands)
-            {
-                Console.WriteLine($"{cmd.Key}=>{cmd.Value}");
-            }
-            Console.WriteLine();
-            //foreach (var server in _db.Servers)
-            //{
-            //    Console.WriteLine($"Guild Id: {server.GuildId}");
-            Console.WriteLine("Subscriptions:");
-            Console.WriteLine();
-            foreach (var sub in _db.Subscriptions)
-            {
-                var user = await _client.GetUser(sub.UserId);
-                if (user != null)
-                {
-                    Console.WriteLine($"Username: {user.Username}, Enabled: {(sub.Enabled ? "Yes" : "No")}");
-                    Console.WriteLine($"Pokemon Subscriptions:");
-                    foreach (var poke in sub.Pokemon)
-                    {
-                        if (!_db.Pokemon.ContainsKey(poke.PokemonId.ToString())) continue;
-                        Console.WriteLine(_db.Pokemon[poke.PokemonId.ToString()].Name + $" (Id: {poke.PokemonId}, Minimum CP: {poke.MinimumCP}, Minimum IV: {poke.MinimumIV})");
-                    }
-                    Console.WriteLine();
-                    Console.WriteLine($"Raid Subscriptions:");
-                    foreach (var raid in sub.Raids)
-                    {
-                        if (!_db.Pokemon.ContainsKey(raid.PokemonId.ToString())) continue;
-                        Console.WriteLine(_db.Pokemon[raid.PokemonId.ToString()].Name + $" (Id: {raid.PokemonId})");
-                    }
-                    Console.WriteLine();
-                    Console.WriteLine();
-                }
-            }
-            Console.WriteLine();
-            //Console.WriteLine("Raid Lobbies:");
-            //Console.WriteLine();
-            //foreach (var lobby in _db.Lobbies)
-            //{
-            //    Console.WriteLine($"Lobby Name: {lobby.LobbyName}");
-            //    Console.WriteLine($"Raid Boss: {lobby.PokemonName}");
-            //    Console.WriteLine($"Gym Name: {lobby.GymName}");
-            //    Console.WriteLine($"Address: {lobby.Address}");
-            //    Console.WriteLine($"Start Time: {lobby.StartTime}");
-            //    Console.WriteLine($"Expire Time: {lobby.ExpireTime}");
-            //    Console.WriteLine($"Minutes Left: {lobby.MinutesLeft}");
-            //    Console.WriteLine($"Is Expired: {lobby.IsExpired}");
-            //    Console.WriteLine($"# Users Checked-In: {lobby.NumUsersCheckedIn}");
-            //    Console.WriteLine($"# Users On The Way: {lobby.NumUsersOnTheWay}");
-            //    Console.WriteLine($"Original Raid Message Id: {lobby.OriginalRaidMessageId}");
-            //    Console.WriteLine($"Pinned Raid Message Id{lobby.PinnedRaidMessageId}");
-            //    Console.WriteLine($"Channel Id: {lobby.ChannelId}");
-            //    Console.WriteLine($"Raid Lobby User List:");
-            //    foreach (var lobbyUser in lobby.UserCheckInList)
-            //    {
-            //        Console.WriteLine($"User Id: {lobbyUser.UserId}");
-            //        Console.WriteLine($"Is OnTheWay: {lobbyUser.IsOnTheWay}");
-            //        Console.WriteLine($"OnTheWay Time: {lobbyUser.OnTheWayTime}");
-            //        Console.WriteLine($"Is Checked-In: {lobbyUser.IsCheckedIn}");
-            //        Console.WriteLine($"Check-In Time: {lobbyUser.CheckInTime}");
-            //        Console.WriteLine($"User Count: {lobbyUser.UserCount}");
-            //        Console.WriteLine($"ETA: {lobbyUser.ETA}");
-            //    }
-            //    Console.WriteLine();
-            //}
-            Console.WriteLine();
-            Console.WriteLine();
-            //}
-            Console.WriteLine($"**************************************");
         }
 
         private async void MinuteTimerEventHandler(object sender, System.Timers.ElapsedEventArgs e)
         {
             if (_db.LastChecked.Day != DateTime.Now.Day)
             {
-                await WriteNotificationStatistics();
+                await _notificationProcessor.WriteStatistics();
 
                 _db.LastChecked = DateTime.Now;
                 _db.Subscriptions.ForEach(x => x.ResetNotifications());
@@ -985,7 +811,7 @@
                     {
                         if (!await _lobbyManager.DeleteExpiredRaidLobby(keys[i]))
                         {
-                            Logger.Error($"Failed to delete raid lobby message with id {keys[i]}.");
+                            _logger.Error($"Failed to delete raid lobby message with id {keys[i]}.");
                         }
 
                         _config.RaidLobbies.ActiveLobbies.Remove(keys[i]);
@@ -994,7 +820,7 @@
             }
             catch (Exception ex)
             {
-                Logger.Error(ex);
+                _logger.Error(ex);
             }
 
             #region Old Raid Lobby System
@@ -1035,7 +861,7 @@
                 {
                     if (await _client.IsSupporterStatusExpired(_config, member.Id))
                     {
-                        Logger.Debug($"Removing supporter role from user {member.Id} because their time has expired...");
+                        _logger.Debug($"Removing supporter role from user {member.Id} because their time has expired...");
 
                         //if (_db.Subscriptions.Exists(x => x.UserId == member.Id))
                         //{
@@ -1051,37 +877,15 @@
                         //    continue;
                         //}
 
-                        Logger.Debug($"Successfully removed supporter role from user {member.Id}.");
+                        _logger.Debug($"Successfully removed supporter role from user {member.Id}.");
                     }
                 }
             }
         }
 
-        private async Task WriteNotificationStatistics()
-        {
-            var msg = string.Empty;
-            var subs = _db.Subscriptions;
-            foreach (var sub in _db.Subscriptions)
-            {
-                var user = await _client.GetUser(sub.UserId);
-                if (user == null)
-                {
-                    Logger.Error($"Failed to get discord user from id {sub.UserId}.");
-                }
-
-                msg += $"{user.Username} ({sub.UserId}): Pokemon Subscriptions: {sub.Pokemon.Count}, Raid Subscriptions: {sub.Raids.Count}, Total Notifications: {sub.NotificationsToday}\r\n";
-            }
-            var now = DateTime.Now;
-            File.WriteAllText($"notification_stats-{now.ToString("yyyy-MM-dd_hhmmss")}.txt", msg);
-        }
-
-        #endregion
-
-        #region Commands
-
         private async Task ParseCommand(DiscordMessage message)
         {
-            Logger.Trace($"FilterBot::ParseCommand [Message={message.Content}]");
+            _logger.Trace($"FilterBot::ParseCommand [Message={message.Content}]");
 
             var command = new Command(_config.CommandsPrefix, message.Content);
             if (!command.ValidCommand && !message.Author.IsBot) return;
@@ -1190,15 +994,6 @@
             if (embed == null) return;
 
             await message.RespondAsync(string.Empty, false, embed);
-        }
-
-        #endregion
-
-        #region Static Methods
-
-        public static bool IsValidRaidBoss(uint pokeId)
-        {
-            return ValidRaidBosses.Contains(pokeId);
         }
 
         #endregion

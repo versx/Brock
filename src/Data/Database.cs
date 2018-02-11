@@ -16,6 +16,8 @@
     [JsonObject("database")]
     public class Database : IDatabase
     {
+        #region Constants
+
         /// <summary>
         /// Default main database file name with extension.
         /// </summary>
@@ -30,6 +32,10 @@
         /// Default Pokemon moveset database file name with extension.
         /// </summary>
         public const string MovesetDatabaseFileName = "moves.json";
+
+        public const string DataFolderName = "Data";
+
+        #endregion
 
         #region Properties
 
@@ -82,18 +88,20 @@
             Reminders = new ConcurrentDictionary<ulong, List<Reminder>>();
             Subscriptions = new List<Subscription<Pokemon>>();
 
-            if (File.Exists(PokemonDatabaseFileName))
+            var pokemonDb = Path.Combine(DataFolderName, PokemonDatabaseFileName);
+            if (File.Exists(pokemonDb))
             {
-                var pokeDb = File.ReadAllText(PokemonDatabaseFileName);
+                var pokeDb = File.ReadAllText(pokemonDb);
                 if (!string.IsNullOrEmpty(pokeDb))
                 {
                     Pokemon = JsonStringSerializer.Deserialize<Dictionary<string, PokemonInfo>>(pokeDb);
                 }
             }
 
-            if (File.Exists(MovesetDatabaseFileName))
+            var movesetDb = Path.Combine(DataFolderName, MovesetDatabaseFileName);
+            if (File.Exists(movesetDb))
             {
-                var movesDb = File.ReadAllText(MovesetDatabaseFileName);
+                var movesDb = File.ReadAllText(movesetDb);
                 if (!string.IsNullOrEmpty(movesDb))
                 {
                     Movesets = JsonStringSerializer.Deserialize<Dictionary<string, Moveset>>(movesDb);

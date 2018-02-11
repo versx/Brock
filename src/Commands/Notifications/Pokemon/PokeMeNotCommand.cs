@@ -13,9 +13,11 @@
 
     [Command(
         Categories.Notifications,
-        "Unsubscribe from a one or more or even all subscribed Pokemon notifications.",
+        "Unsubscribe from a one or more or even all subscribed Pokemon notifications by pokedex number or name.",
         "\tExample: `.pokemenot 149`\r\n" +
+        "\tExample: `.pokemenot pikachu`\r\n" +
         "\tExample: `.pokemenot 3,6,9,147,148,149`\r\n" +
+        "\tExample: `.pokemenot bulbasuar,7,tyran`\r\n" +
         "\tExample: `.pokemenot all` (Removes all subscribed Pokemon notifications.)",
         "pokemenot"
     )]
@@ -59,7 +61,7 @@
 
             var cmd = command.Args[0];
 
-            if (cmd == "*" || string.Compare(cmd.ToLower(), "all", true) == 0)
+            if (string.Compare(cmd.ToLower(), "all", true) == 0)
             {
                 if (!_db.RemoveAllPokemon(author))
                 {
@@ -73,15 +75,25 @@
 
             foreach (var arg in cmd.Split(','))
             {
-                var index = Convert.ToUInt32(arg);
-                if (!_db.Pokemon.ContainsKey(index.ToString()))
+                var pokeId = Helpers.PokemonIdFromName(_db, arg);
+                if (pokeId == 0)
                 {
-                    await message.RespondAsync($"{message.Author.Mention}, pokedex number {index} is not a valid Pokemon id.");
+                    if (!uint.TryParse(arg, out pokeId))
+                    {
+                        await message.RespondAsync($"{message.Author.Mention}, failed to lookup Pokemon by name and pokedex id using {arg}.");
+                        return;
+                    }
+                }
+
+                //var index = Convert.ToUInt32(arg);
+                if (!_db.Pokemon.ContainsKey(pokeId.ToString()))
+                {
+                    await message.RespondAsync($"{message.Author.Mention}, pokedex number {pokeId} is not a valid Pokemon id.");
                     continue;
                 }
 
-                var pokemon = _db.Pokemon[index.ToString()];
-                var unsubscribePokemon = _db[author].Pokemon.Find(x => x.PokemonId == index);
+                var pokemon = _db.Pokemon[pokeId.ToString()];
+                var unsubscribePokemon = _db[author].Pokemon.Find(x => x.PokemonId == pokeId);
                 if (unsubscribePokemon != null)
                 {
                     if (_db[author].Pokemon.Remove(unsubscribePokemon))

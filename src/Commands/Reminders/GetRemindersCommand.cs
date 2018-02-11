@@ -65,7 +65,7 @@
                 {
                     Color = new DiscordColor(4, 97, 247),
                     ThumbnailUrl = message.Author.AvatarUrl,
-                    Title = $"{message.Author.Mention}, your reminders are the following:"
+                    Title = $"{message.Author.Username}, your reminders are the following:"
                 };
 
                 for (int i = 0; i < orderedReminders.Count && i < 10; i++)
@@ -80,7 +80,7 @@
                 var embed = eb.Build();
                 if (embed == null) return;
 
-                await message.RespondAsync(string.Empty, false, embed);
+                await message.RespondAsync(message.Author.Mention, false, embed);
             }
             catch (Exception ex)
             {

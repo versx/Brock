@@ -4,6 +4,8 @@
     using System.Collections.Generic;
     using System.Xml.Serialization;
 
+    using BrockBot.Services;
+
     using Newtonsoft.Json;
 
     [XmlRoot("subscription")]
@@ -28,11 +30,15 @@
         [JsonIgnore]
         public bool Notified { get; set; }
 
+        [JsonIgnore]
+        public NotificationLimiter NotificationLimiter { get; set; }
+
         public Subscription()
         {
             Pokemon = new List<T>();
             Raids = new List<T>();
             Enabled = true;
+            NotificationLimiter = new NotificationLimiter();
         }
 
         public Subscription(ulong userId, List<T> pokemon, List<T> raids)

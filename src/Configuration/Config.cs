@@ -26,7 +26,20 @@
         /// </summary>
         public const string DefaultConfigFileName = "config.json";
 
-        private const string DefaultWelcomeMessage = "Hello {username}, welcome to versx's discord server!\r\nMy name is Brock and I'm here to help you with certain things if you require them such as notifications of Pokemon that have spawned as well as setting up Raid Lobbies or even assigning yourself to a team or city role. To see a full list of my available commands please send me a direct message containing `.help`.";
+        //private const string DefaultWelcomeMessage = "Hello {username}, welcome to versx's discord server!\r\nMy name is Brock and I'm here to help you with certain things if you require them such as notifications of Pokemon that have spawned as well as setting up Raid Lobbies or even assigning yourself to a team or city role. To see a full list of my available commands please send me a direct message containing `.help`.";
+        private const string DefaultWelcomeMessage = @"Hello {username}, welcome to **versx**'s server!
+My name is Brock and I'm here to assist you with certain things. Most commands that you'll send me will need to be sent to the #bot channel in the server but I can also process some commands via direct message.
+
+First things first you might want to set your team, there are three available teams: Valor, Mystic, and Instinct. To set your team you'll want to use the `.team Valor/Mystic/Instinct` command, although this is optional. For more details please read the pinned message in the #bot channel titled Team Assignment.
+Next you'll need to assign youself to some city feeds to see Pokemon spawns and Raids. Quickest way is to type the `.feedme all` command, otherwise please read the pinned message in the #bot channel titled City Feeds for more details.
+Lastly if you'd like to get direct messages from me when a certain Pokemon with a specific IV percentage or raid appears, to do so please read the pinned message in the #bot channel titled Pokemon Notifications.
+
+I will only send you direct message notifications of Pokemon or raids for city feeds that you are assigned to.
+**To see a full list of my available commands please send me a direct message containing `.help`.**
+
+Once you've completed the above steps you'll be all set to go catch those elusive monsters, be safe and have fun!";
+
+        private const string RaidsFileName = "raids.txt";
 
         #endregion
 
@@ -152,6 +165,9 @@
 
         #endregion
 
+        [JsonIgnore]
+        public List<uint> RaidBosses { get; set; }
+
         [JsonProperty("geofenceFolder")]
         public string GeofenceFolder { get; set; }
 
@@ -217,6 +233,17 @@
             TwitterUpdates = new TwitterUpdatesConfig();
             Advertisement = new AdvertisementConfig();
             FeedStatus = new FeedStatusConfig();
+
+            RaidBosses = new List<uint>();
+            var raidsFileName = Path.Combine(Data.Database.DataFolderName, RaidsFileName);
+            var lines = File.ReadAllLines(raidsFileName);
+            foreach (var line in lines)
+            {
+                if (!RaidBosses.Contains(Convert.ToUInt32(line)))
+                {
+                    RaidBosses.Add(Convert.ToUInt32(line));
+                }
+            }
         }
 
         #endregion

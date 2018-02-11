@@ -69,7 +69,7 @@
             {
                 if (!_db.Pokemon.ContainsKey(pkmn)) continue;
 
-                pokemon.Add(_db.Pokemon[pkmn].Name);
+                pokemon.Add($"{pkmn} - {_db.Pokemon[pkmn].Name}");
             }
 
             await message.RespondAsync($"**{city} Pokemon CP/IV/Moveset Scan List:**\r\n```{string.Join(Environment.NewLine, pokemon)}```");

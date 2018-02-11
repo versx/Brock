@@ -22,6 +22,8 @@
         public const int NotificationTimeout = 10;
         public const int MaxNotificationsPerDayNormal = 100;
         public const int MaxNotificationsPerDaySupporter = 1000;
+        public const string StatsFolder = "Stats";
+        public const string NotificationsLimitedMessage = "Your Pokemon notifications have exceeded {0} per minute so you've been limited for the next 60 seconds, please consider adjusting your settings to prevent this.";
 
         #endregion
 
@@ -68,12 +70,28 @@
                 discordUser = await _client.GetUser(user.UserId);
                 if (discordUser == null) continue;
 
+                if (user.NotificationLimiter.IsLimited())
+                {
+                    if (!user.Notified)
+                    {
+                        await _client.SendDirectMessage(discordUser, string.Format(NotificationsLimitedMessage, NotificationLimiter.MaxNotificationsPerMinute), null);
+                        user.Notified = true;
+                    }
+                }
+                else
+                {
+                    user.Notified = false;
+                }
+
                 if (!user.Pokemon.Exists(x => x.PokemonId == pkmn.PokemonId)) continue;
                 var subscribedPokemon = user.Pokemon.Find(x => x.PokemonId == pkmn.PokemonId);
 
                 if (!_db.Pokemon.ContainsKey(subscribedPokemon.PokemonId.ToString())) continue;
                 var pokemon = _db.Pokemon[subscribedPokemon.PokemonId.ToString()];
                 if (pokemon == null) continue;
+
+                if (_client == null) continue;
+                if (!await _client.IsSupporterOrHigher(user.UserId, _config)) continue;
 
                 var matchesIV = MatchesIvFilter(pkmn.IV, subscribedPokemon.MinimumIV);
                 //var matchesCP = MatchesCpFilter(pkmn.CP, subscribedPokemon.MinimumCP);
@@ -120,12 +138,28 @@
                 discordUser = await _client.GetUser(user.UserId);
                 if (discordUser == null) continue;
 
+                if (user.NotificationLimiter.IsLimited())
+                {
+                    if (!user.Notified)
+                    {
+                        await _client.SendDirectMessage(discordUser, string.Format(NotificationsLimitedMessage, NotificationLimiter.MaxNotificationsPerMinute), null);
+                        user.Notified = true;
+                    }
+                }
+                else
+                {
+                    user.Notified = false;
+                }
+
                 if (!user.Raids.Exists(x => x.PokemonId == raid.PokemonId)) continue;
                 var subscribedRaid = user.Raids.Find(x => x.PokemonId == raid.PokemonId);
 
                 if (!_db.Pokemon.ContainsKey(subscribedRaid.PokemonId.ToString())) continue;
                 var pokemon = _db.Pokemon[subscribedRaid.PokemonId.ToString()];
                 if (pokemon == null) continue;
+
+                if (_client == null) continue;
+                if (!await _client.IsSupporterOrHigher(user.UserId, _config)) continue;
 
                 if (subscribedRaid.PokemonId != raid.PokemonId) continue;
 
@@ -143,6 +177,31 @@
                 await _client.SendDirectMessage(discordUser, string.Empty, embed);
                 await Utils.Wait(NotificationTimeout);
             }
+        }
+
+        public async Task WriteStatistics()
+        {
+            var statsDirectory = Path.Combine(Directory.GetCurrentDirectory(), StatsFolder);
+            if (!Directory.Exists(statsDirectory))
+            {
+                Directory.CreateDirectory(statsDirectory);
+            }
+
+            var msg = string.Empty;
+            var subs = _db.Subscriptions;
+            foreach (var sub in _db.Subscriptions)
+            {
+                var user = await _client.GetUser(sub.UserId);
+                if (user == null)
+                {
+                    _logger.Error($"Failed to get discord user from id {sub.UserId}.");
+                }
+
+                msg += $"{user.Username} ({sub.UserId}): Pokemon Subscriptions: {sub.Pokemon.Count}, Raid Subscriptions: {sub.Raids.Count}, Total Notifications: {sub.NotificationsToday}\r\n";
+            }
+            var now = DateTime.Now;
+            var path = Path.Combine(statsDirectory, $"notifications-{now.ToString("yyyy-MM-dd_hhmmss")}.txt");
+            File.WriteAllText(path, msg);
         }
 
         #endregion
@@ -166,7 +225,7 @@
             }
 
             //var loc = Utils.GetGoogleAddress(pokemon.Latitude, pokemon.Longitude, _config.GmapsKey);
-            var loc = _geofence.GetGeofence(new Location(pokemon.Latitude, pokemon.Longitude)); 
+            var loc = _geofence.GetGeofence(new Location(pokemon.Latitude, pokemon.Longitude));
             if (loc == null)
             {
                 _logger.Error($"Failed to lookup city for coordinates {pokemon.Latitude},{pokemon.Longitude}, skipping...");
@@ -188,12 +247,12 @@
 
             var eb = new DiscordEmbedBuilder
             {
-                Title        = loc == null || string.IsNullOrEmpty(loc.Name) ? "DIRECTIONS" : loc.Name,
-                Description  = $"{pkmn.Name}{Helpers.GetPokemonGender(pokemon.Gender)} {pokemon.CP}CP {pokemon.IV} LV{pokemon.PlayerLevel} has spawned!",
-                Url          = string.Format(HttpServer.GoogleMaps, pokemon.Latitude, pokemon.Longitude),
-                ImageUrl     = string.Format(HttpServer.GoogleMapsImage, pokemon.Latitude, pokemon.Longitude),
+                Title = loc == null || string.IsNullOrEmpty(loc.Name) ? "DIRECTIONS" : loc.Name,
+                Description = $"{pkmn.Name}{Helpers.GetPokemonGender(pokemon.Gender)} {pokemon.CP}CP {pokemon.IV} LV{pokemon.PlayerLevel} has spawned!",
+                Url = string.Format(HttpServer.GoogleMaps, pokemon.Latitude, pokemon.Longitude),
+                ImageUrl = string.Format(HttpServer.GoogleMapsImage, pokemon.Latitude, pokemon.Longitude),
                 ThumbnailUrl = string.Format(HttpServer.PokemonImage, pokemon.PokemonId),
-                Color        = DiscordHelpers.BuildColor(pokemon.IV)
+                Color = DiscordHelpers.BuildColor(pokemon.IV)
             };
 
             eb.AddField($"{pkmn.Name} (#{pokemon.PokemonId}, {pokemon.Gender})", $"CP: {pokemon.CP} IV: {pokemon.IV} (Sta: {pokemon.Stamina}/Atk: {pokemon.Attack}/Def: {pokemon.Defense}) LV: {pokemon.PlayerLevel}");
@@ -247,12 +306,12 @@
 
             var eb = new DiscordEmbedBuilder
             {
-                Title        = loc == null || string.IsNullOrEmpty(loc.Name) ? "DIRECTIONS" : loc.Name,
-                Description  = $"{pkmn.Name} raid is available!",
-                Url          = string.Format(HttpServer.GoogleMaps, raid.Latitude, raid.Longitude),
-                ImageUrl     = string.Format(HttpServer.GoogleMapsImage, raid.Latitude, raid.Longitude),
+                Title = loc == null || string.IsNullOrEmpty(loc.Name) ? "DIRECTIONS" : loc.Name,
+                Description = $"{pkmn.Name} raid is available!",
+                Url = string.Format(HttpServer.GoogleMaps, raid.Latitude, raid.Longitude),
+                ImageUrl = string.Format(HttpServer.GoogleMapsImage, raid.Latitude, raid.Longitude),
                 ThumbnailUrl = string.Format(HttpServer.PokemonImage, raid.PokemonId),
-                Color        = DiscordHelpers.BuildRaidColor(Convert.ToInt32(raid.Level))
+                Color = DiscordHelpers.BuildRaidColor(Convert.ToInt32(raid.Level))
             };
 
             var fixedEndTime = DateTime.Parse(raid.EndTime.ToLongTimeString());

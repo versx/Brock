@@ -14,7 +14,7 @@
     {
         #region Constants
 
-        public static string DefaultAdvertisementMessage;
+        public const string DefaultAdvertisementMessage = ":arrows_counterclockwise: Welcome to **{server}**'s server, to assign yourself to a city feed or team please review the pinned messages in the {bot} channel as well as read the messages in the {faq} channel.";
         //public const int DefaultAdvertisementMessageDifference = 10;
         public const int MaxAdvertisementWaitTimeoutMinutes = 30;
 
@@ -76,20 +76,6 @@
         {
             var channel = await _client.GetChannel(_config.CommandsChannelId);
             if (channel == null) return;
-            //DefaultAdvertisementMessage = $":arrows_counterclockwise: Welcome to **{(channel.Guild == null ? "versx" : channel.Guild.Name)}**'s server! To assign or unassign yourself to or from a city feed or team please review the pinned messages in the {channel.Mention} channel or type `.help`. Please also read the #faq channel if you have any questions, otherwise post them.";
-            //":arrows_counterclockwise: Welcome to versx's server, in order to see a city feed you will need to assign yourself to a city role using the .feed command followed by one or more of the available cities separated by a comma (,): {0}, or None.";
-
-            DefaultAdvertisementMessage = @"Hello {username}, welcome to **versx**'s server!
-My name is Brock and I'm here to assist you with certain things. Most commands that you'll send me will need to be sent to the #bot channel in the server but I can also process some commands via direct message.
-
-First things first you might want to set your team, there are three available teams: Valor, Mystic, and Instinct. To set your team you'll want to use the `.team Valor/Mystic/Instinct` command, although this is optional. For more details please read the pinned message in the #bot channel titled Team Assignment.
-Next you'll need to assign youself to some city feeds to see Pokemon spawns and Raids. Quickest way is to type the `.feedme all` command, otherwise please read the pinned message in the #bot channel titled City Feeds for more details.
-Lastly if you'd like to get direct messages from me when a certain Pokemon with a specific IV percentage or raid appears, to do so please read the pinned message in the #bot channel titled Pokemon Notifications.
-
-I will only send you direct message notifications of Pokemon or raids for city feeds that you are assigned to.
-**To see a full list of my available commands please send me a direct message containing `.help`.**
-
-Once you've completed the above steps you'll be all set to go catch those elusive monsters, be safe and have fun!";
         }
 
         private async void AdvertisementTimerEventHandler(object sender, System.Timers.ElapsedEventArgs e)
@@ -124,13 +110,21 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
                     return;
                 }
 
+                var faqChannel = _client.GetChannelByName("faq");
+                if (faqChannel == null)
+                {
+                    _logger.Error($"Failed to retrieve frequently asked questions channel.");
+                    return;
+                }
+
                 if (_config.Advertisement.LastMessageId == 0)
                 {
                     var msg = (string.IsNullOrEmpty(_config.Advertisement.Message)
                         ? DefaultAdvertisementMessage
                         : _config.Advertisement.Message)
                         .Replace("{server}", advertisementChannel.Guild.Name)
-                        .Replace("{bot}", cmdChannel.Mention);
+                        .Replace("{bot}", cmdChannel.Mention)
+                        .Replace("{faq}", faqChannel.Mention);
                     var sentMessage = await advertisementChannel.SendMessageAsync(msg);
                     _config.Advertisement.LastMessageId = sentMessage.Id;
                     _config.Save();

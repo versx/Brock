@@ -94,12 +94,12 @@
                 bot.RegisterCommand<SayCommand>();
                 //bot.RegisterCommand<LeaveGuildCommand>();
                 bot.RegisterCommand<SwitchAccountsCommand>();
+                bot.RegisterCommand<ReloadConfigCommand>();
                 bot.RegisterCommand<RestartCommand>();
                 bot.RegisterCommand<ShutdownCommand>();
 
                 await bot.StartAsync();
-
-                Console.Read();
+                await Task.Delay(-1);
                 await bot.StopAsync();
             }
             catch (Exception ex)

@@ -119,6 +119,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Commands\Administrative\ReloadConfigCommand.cs" />
     <Compile Include="Commands\Administrative\SwitchAccountsCommand.cs" />
     <Compile Include="Commands\CustomCommands\AddCmdCommand.cs" />
     <Compile Include="Commands\Administrative\Twitter\AddTwitterCommand.cs" />
@@ -182,11 +183,13 @@
     <Compile Include="Core\CommandList.cs" />
     <Compile Include="Core\CommandPermissionAttribute.cs" />
     <Compile Include="Core\CommandPermissionLevel.cs" />
+    <Compile Include="Extensions\Extensions.cs" />
     <Compile Include="Extensions\HelpExtensions.cs" />
     <Compile Include="Services\AdvertisementService.cs" />
     <Compile Include="Services\FeedMonitorService.cs" />
     <Compile Include="Services\Geofence\Geofence.cs" />
     <Compile Include="Services\Geofence\GeofenceService.cs" />
+    <Compile Include="Services\NotificationLimiter.cs" />
     <Compile Include="Services\RaidLobby\RaidLobbyEta.cs" />
     <Compile Include="Services\RaidLobby\RaidLobbyManager.cs" />
     <Compile Include="Services\RaidLobby\RaidLobbySettings.cs" />

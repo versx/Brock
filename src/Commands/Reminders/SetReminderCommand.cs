@@ -42,15 +42,14 @@
             if (!command.HasArgs) return;
             //if (command.Args.Count != 1) return;
 
-            var reminder = command.Args[0];
             switch (command.Args.Count)
             {
                 case 1:
-                    await SetReminder(message, reminder);
+                    await SetReminder(message, command.Args[0]);
                     break;
                 case 2:
                     var where = command.Args[1];
-                    await SetReminder(message, reminder, where);
+                    await SetReminder(message, command.Args[1], command.Args[0]);
                     break;
             }
         }

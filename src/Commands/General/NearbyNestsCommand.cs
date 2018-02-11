@@ -45,6 +45,9 @@
                 return;
             }
 
+            await message.RespondAsync("Nests are out of date and a new way of updating the nests command is coming soon.");
+            return;
+
             var msg = "**Nearby Nests**\r\n";
             foreach (var item in _config.NearbyNests)
             {

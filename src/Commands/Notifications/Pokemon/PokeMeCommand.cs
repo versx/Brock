@@ -14,10 +14,12 @@
 
     [Command(
         Categories.Notifications,
-        "Subscribe to Pokemon notifications based on the pokedex number, minimum IV stats, or minimum level.",
+        "Subscribe to Pokemon notifications based on the pokedex number or name, minimum IV stats, or minimum level.",
         "\tExample: `.pokeme 147 95`\r\n" +
+        "\tExample: `.pokeme pikachu 97`\r\n" +
         "\tExample: `.pokeme 113,242,248 90`\r\n" +
-        "\tExample: `.pokeme 113 90 l35` (Supporters Only: Subscribe to Chansey notifications with minimum IV of 90% and minimum level of 35.)\r\n" +
+        "\tExample: `.pokeme pikachu,26,129,Dratini 97`\r\n" +
+        "\tExample: `.pokeme 113 90 L35` (Supporters Only: Subscribe to Chansey notifications with minimum IV of 90% and minimum level of 32.)\r\n" +
         "\tExample: `.pokeme all 90` (Subscribe to all Pokemon notifications with minimum IV of 90%. Excludes Unown)\r\n" +
         "\tExample: `.pokeme all 90 L30 (Supporters Only: Subscribe to all Pokemon notifications with minimum IV of 90% and minimum level of 30.)",
         "pokeme"
@@ -161,7 +163,19 @@
             var subscribed = new List<string>();
             foreach (var arg in cmd.Split(','))
             {
-                var pokeId = Convert.ToUInt32(arg);
+                //TODO: Check if common type pokemon e.g. Pidgey, Ratatta, Spinarak 'they are beneath him and he refuses to discuss them further'
+
+                var pokeId = Helpers.PokemonIdFromName(_db, arg);
+                if (pokeId == 0)
+                {
+                    if (!uint.TryParse(arg, out pokeId))
+                    {
+                        await message.RespondAsync($"{message.Author.Mention}, failed to lookup Pokemon by name and pokedex id using {arg}.");
+                        return;
+                    }
+                }
+
+                //var pokeId = Convert.ToUInt32(arg);
                 if (!_db.Pokemon.ContainsKey(pokeId.ToString()))
                 {
                     await message.RespondAsync($"{message.Author.Mention}, pokedex number {pokeId} is not a valid Pokemon id.");

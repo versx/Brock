@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
 
     using DSharpPlus;
@@ -68,21 +69,30 @@
                 var pokemon = _db[author].Pokemon;
                 pokemon.Sort((x, y) => x.PokemonId.CompareTo(y.PokemonId));
 
-                msg = $"**{message.Author.Username} Notification Settings:**\r\n";
-                msg += $"Feeds: **{string.Join("**, **", feeds)}**\r\n";
-                msg += $"Enabled: **{(_db[author].Enabled ? "Yes" : "No")}**\r\n";
-                msg += $"Pokemon Subscriptions:\r\n```";
-
-                foreach (var sub in pokemon)
+                var defaultIV = 0;
+                var results = pokemon.GroupBy(p => p.MinimumIV, (key, g) => new { IV = key, Pokes = g.ToList() });
+                foreach (var result in results)
                 {
-                    if (!_db.Pokemon.ContainsKey(sub.PokemonId.ToString()))
+                    if (result.Pokes.Count > defaultIV)
                     {
-                        _logger.Error($"Failed to find Pokemon with id {sub.PokemonId} in the Pokemon database, skipping...");
-                        continue;
+                        defaultIV = result.IV;
                     }
+                }
 
-                    var pkmn = _db.Pokemon[sub.PokemonId.ToString()];
-                    msg += $"{sub.PokemonId}: {pkmn.Name} {sub.MinimumIV}%+{(sub.MinimumLevel > 0 ? $", L{sub.MinimumLevel}+" : null)}\r\n";
+                msg = $"**{message.Author.Mention} Notification Settings:**\r\n";
+                msg += $"Enabled: **{(_db[author].Enabled ? "Yes" : "No")}**\r\n";
+                msg += $"Feed Zones: **{string.Join("**, **", feeds)}**\r\n";
+                msg += $"Pokemon Subscriptions:\r\n```";
+                msg += $"Default: **{defaultIV}%** (All not listed)\r\n";
+                foreach (var sub in results)
+                {
+                    if (sub.IV == defaultIV) continue;
+
+                    foreach (var poke in sub.Pokes)
+                    {
+                        var pkmn = _db.Pokemon[poke.PokemonId.ToString()];
+                        msg += $"{poke.PokemonId}: {pkmn.Name} {poke.MinimumIV}%+{(poke.MinimumLevel > 0 ? $", L{poke.MinimumLevel}+" : null)}\r\n";
+                    }
                 }
                 msg += "```" + Environment.NewLine + Environment.NewLine;
             }
@@ -100,7 +110,7 @@
             }
 
             if (msg.Length > 2000)
-                await _client.SendDirectMessage(message.Author, $"**{message.Author.Mention}**'s subscription list is longer than the allowed Discord message character count, here is a partial list:\r\n{msg.Substring(0, Math.Min(msg.Length, 1500))}", null);
+                await _client.SendDirectMessage(message.Author, $"**{message.Author.Mention}**'s subscription list is longer than the allowed Discord message character count, here is a partial list:\r\n{msg.Substring(0, Math.Min(msg.Length, 1500))}```", null);
             else
                 await _client.SendDirectMessage(message.Author, msg, null);
         }

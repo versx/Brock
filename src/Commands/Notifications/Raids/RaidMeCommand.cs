@@ -14,7 +14,7 @@
 
     [Command(
         Categories.Notifications,
-        "Subscribe to Pokemon raid notifications.",
+        "Subscribe to raid boss Pokemon notifications.",
         "\tExample: `.raidme Absol` (Subscribe to Absol raid notifications.)\r\n" +
         "\tExample: `.raidme Tyranitar,Magikarp` (Subscribe to Tyranitar and Magikarp raid notifications.)\r\n" +
         "\tExample: `.raidme all` (Subscribe to all raid boss notifications.)",
@@ -74,7 +74,7 @@
 
                 for (uint i = 1; i < 390; i++)
                 {
-                    if (!FilterBot.ValidRaidBosses.Contains(i)) continue;
+                    if (!i.IsValidRaidBoss(_config.RaidBosses)) continue;
 
                     var pokemon = _db.Pokemon[i.ToString()];
                     if (!_db.Exists(author))
@@ -109,7 +109,7 @@
                 }
 
                 var pokemon = _db.Pokemon[pokeId.ToString()];
-                if (!FilterBot.IsValidRaidBoss(pokeId))
+                if (!pokeId.IsValidRaidBoss(_config.RaidBosses))
                 {
                     await message.RespondAsync($"{pokemon.Name} ({pokeId}) is not a valid raid boss.");
                     return;

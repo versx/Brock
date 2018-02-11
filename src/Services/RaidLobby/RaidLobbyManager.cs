@@ -529,7 +529,10 @@
                 var timeLeft = TimeLeft(item.Value.EtaStart);
                 if (timeLeft == 0)
                 {
-                    item.Value.Eta = RaidLobbyEta.Late;
+                    if (item.Value.Eta != RaidLobbyEta.NotSet && item.Value.Eta != RaidLobbyEta.Here)
+                    {
+                        item.Value.Eta = RaidLobbyEta.Late;
+                    }
                     ////User is late, send DM.
                     //var dm = await _client.SendDirectMessage(user, $"{user.Mention} you're late for the raid, do you want to extend your time? If not please click the red cross button below to remove yourself from the raid lobby.\r\n#{item.Key}#", null);
                     //if (dm == null)

@@ -33,7 +33,7 @@
 
         public async Task Execute(DiscordMessage message, Command command)
         {
-            if (command.HasArgs) return;
+            if (!command.HasArgs) return;
             if (command.Args.Count != 1) return;
 
             if (!int.TryParse(command.Args[0], out int index))
