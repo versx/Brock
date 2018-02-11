@@ -171,6 +171,9 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
         [JsonProperty("geofenceFolder")]
         public string GeofenceFolder { get; set; }
 
+        [JsonProperty("accuWeatherApiKey")]
+        public string AccuWeatherApiKey { get; set; }
+
         /// <summary>
         /// Gets the config full config file path.
         /// </summary>

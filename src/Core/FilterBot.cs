@@ -26,7 +26,7 @@
     //TODO: Keep track of supporters, have a command to check if a paypal email etc or username rather has donated.
 
     //TODO: Debug DM responses for raid lobbies.
-    //TODO: Add confirmation for removing Pokemon subscriptions.
+    //TODO: Add confirmation for removing all Pokemon subscriptions.
     //TODO: Fix new geofence lookup, Upland picked up as Montclair.
 
     public class FilterBot
@@ -57,6 +57,7 @@
         private TweetService _tweetSvc;
         private readonly FeedMonitorService _feedSvc;
         private readonly RaidLobbyManager _lobbyManager;
+        private readonly IWeatherService _weatherSvc;
 
         #endregion
 
@@ -70,9 +71,9 @@
 
         public FilterBot(IEventLogger logger)
         {
-            _logger = logger;
             Commands = new CommandList();
 
+            _logger = logger;
             _db = Database.Load();
             if (_db == null)
             {
@@ -88,7 +89,7 @@
                 new DiscordConfiguration
                 {
                     AutoReconnect = true,
-                    LogLevel = LogLevel.Debug,
+                    LogLevel = LogLevel.Error,
                     UseInternalLogHandler = true,
                     Token = _config.AuthToken,
                     TokenType = TokenType.Bot
@@ -109,6 +110,7 @@
             _notificationProcessor = new NotificationProcessor(_client, _db, _config, _logger);
             _feedSvc = new FeedMonitorService(_client, _config, _logger);
             _lobbyManager = new RaidLobbyManager(_client, _config, _logger);
+            _weatherSvc = new WeatherService(_config.AccuWeatherApiKey, _logger);
         }
 
         #endregion
@@ -668,6 +670,8 @@
                         args.Add(_config);
                     else if (typeof(ReminderService) == pi.ParameterType)
                         args.Add(_reminderSvc);
+                    else if (typeof(IWeatherService) == pi.ParameterType)
+                        args.Add(_weatherSvc);
                     else if (typeof(IEventLogger) == pi.ParameterType)
                         args.Add(_logger);
                     else

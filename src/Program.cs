@@ -46,6 +46,7 @@
                 bot.RegisterCommand<GoogleCommand>();
                 bot.RegisterCommand<DoorCommand>();
                 bot.RegisterCommand<CheckApiCommand>();
+                bot.RegisterCommand<GetWeatherCommand>();
                 bot.RegisterCommand<VersionCommand>();
 
                 //Custom Commands

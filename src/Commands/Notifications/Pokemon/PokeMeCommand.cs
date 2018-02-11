@@ -61,7 +61,7 @@
             {
                 if (!await _client.IsSupporterOrHigher(message.Author.Id, _config))
                 {
-                    await message.RespondAsync($"{message.Author.Mention} please provide correct values such as `{_config.CommandsPrefix}{command.Name} 25 97`, `{_config.CommandsPrefix}{command.Name} 25,26,89,90 100`");
+                    await message.RespondAsync($"{message.Author.Mention} please provide correct values such as `{_config.CommandsPrefix}{command.Name} 25 97` or `{_config.CommandsPrefix}{command.Name} 25,26,89,90 100`");
                     return;
                 }
             }

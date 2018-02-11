@@ -129,6 +129,7 @@
     <Compile Include="Commands\Administrative\LeaveGuildCommand.cs" />
     <Compile Include="Commands\Administrative\Twitter\ListTwitterCommand.cs" />
     <Compile Include="Commands\Administrative\SayCommand.cs" />
+    <Compile Include="Commands\General\GetWeatherCommand.cs" />
     <Compile Include="Commands\Moderator\SetEncounterListCommand.cs" />
     <Compile Include="Commands\General\CheckApiCommand.cs" />
     <Compile Include="Commands\General\DoorCommand.cs" />
@@ -226,6 +227,7 @@
     <Compile Include="Services\ReminderService.cs" />
     <Compile Include="Services\TaskManager.cs" />
     <Compile Include="Services\TweetService.cs" />
+    <Compile Include="Services\WeatherService.cs" />
     <Compile Include="Utilities\AssemblyUtils.cs" />
     <Compile Include="Utilities\DiscordHelpers.cs" />
     <Compile Include="Utilities\NetUtils.cs" />

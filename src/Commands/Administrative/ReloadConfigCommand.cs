@@ -3,6 +3,7 @@
     using System;
     using System.Threading.Tasks;
 
+    using DSharpPlus;
     using DSharpPlus.Entities;
 
     using BrockBot.Configuration;
@@ -15,22 +16,24 @@
     )]
     public class ReloadConfigCommand : ICustomCommand
     {
-        public Config Config { get; set; }
+        private readonly DiscordClient _client;
+        private Config _config;
 
         public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Admin;
 
-        public ReloadConfigCommand(Config config)
+        public ReloadConfigCommand(DiscordClient client, Config config)
         {
-            Config = config;
+            _client = client;
+            _config = config;
         }
 
         public async Task Execute(DiscordMessage message, Command command)
         {
             if (command.HasArgs) return;
 
-            Config = Config.Load();
+            _config = Config.Load();
 
-            await Task.CompletedTask;
+            await message.RespondAsync($"{message.Author.Mention} configuration file reloaded.");
         }
     }
 }
