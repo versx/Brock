@@ -83,7 +83,7 @@
                 msg += $"Enabled: **{(_db[author].Enabled ? "Yes" : "No")}**\r\n";
                 msg += $"Feed Zones: **{string.Join("**, **", feeds)}**\r\n";
                 msg += $"Pokemon Subscriptions:\r\n```";
-                msg += $"Default: **{defaultIV}%** (All not listed)\r\n";
+                msg += $"Default: **{defaultIV}%** (All unlisted)\r\n";
                 foreach (var sub in results)
                 {
                     if (sub.IV == defaultIV) continue;

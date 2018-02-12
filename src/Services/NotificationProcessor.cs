@@ -92,18 +92,18 @@
                 //if (!(matchesIV || matchesCP || matchesLvl || matchesGender || matchesAtk || matchesDef || matchesSta)) continue;
                 if (!(matchesIV && matchesLvl)) continue;
 
-                //if (user.NotificationLimiter.IsLimited())
-                //{
-                //    if (!user.Notified)
-                //    {
-                //        await _client.SendDirectMessage(discordUser, string.Format(NotificationsLimitedMessage, NotificationLimiter.MaxNotificationsPerMinute), null);
-                //        user.Notified = true;
-                //    }
-                //}
-                //else
-                //{
-                //    user.Notified = false;
-                //}
+                if (user.NotificationLimiter.IsLimited())
+                {
+                    if (!user.NotifiedOfLimited)
+                    {
+                        await _client.SendDirectMessage(discordUser, string.Format(NotificationsLimitedMessage, NotificationLimiter.MaxNotificationsPerMinute), null);
+                        user.NotifiedOfLimited = true;
+                    }
+                }
+                else
+                {
+                    user.NotifiedOfLimited = false;
+                }
 
                 _logger.Info($"Notifying user {discordUser.Username} that a {pokemon.Name} {pkmn.CP}CP {pkmn.IV} IV L{pkmn.PlayerLevel} has spawned...");
 

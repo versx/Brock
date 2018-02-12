@@ -909,7 +909,7 @@
                     case CommandPermissionLevel.Admin:
                         if (!isOwner)
                         {
-                            message.Author.LogUnauthorizedAccess(UnauthorizedAttemptsFileName);
+                            message.Author.LogUnauthorizedAccess(command.FullCommand, UnauthorizedAttemptsFileName);
                             await message.RespondAsync($"{message.Author.Mention} is not authorized to execute these type of commands, your unique user id has been logged.");
                             return;
                         }

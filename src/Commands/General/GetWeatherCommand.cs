@@ -17,11 +17,27 @@
     )]
     public class GetWeatherCommand : ICustomCommand
     {
+        #region Constants
+
+        private const string WeatherIconUrl = "http://apidev.accuweather.com/developers/Media/Default/WeatherIcons/{0}-s.png";
+
+        #endregion
+
+        #region Variables
+
         private readonly DiscordClient _client;
         private readonly Config _config;
         private readonly IWeatherService _weatherSvc;
 
-        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Admin;
+        #endregion
+
+        #region Properties
+
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
+
+        #endregion
+
+        #region Constructor
 
         public GetWeatherCommand(DiscordClient client, Config config, IWeatherService weatherSvc)
         {
@@ -29,6 +45,10 @@
             _config = config;
             _weatherSvc = weatherSvc;
         }
+
+        #endregion
+
+        #region Public Methods
 
         public async Task Execute(DiscordMessage message, Command command)
         {
@@ -39,6 +59,12 @@
             }
 
             var city = command.Args[0];
+            if (!_config.CityRoles.Contains(city))
+            {
+                await message.RespondAsync($"{message.Author.Mention} you may only check weather conditions of one of the following cities: **{string.Join("**, **", _config.CityRoles)}**.");
+                return;
+            }
+
             var weather = _weatherSvc.GetWeatherCondition(city);
             if (weather == null)
             {
@@ -46,7 +72,19 @@
                 return;
             }
 
-            await message.RespondAsync($"{message.Author.Mention} {city} {weather.WeatherText}");
+            var eb = new DiscordEmbedBuilder();
+            eb.AddField("City", city);
+            eb.AddField("Weather", weather.WeatherText);
+            eb.AddField("Temperature", $"{weather.Temperature.Imperial.Value}°{weather.Temperature.Imperial.Unit}");
+            eb.WithImageUrl(string.Format(WeatherIconUrl, weather.WeatherIcon));
+            eb.WithUrl(weather.Link);
+
+            var embed = eb.Build();
+            if (embed == null) return;
+
+            await message.RespondAsync(string.Empty, false, embed);
         }
+
+        #endregion
     }
 }

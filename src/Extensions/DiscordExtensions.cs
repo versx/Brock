@@ -624,11 +624,11 @@
 
         #endregion
 
-        public static void LogUnauthorizedAccess(this DiscordUser user, string filePath)
+        public static void LogUnauthorizedAccess(this DiscordUser user, string command, string filePath)
         {
             try
             {
-                File.AppendAllText(filePath, $"{DateTime.Now} >> {user.Username}:{user.Id}\r\n");
+                File.AppendAllText(filePath, $"{DateTime.Now} >> {user.Username}:{user.Id} - {command}\r\n");
             }
             catch (Exception ex)
             {

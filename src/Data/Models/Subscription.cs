@@ -28,7 +28,7 @@
         public ulong NotificationsToday { get; set; }
 
         [JsonIgnore]
-        public bool Notified { get; set; }
+        public bool NotifiedOfLimited { get; set; }
 
         [JsonIgnore]
         public NotificationLimiter NotificationLimiter { get; set; }
@@ -52,7 +52,7 @@
         public void ResetNotifications()
         {
             NotificationsToday = 0;
-            Notified = false;
+            NotifiedOfLimited = false;
         }
     }
 }

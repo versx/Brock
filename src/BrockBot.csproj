@@ -242,4 +242,7 @@
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>move /Y "$(TargetDir)*.dll" "$(TargetDir)Libs\"</PostBuildEvent>
+  </PropertyGroup>
 </Project>
