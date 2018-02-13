@@ -625,6 +625,8 @@
             }
 
             _logger.Info("Connecting to discord server...");
+
+            await Utils.Wait(500);
             await _client.ConnectAsync();
         }
 
