@@ -8,11 +8,11 @@
         {
             try
             {
-                return Enum.TryParse(weather, out result);
+                return Enum.TryParse(weather, true, out result);
             }
             catch
             {
-                result = WeatherType.PartlyCloudy;
+                result = WeatherType.Clear;
                 return false;
             }
         }

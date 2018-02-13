@@ -11,7 +11,7 @@
 
     [Command(
         Categories.CustomCommands,
-        "Adds the specified custom command to the database.",
+        "Deletes the specified custom command from the database.",
         "\tExample: .delcmd google\r\n" +
         "\tExample: .delcmd cats",
         "delcmd"

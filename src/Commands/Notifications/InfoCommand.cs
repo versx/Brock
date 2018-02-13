@@ -13,11 +13,9 @@
     using BrockBot.Diagnostics;
     using BrockBot.Extensions;
 
-    //TODO: If list is longer than x, look for most occurred IV%--use that as 'Default' then list others.
-
     [Command(
         Categories.Notifications, 
-        "Shows your current Pokemon and Raid notification subscriptions.",
+        "Shows your current Pokemon and Raid boss notification subscriptions.",
         "\tExample: `.info`", 
         "info"
     )]

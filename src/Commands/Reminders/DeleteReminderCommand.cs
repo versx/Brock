@@ -12,8 +12,8 @@
 
     [Command(
         Categories.Reminders,
-        "Stop " + FilterBot.BotName + " from reminding you to do something.",
-        "\tExample: `.remindmenot `",
+        "Stop " + FilterBot.BotName + " from reminding you to do something based on the reminders index.",
+        "\tExample: `.remindmenot 4`",
         "remindmenot"
     )]
     public class DeleteReminderCommand : ICustomCommand
