@@ -1,3 +1,7 @@
+*************
+Commands
+*************
+
 - .pokeme
 - .pokemenot
 - .raidme
