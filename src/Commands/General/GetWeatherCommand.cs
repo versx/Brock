@@ -19,7 +19,7 @@
     {
         #region Constants
 
-        private const string WeatherIconUrl = "http://apidev.accuweather.com/developers/Media/Default/WeatherIcons/{0}-s.png";
+        private const string WeatherIconUrl = "http://ver.sx/x/Brock/Weather/Icons/{0}-s.png";
 
         #endregion
 
@@ -76,7 +76,7 @@
             eb.AddField("City", city);
             eb.AddField("Weather", weather.WeatherText);
             eb.AddField("Temperature", $"{weather.Temperature.Imperial.Value}°{weather.Temperature.Imperial.Unit}");
-            eb.WithImageUrl(string.Format(WeatherIconUrl, weather.WeatherIcon));
+            eb.WithImageUrl(string.Format(WeatherIconUrl, weather.WeatherIcon.ToString("D2")));
             eb.WithUrl(weather.Link);
 
             var embed = eb.Build();

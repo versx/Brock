@@ -78,7 +78,7 @@
                 if (pokemon == null) continue;
 
                 if (_client == null) continue;
-                if (!await _client.IsSupporterOrHigher(user.UserId, _config)) continue;
+                //if (!await _client.IsSupporterOrHigher(user.UserId, _config)) continue;
 
                 var matchesIV = MatchesIvFilter(pkmn.IV, subscribedPokemon.MinimumIV);
                 //var matchesCP = MatchesCpFilter(pkmn.CP, subscribedPokemon.MinimumCP);
@@ -99,11 +99,11 @@
                         await _client.SendDirectMessage(discordUser, string.Format(NotificationsLimitedMessage, NotificationLimiter.MaxNotificationsPerMinute), null);
                         user.NotifiedOfLimited = true;
                     }
+
+                    return;
                 }
-                else
-                {
-                    user.NotifiedOfLimited = false;
-                }
+
+                user.NotifiedOfLimited = false;
 
                 _logger.Info($"Notifying user {discordUser.Username} that a {pokemon.Name} {pkmn.CP}CP {pkmn.IV} IV L{pkmn.PlayerLevel} has spawned...");
 
@@ -146,22 +146,22 @@
                 if (pokemon == null) continue;
 
                 if (_client == null) continue;
-                if (!await _client.IsSupporterOrHigher(user.UserId, _config)) continue;
+                //if (!await _client.IsSupporterOrHigher(user.UserId, _config)) continue;
 
                 if (subscribedRaid.PokemonId != raid.PokemonId) continue;
 
-                //if (user.NotificationLimiter.IsLimited())
-                //{
-                //    if (!user.Notified)
-                //    {
-                //        await _client.SendDirectMessage(discordUser, string.Format(NotificationsLimitedMessage, NotificationLimiter.MaxNotificationsPerMinute), null);
-                //        user.Notified = true;
-                //    }
-                //}
-                //else
-                //{
-                //    user.Notified = false;
-                //}
+                if (user.NotificationLimiter.IsLimited())
+                {
+                    if (!user.NotifiedOfLimited)
+                    {
+                        await _client.SendDirectMessage(discordUser, string.Format(NotificationsLimitedMessage, NotificationLimiter.MaxNotificationsPerMinute), null);
+                        user.NotifiedOfLimited = true;
+                    }
+
+                    return;
+                }
+
+                user.NotifiedOfLimited = false;
 
                 _logger.Info($"Notifying user {discordUser.Username} that a {pokemon.Name} raid is available...");
 
