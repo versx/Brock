@@ -15,7 +15,7 @@
     [Command(
         Categories.General,
         "Provides a list of Pokemon whose CP/IV information is being scanned for.",
-        "\tExample: `.scanlist`",
+        "\tExample: `.scanlist Upland`",
         "scanlist"
     )]
     public class ScanListCommand : ICustomCommand

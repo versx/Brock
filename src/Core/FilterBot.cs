@@ -55,7 +55,7 @@
         private readonly NotificationProcessor _notificationProcessor;
         private AdvertisementService _advertSvc;
         private TweetService _tweetSvc;
-        private readonly FeedMonitorService _feedSvc;
+        private FeedMonitorService _feedSvc;
         private readonly RaidLobbyManager _lobbyManager;
         private readonly IWeatherService _weatherSvc;
 
@@ -108,7 +108,6 @@
 
             _reminderSvc = new ReminderService(_client, _db, _logger);
             _notificationProcessor = new NotificationProcessor(_client, _db, _config, _logger);
-            _feedSvc = new FeedMonitorService(_client, _config, _logger);
             _lobbyManager = new RaidLobbyManager(_client, _config, _logger);
             _weatherSvc = new WeatherService(_config.AccuWeatherApiKey, _logger);
         }
@@ -155,6 +154,12 @@
             {
                 _advertSvc = new AdvertisementService(_client, _config, _logger);
                 await _advertSvc.Start();
+            }
+
+            if (_feedSvc == null)
+            {
+                _feedSvc = new FeedMonitorService(_client, _config, _logger);
+                _feedSvc.Start();
             }
 
             if (_tweetSvc == null)

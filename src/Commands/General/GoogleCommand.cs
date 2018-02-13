@@ -7,7 +7,7 @@
 
     [Command(
         Categories.General,
-        "",
+        "Provides a link to a search query via Let Me Google That For You (lmgtfy).",
         "\tExample: `.google \"let me google that for you\"",
         "google"
     )]
