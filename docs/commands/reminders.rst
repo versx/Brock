@@ -14,8 +14,8 @@ Reminder commands go here.
 
 :Description: Have Brock remind you to do something.  
 :Examples:  
-  ``.remindme to update you in 2 minutes 30s`` (Direct message)  
-  ``.remindme here "to update you in 2 minutes 30s"`` (In the current channel.)  
+|   ``.remindme to update you in 2 minutes 30s`` (Direct message)  
+|   ``.remindme here "to update you in 2 minutes 30s"`` (In the current channel.)  
 
   
 **remindmenot**  

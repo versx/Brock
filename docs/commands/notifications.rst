@@ -9,13 +9,14 @@ Commands to setup notifications if a certain Pokemon spawns or a raid boss takes
 
 :Description: Subscribe to Pokemon notifications based on the pokedex number or name, minimum IV stats, or minimum level.  
 :Examples:  
-|   `.pokeme 147 95`  
-|   `.pokeme pikachu 97`  
-|   `.pokeme 113,242,248 90`  
-|   `.pokeme pikachu,26,129,Dratini 97`  
-|   `.pokeme 113 90 L35` (Supporters Only: Subscribe to Chansey notifications with minimum IV of 90% and minimum level of 32.)  
-|   `.pokeme all 90` (Subscribe to all Pokemon notifications with minimum IV of 90%. Excludes Unown)  
-|   `.pokeme all 90 L30` (Supporters Only: Subscribe to all Pokemon notifications with minimum IV of 90% and minimum level of 30.)  
+|   ``.pokeme 147 95``  
+|   ``.pokeme pikachu 97``  
+|   ``.pokeme 113,242,248 90``  
+|   ``.pokeme pikachu,26,129,Dratini 97``  
+|   ``.pokeme 113 90 L35`` (Supporters Only: Subscribe to Chansey notifications with minimum IV of 90% and minimum level of 32.)  
+|   ``.pokeme all 90`` (Subscribe to all Pokemon notifications with minimum IV of 90%. Excludes Unown)  
+|   ``.pokeme all 90 L30`` (Supporters Only: Subscribe to all Pokemon notifications with minimum IV of 90% and minimum level of 30.)  
+
 
 
 **.pokemenot**  
@@ -29,6 +30,7 @@ Commands to setup notifications if a certain Pokemon spawns or a raid boss takes
 |   ``.pokemenot all`` (Removes all subscribed Pokemon notifications.)  
 
 
+
 **.raidme**  
 
 :Description: Subscribe to raid boss Pokemon notifications.  
@@ -36,6 +38,7 @@ Commands to setup notifications if a certain Pokemon spawns or a raid boss takes
 |   ``.raidme Absol`` (Subscribe to Absol raid notifications.) 
 |   ``.raidme Tyranitar,Magikarp`` (Subscribe to Tyranitar and Magikarp raid notifications.) 
 |   ``.raidme all`` (Subscribe to all raid boss notifications.) 
+
 
 
 **.raidmenot**  
@@ -47,10 +50,12 @@ Commands to setup notifications if a certain Pokemon spawns or a raid boss takes
 |   ``.raidmenot all`` (Removes all subscribed Raid notifications.)  
 
 
+
 **.enable**  
 
 :Description: Enables all of your Pokemon and Raid notification subscriptions at once.  
 :Example: ``.enable``  
+
 
 
 **.disable**  
@@ -59,10 +64,12 @@ Commands to setup notifications if a certain Pokemon spawns or a raid boss takes
 :Example: ``.disable``  
 
 
+
 **.info**  
 
 :Description: Shows your current Pokemon and Raid boss notification subscriptions.  
 :Example: ``.info``  
+
 
 
 **.demo**  
