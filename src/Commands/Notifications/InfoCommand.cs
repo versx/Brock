@@ -90,6 +90,7 @@
             var hasPokemon = isSubbed && _db[author].Pokemon.Count > 0;
             var hasRaids = isSubbed && _db[author].Raids.Count > 0;
             var msg = string.Empty;
+            var isSupporter = await _client.IsSupporterOrHigher(author, _config);
 
             if (hasPokemon)
             {
@@ -125,7 +126,8 @@
                 msg = $"**{user.Mention} Notification Settings:**\r\n";
                 msg += $"Enabled: **{(_db[author].Enabled ? "Yes" : "No")}**\r\n";
                 msg += $"Feed Zones: **{string.Join("**, **", feeds)}**\r\n";
-                msg += $"Pokemon Subscriptions:\r\n```";
+                msg += $"Pokemon Subscriptions: ({pokemon.Count}/{(isSupporter ? "Unlimited" : PokeMeCommand.MaxPokemonSubscriptions.ToString())} used)\r\n";
+                msg += "```";
 
                 if (exceedsLimits)
                 {
@@ -147,7 +149,8 @@
 
             if (hasRaids)
             {
-                msg += $"Raid Subscriptions:\r\n```";
+                msg += $"Raid Subscriptions: ({_db[author].Raids.Count.ToString("N0")}/{RaidMeCommand.MaxRaidSubscriptions} used)\r\n";
+                msg += "```";
                 msg += string.Join(", ", GetRaidSubscriptionNames(author));
                 msg += "```";
             }

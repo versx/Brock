@@ -119,6 +119,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Commands\Administrative\AssignRoleCommand.cs" />
     <Compile Include="Commands\Administrative\ReloadConfigCommand.cs" />
     <Compile Include="Commands\Administrative\SwitchAccountsCommand.cs" />
     <Compile Include="Commands\CustomCommands\AddCmdCommand.cs" />
@@ -184,6 +185,10 @@
     <Compile Include="Core\CommandList.cs" />
     <Compile Include="Core\CommandPermissionAttribute.cs" />
     <Compile Include="Core\CommandPermissionLevel.cs" />
+    <Compile Include="Extensions\DiscordChannelExtensions.cs" />
+    <Compile Include="Extensions\DiscordMessageExtensions.cs" />
+    <Compile Include="Extensions\DiscordRoleExtensions.cs" />
+    <Compile Include="Extensions\DiscordUserExtensions.cs" />
     <Compile Include="Extensions\Extensions.cs" />
     <Compile Include="Extensions\HelpExtensions.cs" />
     <Compile Include="Services\AdvertisementService.cs" />

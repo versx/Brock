@@ -7,6 +7,7 @@
     using DSharpPlus;
     using DSharpPlus.Entities;
 
+    using BrockBot.Configuration;
     using BrockBot.Data;
 
     [Command(
@@ -14,12 +15,14 @@
         "Unsubscribe from a one or more or even all subscribed Raid notifications.",
         "\tExample: `.raidmenot Absol`\r\n" +
         "\tExample: `.raidmenot Tyranitar,Snorlax`\r\n" +
-        "\tExample: `.raidmenot all` (Removes all subscribed Raid notifications.)",
+        "\tExample: `.raidmenot all` (Removes all subscribed Raid notifications.)\r\n" +
+        "\tExample: `.raidmenot all yes | y` (Skips the confirmation part of unsubscribing from all raid bosses.)",
         "raidmenot"
     )]
     public class RaidMeNotCommand : ICustomCommand
     {
         private readonly DiscordClient _client;
+        private readonly Config _config;
         private readonly IDatabase _db;
 
         #region Properties
@@ -30,9 +33,10 @@
 
         #region Constructor
 
-        public RaidMeNotCommand(DiscordClient client, IDatabase db)
+        public RaidMeNotCommand(DiscordClient client, Config config, IDatabase db)
         {
             _client = client;
+            _config = config;
             _db = db;
         }
 
@@ -41,7 +45,6 @@
         public async Task Execute(DiscordMessage message, Command command)
         {
             if (!command.HasArgs) return;
-            if (command.Args.Count != 1) return;
 
             //await message.IsDirectMessageSupported();
 
@@ -58,9 +61,23 @@
 
             var cmd = command.Args[0];
 
-            if (cmd == "*" || string.Compare(cmd.ToLower(), "all", true) == 0)
+            if (string.Compare(cmd, "all", true) == 0)
             {
-                _db.RemoveAllRaids(author);
+                if (command.Args.Count != 2)
+                {
+                    await message.RespondAsync($"{message.Author.Mention} are you sure you want to remove **all** {_db[author].Pokemon.Count.ToString("N0")} of your Pokemon subscriptions? If so, please reply back with `{_config.CommandsPrefix}{command.Name} all yes` to confirm.");
+                    return;
+                }
+
+                var confirm = command.Args[1];
+                if (confirm != "yes" || confirm != "y") return;
+
+                if (!_db.RemoveAllRaids(author))
+                {
+                    await message.RespondAsync($"Failed to remove all raid boss subscriptions for {message.Author.Mention}.");
+                    return;
+                }
+
                 await message.RespondAsync($"{message.Author.Mention} has unsubscribed from **all** raid notifications!");
                 return;
             }

@@ -11,11 +11,13 @@
     using BrockBot.Data;
     using BrockBot.Diagnostics;
     using BrockBot.Extensions;
+    using BrockBot.Utilities;
 
     [Command(Categories.Administrative,
         "Assigns the default city roles to all guild members.",
-        "\tExample: `.assign_all` (Assigns all guild members the default city roles.)\r\n" +
-        "\tExample: `.assign_all NewRoleName (Assigns all guild members the specified role.)`",
+        "\tExample: `.assign-all` (Assigns all guild members the default city roles.)\r\n" +
+        "\tExample: `.assign-all NewRoleName (Assigns all guild members the specified role.)`\r\n" +
+        "\tExample: `.assign @user @role`",
         "assign-all"
     )]
     public class AssignRolesCommand : ICustomCommand
@@ -47,22 +49,22 @@
         {
             await message.IsDirectMessageSupported();
 
-            if (!command.HasArgs)
+            switch (command.Args.Count)
             {
-                if (_config.CityRoles.Count == 0)
-                {
-                    await message.RespondAsync("There are currently no city feed roles to assign.");
-                    return;
-                }
+                case 0:
+                    //Assign all users all default city feed roles.
+                    if (_config.CityRoles.Count == 0)
+                    {
+                        await message.RespondAsync("There are currently no city feed roles to assign.");
+                        return;
+                    }
 
-                AssignGuildMembersToRole(message, _config.CityRoles, true);
-                return;
-            }
-
-            if (command.Args.Count == 1)
-            {
-                var role = command.Args[0];
-                AssignGuildMembersToRole(message, new List<string> { role }, false);
+                    AssignGuildMembersToRole(message, _config.CityRoles, true);
+                    break;
+                case 1:
+                    //Assign all users the provided city feed role by name.
+                    AssignGuildMembersToRole(message, new List<string> { command.Args[0] }, false);
+                    break;
             }
         }
 

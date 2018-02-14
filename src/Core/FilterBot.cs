@@ -23,9 +23,6 @@
     //TODO: Add rate limiter to prevent spam.
     //TODO: Notify via SMS or Email or Twilio or w/e.
     //TODO: Keep track of supporters, have a command to check if a paypal email etc or username rather has donated.
-
-    //TODO: Debug DM responses for raid lobbies.
-    //TODO: Add confirmation for removing all Pokemon subscriptions.
     //TODO: Fix new geofence lookup, Upland picked up as Montclair.
 
     public class FilterBot

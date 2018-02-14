@@ -19,7 +19,7 @@ Manage what city feeds you see in Discord by assigning or unassigning yourself f
 :Description: Assign yourself to a city feed's role.  
 :Examples:  
 |   ``.feedme Upland,ontario,eastla`` (Joins a city) 
-|  ``.feedme all`` (Joins all cities) 
+|   ``.feedme all`` (Joins all cities) 
 
 
 
@@ -28,4 +28,4 @@ Manage what city feeds you see in Discord by assigning or unassigning yourself f
 :Description: Unassign yourself from a city feed's role.  
 :Examples:  
 |   ``.feedmenot Ontario`` (Leaves specified city)  
-|  ``.feedmenot all`` (Leaves all cities)  
+|   ``.feedmenot all`` (Leaves all cities)  

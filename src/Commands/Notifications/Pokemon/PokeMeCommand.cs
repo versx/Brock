@@ -104,7 +104,7 @@
                 return;
             }
 
-            if (string.Compare(cmd.ToLower(), "all", true) == 0)
+            if (string.Compare(cmd, "all", true) == 0)
             {
                 var isSupporter = await _client.IsSupporterOrHigher(author, _config);
                 if (!isSupporter)

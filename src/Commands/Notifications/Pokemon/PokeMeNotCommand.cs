@@ -7,6 +7,7 @@
     using DSharpPlus;
     using DSharpPlus.Entities;
 
+    using BrockBot.Configuration;
     using BrockBot.Data;
 
     //TODO: Add confirmation when deleting user subscriptions.
@@ -18,12 +19,14 @@
         "\tExample: `.pokemenot pikachu`\r\n" +
         "\tExample: `.pokemenot 3,6,9,147,148,149`\r\n" +
         "\tExample: `.pokemenot bulbasuar,7,tyran`\r\n" +
-        "\tExample: `.pokemenot all` (Removes all subscribed Pokemon notifications.)",
+        "\tExample: `.pokemenot all` (Removes all subscribed Pokemon notifications.)\r\n" +
+        "\tExample: `.pokemenot all yes | y` (Skips the confirmation part of unsubscribing from all Pokemon.)",
         "pokemenot"
     )]
     public class PokeMeNotCommand : ICustomCommand
     {
         private readonly DiscordClient _client;
+        private readonly Config _config;
         private readonly IDatabase _db;
 
         #region Properties
@@ -34,9 +37,10 @@
 
         #region Constructor
 
-        public PokeMeNotCommand(DiscordClient client, IDatabase db)
+        public PokeMeNotCommand(DiscordClient client, Config config, IDatabase db)
         {
             _client = client;
+            _config = config;
             _db = db;
         }
 
@@ -61,11 +65,20 @@
 
             var cmd = command.Args[0];
 
-            if (string.Compare(cmd.ToLower(), "all", true) == 0)
+            if (string.Compare(cmd, "all", true) == 0)
             {
+                if (command.Args.Count != 2)
+                {
+                    await message.RespondAsync($"{message.Author.Mention} are you sure you want to remove **all** {_db[author].Pokemon.Count.ToString("N0")} of your Pokemon subscriptions? If so, please reply back with `{_config.CommandsPrefix}{command.Name} all yes` to confirm.");
+                    return;
+                }
+
+                var confirm = command.Args[1];
+                if (confirm != "yes" || confirm != "y") return;
+
                 if (!_db.RemoveAllPokemon(author))
                 {
-                    await message.RespondAsync($"Failed to remove all Pokemon notifications for {message.Author.Mention}.");
+                    await message.RespondAsync($"Failed to remove all Pokemon subscriptions for {message.Author.Mention}.");
                     return;
                 }
 

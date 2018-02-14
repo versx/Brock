@@ -20,8 +20,6 @@
         #region Constants
 
         public const int NotificationTimeout = 10;
-        public const int MaxNotificationsPerDayNormal = 100;
-        public const int MaxNotificationsPerDaySupporter = 1000;
         public const string StatsFolder = "Stats";
         public const string NotificationsLimitedMessage = "Your Pokemon notifications have exceeded {0} per minute so you've been limited for the next 60 seconds, please consider adjusting your settings to prevent this.";
 

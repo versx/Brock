@@ -94,6 +94,7 @@
                 //Administrative Commands
                 bot.RegisterCommand<CreateRolesCommand>();
                 bot.RegisterCommand<DeleteRolesCommand>();
+                bot.RegisterCommand<AssignRoleCommand>();
                 bot.RegisterCommand<AssignRolesCommand>();
                 bot.RegisterCommand<UptimeCommand>();
                 bot.RegisterCommand<SetCommand>();
