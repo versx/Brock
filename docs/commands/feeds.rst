@@ -4,17 +4,25 @@ Feed Commands
 
 Manage what city feeds you see in Discord by assigning or unassigning yourself from the cities feed role. 
 
-**.feeds**, **.cities** 
-Displays a list of available assignable city feed roles. 
-	Example: `.feeds` 
-	Example: `.cities` 
+**.feeds**, **.cities**  
+
+:Description: Displays a list of available assignable city feed roles. 
+:Examples: 
+  ``.feeds``  
+  ``.cities`` 
+  
 	
-**.feedme** 
-Assign yourself to a city feed's role. 
-	Example: `.feedme Upland,ontario,newport` (Joins a city) 
-	Example: `.feedme all` (Joins all cities) 
-	
-**.feedmenot** 
-Unassign yourself from a city feed's role. 
-	Example: `.feedmenot Ontario` (Leaves specified city) 
-	Example: `.feedmenot all` (Leaves all cities) 
+**.feedme**  
+
+:Description: Assign yourself to a city feed's role.  
+:Examples:  
+  ``.feedme Upland,ontario,eastla`` (Joins a city) 
+  ``.feedme all`` (Joins all cities) 
+
+
+**.feedmenot**  
+
+:Description: Unassign yourself from a city feed's role.  
+:Examples:  
+  ``.feedmenot Ontario`` (Leaves specified city)  
+  ``.feedmenot all`` (Leaves all cities)  

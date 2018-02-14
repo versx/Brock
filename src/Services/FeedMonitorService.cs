@@ -36,7 +36,7 @@
             _config = config;
             _logger = logger;
 
-            _timer = new Timer { Interval = 5000 };//15 * (1000 * 60) };
+            _timer = new Timer { Interval = 15 * (1000 * 60) };
             _timer.Elapsed += CheckFeedEventHandler;
         }
 
@@ -93,7 +93,7 @@
                 return;
             }
 
-            if (IsFeedUp(mostRecent.CreationTimestamp.DateTime, FeedDownThreshold))
+            if (IsFeedUp(mostRecent.Timestamp.DateTime, FeedDownThreshold))
                 return;
 
             var owner = await _client.GetUser(_config.OwnerId);

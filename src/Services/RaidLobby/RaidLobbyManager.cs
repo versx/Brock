@@ -41,6 +41,8 @@
             "🔄"
         };
 
+        public bool SupportersOnly { get; set; }
+
         #endregion
 
         #region Constructor
@@ -87,6 +89,12 @@
             }
 
             var lobbyMessage = await raidLobbyChannel.GetMessage(lobby.LobbyMessageId);
+            if (!_config.RaidLobbies.ActiveLobbies.Remove(originalMessageId))
+            {
+                _logger.Error($"Failed to remove raid lobby with original message id {originalMessageId} from the list of active raid lobbies.");
+                //return;
+            }
+
             if (lobbyMessage == null)
             {
                 _logger.Error($"Failed to find raid lobby message with id {lobby.LobbyMessageId}, must have already been deleted.");
@@ -112,11 +120,14 @@
 
         private async Task ProcessRaidLobbyReactionDM(DiscordUser user, DiscordChannel channel, DiscordMessage message, DiscordEmoji emoji)
         {
-            var hasPrivilege = await _client.IsSupporterOrHigher(user.Id, _config);
-            if (!hasPrivilege)
+            if (SupportersOnly)
             {
-                await message.RespondAsync($"{user.Username} does not have the supporter role assigned.");
-                return;
+                var hasPrivilege = await _client.IsSupporterOrHigher(user.Id, _config);
+                if (!hasPrivilege)
+                {
+                    await message.RespondAsync($"{user.Mention} does not have the supporter role assigned.");
+                    return;
+                }
             }
 
             var origMessageId = Convert.ToUInt64(Utils.GetBetween(message.Content, "#", "#"));
@@ -175,11 +186,14 @@
 
             if (!result) return;
 
-            var hasPrivilege = await _client.IsSupporterOrHigher(user.Id, _config);
-            if (!hasPrivilege)
+            if (SupportersOnly)
             {
-                await message.RespondAsync($"{user.Username} does not have the supporter role assigned.");
-                return;
+                var hasPrivilege = await _client.IsSupporterOrHigher(user.Id, _config);
+                if (!hasPrivilege)
+                {
+                    await message.RespondAsync($"{user.Mention} does not have the supporter role assigned.");
+                    return;
+                }
             }
 
             var originalMessageId = message.Id;
@@ -525,25 +539,25 @@
                     continue;
                 }
 
-                //TODO: Fix Eta countdown.
                 var timeLeft = TimeLeft(item.Value.EtaStart);
                 if (timeLeft == 0)
                 {
                     if (item.Value.Eta != RaidLobbyEta.NotSet && item.Value.Eta != RaidLobbyEta.Here)
                     {
+                        //User is late, send DM.
                         item.Value.Eta = RaidLobbyEta.Late;
-                    }
-                    ////User is late, send DM.
-                    //var dm = await _client.SendDirectMessage(user, $"{user.Mention} you're late for the raid, do you want to extend your time? If not please click the red cross button below to remove yourself from the raid lobby.\r\n#{item.Key}#", null);
-                    //if (dm == null)
-                    //{
-                    //    Logger.Error($"Failed to send {user.Username} a direct message letting them know they are late for the raid.");
-                    //    continue;
-                    //}
 
-                    //await dm.CreateReactionAsync(DiscordEmoji.FromName(_client, ":five:"));
-                    //await dm.CreateReactionAsync(DiscordEmoji.FromName(_client, ":keycap_ten:"));
-                    //await dm.CreateReactionAsync(DiscordEmoji.FromName(_client, ":x:"));
+                        var dm = await _client.SendDirectMessage(user, $"{user.Mention} you're late for the raid, do you want to extend your time? If not please click the red cross button below to remove yourself from the raid lobby.\r\n#{item.Key}#", null);
+                        if (dm == null)
+                        {
+                            _logger.Error($"Failed to send {user.Username} a direct message letting them know they are late for the raid.");
+                            continue;
+                        }
+
+                        await dm.CreateReactionAsync(DiscordEmoji.FromName(_client, ":five:"));
+                        await dm.CreateReactionAsync(DiscordEmoji.FromName(_client, ":keycap_ten:"));
+                        await dm.CreateReactionAsync(DiscordEmoji.FromName(_client, ":x:"));
+                    }
                 }
 
                 var eta = (item.Value.Eta != RaidLobbyEta.Here && item.Value.Eta != RaidLobbyEta.NotSet && item.Value.Eta != RaidLobbyEta.Late ? $"{timeLeft} minute{(timeLeft > 1 ? "s" : null)}" : item.Value.Eta.ToString());

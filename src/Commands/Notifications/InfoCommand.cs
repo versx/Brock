@@ -12,6 +12,7 @@
     using BrockBot.Data;
     using BrockBot.Diagnostics;
     using BrockBot.Extensions;
+    using BrockBot.Utilities;
 
     [Command(
         Categories.Notifications, 
@@ -21,6 +22,8 @@
     )]
     public class InfoCommand : ICustomCommand
     {
+        private const int MaxPokemonDisplayed = 70;
+
         private readonly DiscordClient _client;
         private readonly IDatabase _db;
         private readonly Config _config;
@@ -40,7 +43,49 @@
         {
             //await message.IsDirectMessageSupported();
 
-            var author = message.Author.Id;
+            if (command.HasArgs && command.Args.Count == 1)
+            {
+                if (!message.Author.Id.IsModeratorOrHigher(_config))
+                {
+                    await message.RespondAsync($"{message.Author.Mention} is not a moderator or higher thus you may not see other's subscription settings.");
+                    return;
+                }
+
+                var mention = command.Args[0];
+                var userId = DiscordHelpers.ConvertMentionToUserId(mention);
+                if (userId <= 0)
+                {
+                    await message.RespondAsync($"{message.Author.Mention} failed to retrieve user with mention tag {mention}.");
+                    return;
+                }
+
+                await SendUserSubscriptionSettings(message.Author, userId);
+                return;
+            }
+
+            await SendUserSubscriptionSettings(message.Author, message.Author.Id);
+        }
+
+        private async Task SendUserSubscriptionSettings(DiscordUser receiver, ulong userId)
+        {
+            var discordUser = await _client.GetUser(userId);
+            if (discordUser == null)
+            {
+                _logger.Error($"Failed to retreive user with id {userId}.");
+                return;
+            }
+
+            var userSettings = await BuildUserSubscriptionSettings(discordUser);
+
+            if (userSettings.Length > 2000)
+                await _client.SendDirectMessage(receiver, $"**{discordUser.Mention}**'s subscription list is longer than the allowed Discord message character count, here is a partial list:\r\n{userSettings.Substring(0, Math.Min(userSettings.Length, 1500))}```", null);
+            else
+                await _client.SendDirectMessage(receiver, userSettings, null);
+        }
+
+        private async Task<string> BuildUserSubscriptionSettings(DiscordUser user)
+        {
+            var author = user.Id;
             var isSubbed = _db.Exists(author);
             var hasPokemon = isSubbed && _db[author].Pokemon.Count > 0;
             var hasRaids = isSubbed && _db[author].Raids.Count > 0;
@@ -51,8 +96,7 @@
                 var member = await _client.GetMemberFromUserId(author);
                 if (member == null)
                 {
-                    await message.RespondAsync($"Failed to get discord member from id {author}.");
-                    return;
+                    return $"Failed to get discord member from id {author}.";
                 }
 
                 var feeds = new List<string>();
@@ -67,6 +111,7 @@
                 var pokemon = _db[author].Pokemon;
                 pokemon.Sort((x, y) => x.PokemonId.CompareTo(y.PokemonId));
 
+                var exceedsLimits = pokemon.Count > MaxPokemonDisplayed;
                 var defaultIV = 0;
                 var results = pokemon.GroupBy(p => p.MinimumIV, (key, g) => new { IV = key, Pokes = g.ToList() });
                 foreach (var result in results)
@@ -77,14 +122,19 @@
                     }
                 }
 
-                msg = $"**{message.Author.Mention} Notification Settings:**\r\n";
+                msg = $"**{user.Mention} Notification Settings:**\r\n";
                 msg += $"Enabled: **{(_db[author].Enabled ? "Yes" : "No")}**\r\n";
                 msg += $"Feed Zones: **{string.Join("**, **", feeds)}**\r\n";
                 msg += $"Pokemon Subscriptions:\r\n```";
-                msg += $"Default: **{defaultIV}%** (All unlisted)\r\n";
+
+                if (exceedsLimits)
+                {
+                    msg += $"Default: {defaultIV}% (All unlisted)\r\n";
+                }
+
                 foreach (var sub in results)
                 {
-                    if (sub.IV == defaultIV) continue;
+                    if (sub.IV == defaultIV && exceedsLimits) continue;
 
                     foreach (var poke in sub.Pokes)
                     {
@@ -99,18 +149,15 @@
             {
                 msg += $"Raid Subscriptions:\r\n```";
                 msg += string.Join(", ", GetRaidSubscriptionNames(author));
-				msg += "```";
+                msg += "```";
             }
 
             if (string.IsNullOrEmpty(msg))
             {
-                msg = $"**{message.Author.Mention}** is not subscribed to any Pokemon or Raid notifications.";
+                msg = $"**{user.Mention}** is not subscribed to any Pokemon or Raid notifications.";
             }
 
-            if (msg.Length > 2000)
-                await _client.SendDirectMessage(message.Author, $"**{message.Author.Mention}**'s subscription list is longer than the allowed Discord message character count, here is a partial list:\r\n{msg.Substring(0, Math.Min(msg.Length, 1500))}```", null);
-            else
-                await _client.SendDirectMessage(message.Author, msg, null);
+            return msg;
         }
 
         private List<string> GetPokemonSubscriptionNames(ulong userId)

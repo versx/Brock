@@ -110,11 +110,11 @@
                     return;
                 }
 
-                var faqChannel = _client.GetChannelByName("faq");
+                var faqChannel = await _client.GetChannel(392736371284115456); //TODO: Add #faq channel id to config.
                 if (faqChannel == null)
                 {
                     _logger.Error($"Failed to retrieve frequently asked questions channel.");
-                    return;
+                    //return;
                 }
 
                 if (_config.Advertisement.LastMessageId == 0)

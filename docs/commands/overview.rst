@@ -2,39 +2,45 @@
 Commands Overview
 *************
 
-General
-- .teams
-- .team, .iam
-- .search
-- .map, .maps
-- .donate
-- .scanlist
-- .nests
-- .google
-- .door
-- .checkapi
-- .weather
-- .weather
-- .help, .commands
-- .about, .v, .ver, .version
+**General**
 
-Feeds
-- .feeds, .cities
-- .feedme
-- .feedmenot
+- .teams  
+- .team, .iam  
+- .search  
+- .map, .maps  
+- .donate  
+- .scanlist  
+- .nests  
+- .google  
+- .door  
+- .checkapi  
+- .weather  
+- .help, .commands  
+- .about, .v, .ver, .version  
 
-Notifications
-- .pokeme
-- .pokemenot
-- .raidme
-- .raidmenot
-- .enable
-- .disable
-- .info
-- .demo
 
-Custom Commands
-- .listcmds
-- .addcmd
-- .editcmd
-- .delcmd
+**Feeds**  
+
+- .feeds, .cities  
+- .feedme  
+- .feedmenot  
+
+
+**Notifications**  
+
+- .pokeme  
+- .pokemenot  
+- .raidme  
+- .raidmenot  
+- .enable  
+- .disable  
+- .info  
+- .demo  
+
+
+**Custom Commands**  
+
+- .listcmds  
+- .addcmd  
+- .editcmd  
+- .delcmd  

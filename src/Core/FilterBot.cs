@@ -3,7 +3,6 @@
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using System.Threading.Tasks;
     using Timer = System.Timers.Timer;
 
@@ -50,6 +49,7 @@
         private readonly IEventLogger _logger;
         private readonly Random _rand;
         private Timer _timer;
+        private bool _isConnected;
 
         private readonly ReminderService _reminderSvc;
         private readonly NotificationProcessor _notificationProcessor;
@@ -118,6 +118,7 @@
 
         private void PokemonReceived(object sender, PokemonReceivedEventArgs e)
         {
+            if (!_isConnected) return;
 #pragma warning disable RECS0165
             new System.Threading.Thread(async x => await _notificationProcessor.ProcessPokemon(e.Pokemon)) { IsBackground = true }.Start();
 #pragma warning restore RECS0165
@@ -125,6 +126,7 @@
 
         private void RaidReceived(object sender, RaidReceivedEventArgs e)
         {
+            if (!_isConnected) return;
 #pragma warning disable RECS0165
             new System.Threading.Thread(async x => await _notificationProcessor.ProcessRaid(e.Raid)) { IsBackground = true }.Start();
 #pragma warning restore RECS0165
@@ -139,6 +141,8 @@
             _logger.Trace($"FilterBot::Client_Ready [{e.Client.CurrentUser.Username}]");
 
             await _client.UpdateStatusAsync(new DiscordGame($"v{AssemblyUtils.AssemblyVersion}"));
+
+            _isConnected = true;
 
             if (_config.SendStartupMessage)
             {
@@ -162,10 +166,17 @@
                 _feedSvc.Start();
             }
 
-            if (_tweetSvc == null)
+            try
             {
-                _tweetSvc = new TweetService(_client, _config, _logger);
-                _tweetSvc.Start();
+                if (_tweetSvc == null)
+                {
+                    _tweetSvc = new TweetService(_client, _config, _logger);
+                    _tweetSvc.Start();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex);
             }
         }
 
@@ -192,7 +203,7 @@
 
         private async Task Client_DmChannelCreated(DmChannelCreateEventArgs e)
         {
-            _logger.Trace($"FilterBot::Client_DmChannelCreated [{e.Channel.Name}]");
+            //_logger.Trace($"FilterBot::Client_DmChannelCreated [{e.Channel.Name}]");
 
             var msg = await e.Channel.GetMessageAsync(e.Channel.LastMessageId);
             if (msg == null)
@@ -896,6 +907,8 @@
 
         private async Task ParseCommand(DiscordMessage message)
         {
+            if (string.IsNullOrEmpty(message.Content)) return;
+
             _logger.Trace($"FilterBot::ParseCommand [Message={message.Content}]");
 
             var command = new Command(_config.CommandsPrefix, message.Content);
@@ -978,6 +991,7 @@
                 {
                     if (cmd.PermissionLevel == CommandPermissionLevel.Admin && !isOwner) continue;
                     if (cmd.PermissionLevel == CommandPermissionLevel.Moderator && !message.Author.Id.IsModerator(_config)) continue;
+                    //if (cmd.PermissionLevel == CommandPermissionLevel.Supporter && !await _client.IsSupporterOrHigher(message.Author.Id, _config)) continue;
 
                     //TODO: Sort by index or something.
                     var attr = cmd.GetType().GetAttribute<CommandAttribute>();
@@ -992,7 +1006,10 @@
             {
                 foreach (var category in categories)
                 {
+                    //var isSupporterOrHigher = await _client.IsSupporterOrHigher(message.Author.Id, _config);
                     if (category.Value.Exists(x => x.PermissionLevel == CommandPermissionLevel.Admin && !isOwner)) continue;
+                    if (category.Value.Exists(x => x.PermissionLevel == CommandPermissionLevel.Moderator && !message.Author.Id.IsModerator(_config))) continue;
+                    //if (category.Value.Exists(x => x.PermissionLevel == CommandPermissionLevel.Supporter && !isSupporterOrHigher)) continue;
                     eb.AddField(category.Key, $"{_config.CommandsPrefix}help {category.Key.ToLower().Replace(" ", "")}");
                 }
             }
@@ -1004,7 +1021,7 @@
             var embed = eb.Build();
             if (embed == null) return;
 
-            await message.RespondAsync(string.Empty, false, embed);
+            await message.RespondAsync(message.Author.Mention, false, embed);
         }
 
         #endregion
