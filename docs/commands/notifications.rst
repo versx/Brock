@@ -8,8 +8,7 @@ Commands to setup notifications if a certain Pokemon spawns or a raid boss takes
 **.pokeme**  
 
 :Description: Subscribe to Pokemon notifications based on the pokedex number or name, minimum IV stats, or minimum level.  
-:Examples:
-|  ``.pokeme 147 95``  
+:Examples: |  ``.pokeme 147 95``  
 |  ``.pokeme pikachu 97``  
 |  ``.pokeme 113,242,248 90``  
 |  ``.pokeme pikachu,26,129,Dratini 97``  
@@ -21,30 +20,27 @@ Commands to setup notifications if a certain Pokemon spawns or a raid boss takes
 **.pokemenot**  
 
 :Description: Unsubscribe from a one or more or even all subscribed Pokemon notifications by pokedex number or name.  
-:Examples:  
-  ``.pokemenot 149``  
-  ``.pokemenot pikachu``  
-  ``.pokemenot 3,6,9,147,148,149``  
-  ``.pokemenot bulbasuar,7,tyran``  
-  ``.pokemenot all`` (Removes all subscribed Pokemon notifications.)  
+:Examples: |  ``.pokemenot 149``  
+|  ``.pokemenot pikachu``  
+|  ``.pokemenot 3,6,9,147,148,149``  
+|  ``.pokemenot bulbasuar,7,tyran``  
+|  ``.pokemenot all`` (Removes all subscribed Pokemon notifications.)  
 	
 	
 **.raidme**  
 
 :Description: Subscribe to raid boss Pokemon notifications.  
-:Examples:
-  ``.raidme Absol`` (Subscribe to Absol raid notifications.) 
-  ``.raidme Tyranitar,Magikarp`` (Subscribe to Tyranitar and Magikarp raid notifications.) 
-  ``.raidme all`` (Subscribe to all raid boss notifications.) 
+:Examples: |  ``.raidme Absol`` (Subscribe to Absol raid notifications.) 
+|  ``.raidme Tyranitar,Magikarp`` (Subscribe to Tyranitar and Magikarp raid notifications.) 
+|  ``.raidme all`` (Subscribe to all raid boss notifications.) 
 
 
 **.raidmenot**  
 
 :Description: Unsubscribe from a one or more or even all subscribed Raid notifications.  
-:Examples:  
-  ``.raidmenot Absol``  
-  ``.raidmenot Tyranitar,Snorlax``  
-  ``.raidmenot all`` (Removes all subscribed Raid notifications.)  
+:Examples: |  ``.raidmenot Absol``  
+|  ``.raidmenot Tyranitar,Snorlax``  
+|  ``.raidmenot all`` (Removes all subscribed Raid notifications.)  
 	
 
 **.enable**  
