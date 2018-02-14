@@ -9,13 +9,13 @@ Commands to setup notifications if a certain Pokemon spawns or a raid boss takes
 
 :Description: Subscribe to Pokemon notifications based on the pokedex number or name, minimum IV stats, or minimum level.  
 :Examples:
-  ``.pokeme 147 95``  
-  ``.pokeme pikachu 97``  
-  ``.pokeme 113,242,248 90``  
-  ``.pokeme pikachu,26,129,Dratini 97``  
-  ``.pokeme 113 90 L35`` (Supporters Only: Subscribe to Chansey notifications with minimum IV of 90% and minimum level of 32.)  
-  ``.pokeme all 90`` (Subscribe to all Pokemon notifications with minimum IV of 90%. Excludes Unown)  
-  ``.pokeme all 90 L30`` (Supporters Only: Subscribe to all Pokemon notifications with minimum IV of 90% and minimum level of 30.)  
+|  ``.pokeme 147 95``  
+|  ``.pokeme pikachu 97``  
+|  ``.pokeme 113,242,248 90``  
+|  ``.pokeme pikachu,26,129,Dratini 97``  
+|  ``.pokeme 113 90 L35`` (Supporters Only: Subscribe to Chansey notifications with minimum IV of 90% and minimum level of 32.)  
+|  ``.pokeme all 90`` (Subscribe to all Pokemon notifications with minimum IV of 90%. Excludes Unown)  
+|  ``.pokeme all 90 L30`` (Supporters Only: Subscribe to all Pokemon notifications with minimum IV of 90% and minimum level of 30.)  
 
 
 **.pokemenot**  
