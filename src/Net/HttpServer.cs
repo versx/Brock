@@ -128,7 +128,7 @@
             {
                 if (string.IsNullOrEmpty(data)) return;
 
-                File.AppendAllText("debug.txt", data + Environment.NewLine);
+                //File.AppendAllText("debug.txt", data + Environment.NewLine);
 
                 //Log("Request: {0}", data);
                 dynamic obj = JsonConvert.DeserializeObject(data);

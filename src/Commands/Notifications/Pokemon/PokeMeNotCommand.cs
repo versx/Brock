@@ -74,7 +74,7 @@
                 }
 
                 var confirm = command.Args[1];
-                if (confirm != "yes" || confirm != "y") return;
+                if (!(confirm == "yes" || confirm == "y")) return;
 
                 if (!_db.RemoveAllPokemon(author))
                 {

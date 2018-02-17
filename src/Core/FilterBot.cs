@@ -25,6 +25,22 @@
     //TODO: Keep track of supporters, have a command to check if a paypal email etc or username rather has donated.
     //TODO: Fix new geofence lookup, Upland picked up as Montclair.
 
+    /**PokeAlarm Alternative Logic
+     *******************************
+     * Dictionary<string[city], List<AlarmObject>> to contain the feed alarm settings.
+     * AlarmObject should contain the filter settings such as alarm name, filter checks, geofence file or object, webhook, and anything else that's needed.
+     * Upon receiving scanner data check what geofence or city the coordinates are in.
+     * After checking where it is, check the associated filters for that AlarmObject.
+     * If a filter hits send the notification to the discord webhook.
+     */
+
+    public class AlarmObject
+    {
+        public string GeofenceFile { get; set; }
+
+        public string Webhook { get; set; }
+    }
+
     public class FilterBot
     {
         #region Constants
@@ -1003,10 +1019,19 @@
             {
                 foreach (var category in categories)
                 {
+                    if (category.Value.Exists(x => x.PermissionLevel == CommandPermissionLevel.Admin))
+                    {
+                        if (!isOwner) continue;
+                    }
+
+                    if (category.Value.Exists(x => x.PermissionLevel == CommandPermissionLevel.Moderator))
+                    {
+                        if (!message.Author.Id.IsModerator(_config)) continue;
+                    }
+
                     //var isSupporterOrHigher = await _client.IsSupporterOrHigher(message.Author.Id, _config);
-                    if (category.Value.Exists(x => x.PermissionLevel == CommandPermissionLevel.Admin && !isOwner)) continue;
-                    if (category.Value.Exists(x => x.PermissionLevel == CommandPermissionLevel.Moderator && !message.Author.Id.IsModerator(_config))) continue;
-                    //if (category.Value.Exists(x => x.PermissionLevel == CommandPermissionLevel.Supporter && !isSupporterOrHigher)) continue;
+                    //if (category.Value.Exists(x => x.PermissionLevel == CommandPermissionLevel.Supporter)) if (!isSupporterOrHigher) continue;
+
                     eb.AddField(category.Key, $"{_config.CommandsPrefix}help {category.Key.ToLower().Replace(" ", "")}");
                 }
             }

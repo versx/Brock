@@ -172,6 +172,7 @@
                 else if (args.Name.Contains("System.IO.MemoryMappedFiles")) return GetAssembly("System.IO.MemoryMappedFiles");
                 else if (args.Name.Contains("System.IO.Pipes")) return GetAssembly("System.IO.Pipes");
                 else if (args.Name.Contains("System.IO.UnmanangedMemoryStream")) return GetAssembly("System.IO.UnmanangedMemoryStream");
+                else if (args.Name.Contains("System.IO")) return GetAssembly("System.IO");
                 else if (args.Name.Contains("System.Linq.Expressions")) return GetAssembly("System.Linq.Expressions");
                 else if (args.Name.Contains("System.Linq.Parallel")) return GetAssembly("System.Linq.Parallel");
                 else if (args.Name.Contains("System.Linq.Queryable")) return GetAssembly("System.Linq.Queryable");

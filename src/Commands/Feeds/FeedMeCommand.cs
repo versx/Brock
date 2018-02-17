@@ -54,7 +54,7 @@
 
             if (!(command.Args.Count == 1))
             {
-                await message.RespondAsync($"{message.Author.Mention} please provide correct values such as `{_config.CommandsPrefix}{command.Name} <city_name>`, `{_config.CommandsPrefix}{command.Name} <city1>,<city2>,<city3>`");
+                await message.RespondAsync($"{message.Author.Mention} please provide correct values such as `{_config.CommandsPrefix}{command.Name} Upland`, `{_config.CommandsPrefix}{command.Name} EastLA,Whittier`");
                 return;
             }
 
@@ -112,6 +112,12 @@
 
                     await message.Channel.Guild.GrantRoleAsync(member, cityRole, reason);
                     assigned.Add(cityRole.Name);
+                }
+
+                if (assigned.Count == 0 && alreadyAssigned.Count == 0)
+                {
+                    await message.RespondAsync($"{message.Author.Mention} you did not provide valid values that I could recognize.");
+                    return;
                 }
 
                 await message.RespondAsync

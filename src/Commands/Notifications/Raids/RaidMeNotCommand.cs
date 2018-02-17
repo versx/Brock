@@ -65,12 +65,12 @@
             {
                 if (command.Args.Count != 2)
                 {
-                    await message.RespondAsync($"{message.Author.Mention} are you sure you want to remove **all** {_db[author].Pokemon.Count.ToString("N0")} of your Pokemon subscriptions? If so, please reply back with `{_config.CommandsPrefix}{command.Name} all yes` to confirm.");
+                    await message.RespondAsync($"{message.Author.Mention} are you sure you want to remove **all** {_db[author].Pokemon.Count.ToString("N0")} of your raid boss subscriptions? If so, please reply back with `{_config.CommandsPrefix}{command.Name} all yes` to confirm.");
                     return;
                 }
 
                 var confirm = command.Args[1];
-                if (confirm != "yes" || confirm != "y") return;
+                if (!(confirm == "yes" || confirm == "y")) return;
 
                 if (!_db.RemoveAllRaids(author))
                 {

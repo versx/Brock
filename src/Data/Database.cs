@@ -136,6 +136,7 @@
             {
                 var sub = this[userId];
                 sub.Raids.Clear();
+                return true;
             }
 
             return false;

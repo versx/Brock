@@ -1,37 +1,123 @@
 {
-  "ownerId": 000000000000000000,
-  "commandsChannel": "bot",
+  "ownerId": 0000000000001,
+  "adminCommandsChannelId": 00000000000002,
+  "commandsChannelId": 0000000000000003,
   "commandsPrefix": ".",
-  "sponsorRaidChannelPool": [
-    375047782821111111,
-    366049816180000000,
-  ],
-  "sponsorRaidKeywords": [
-    "Sprint",
-    "Starbucks",
-    "McDonalds"
-  ],
-  "sponsorRaidsWebHook": "https://discordapp.com/api/webhooks/37483000000000000/jiujlkjljlkjljk",
+  "apiVersion": {
+    "Major": 0,
+    "Minor": 91,
+    "Build": 0,
+    "Revision": 0,
+    "MajorRevision": 0,
+    "MinorRevision": 0
+  },
+  "authToken": "<DISCORD_BOT_AUTH_KEY>",
+  "gmapsKey": "<GOOGLE_MAPS_KEY>",
+  "webHookPort": 8008,
   "allowTeamAssignment": true,
-  "authToken": "lkjljlksjdfsfd",
+  "supporterRoleId": 000000000000000008,
+  "teamEliteRoleId": 000000000000000009,
+  "moderators": [
+    000000000000000001,
+    000000000000000002
+  ],
+  "teamRoles": [
+    "Valor",
+    "Mystic",
+    "Instinct"
+  ],
+  "autoAssignNewMembersCityRoles": false,
+  "cityRoles": [
+    "Upland",
+    "Ontario",
+    "Chino",
+    "Pomona",
+    "Claremont",
+    "Montclair",
+    "EastLA",
+    "Raids",
+    "Families",
+    "Whittier",
+	"Tucson"
+  ],
   "sendStartupMessage": true,
   "startupMessages": [
     "Whoa, whoa...alright I'm awake.",
-	"No need to push, I'm going...",
-	"That was a weird dream, wait a minute...",
-	"Circuits fully charged, let's do this!",
-	"What is this place? How did I get here?",
-	"Looks like we're not in Kansas anymore...",
-	"Hey...watch where you put those mittens!"
+    "No need to push, I'm going...",
+    "That was a weird dream, wait a minute...",
+    "Circuits fully charged, let's do this!",
+    "What is this place? How did I get here?",
+    "Looks like we're not in Kansas anymore...",
+    "Hey...watch where you put those mittens!"
   ],
-  "startupMessageWebHook": "https://discordapp.com/api/webhooks/3743000000000/12132djlkjlkdsjlksdj",
-  "sendWelcomeMessage": true,
-  "welcomeMessage": "Hello {username}, welcome to versx's discord server!\r\nI am here to help you with certain things if you require them such as notifications of Pokemon that have spawned as well as setting up Raid Lobbies. To see a full list of my available commands please send me a direct message containing `.help`.",
+  "startupMessageWebHook": "<DISCORD_WEBHOOK_URL>",
+  "sendWelcomeMessage": false,
+  "welcomeMessage": "Hello {username}, welcome to **versx**'s server!\r\nMy name is Brock and I'm here to assist you with certain things. Most commands that you'll send me will need to be sent to the #bot channel in the server but I can also process some commands via direct message.\r\n\r\nFirst things first you might want to set your team, there are three available teams: Valor, Mystic, and Instinct. To set your team you'll want to use the `.team Valor/Mystic/Instinct` command, although this is optional. For more details please read the pinned message in the #bot channel titled Team Assignment.\r\nNext you'll need to assign youself to some city feeds to see Pokemon spawns and Raids. Quickest way is to type the `.feedme all` command, otherwise please read the pinned message in the #bot channel titled City Feeds for more details.\r\nLastly if you'd like to get direct messages from me when a certain Pokemon with a specific IV percentage or raid appears, to do so please read the pinned message in the #bot channel titled Pokemon Notifications.\r\n\r\nI will only send you direct message notifications of Pokemon or raids for city feeds that you are assigned to.\r\n**To see a full list of my available commands please send me a direct message containing `.help`.**\r\n\r\nOnce you've completed the above steps you'll be all set to go catch those elusive monsters, be safe and have fun!",
   "notifyMemberJoined": true,
   "notifyMemberLeft": true,
   "notifyMemberBanned": true,
   "notifyMemberUnbanned": true,
+  "sponsoredRaids": [
+    {
+      "enabled": true,
+      "channelPool": [
+        00000000000000001,
+        00000000000000002
+      ],
+      "keywords": [
+        "Sprint",
+        "Starbucks",
+        "McDonalds",
+        "Boost"
+      ],
+      "webHook": "<DISCORD_WEBHOOK_URL>"
+    }
+  ],
+  "twitterUpdates": {
+    "consumerKey": "<TWITTER_CONSUMER_KEY>",
+    "consumerSecret": "<TWITTER_CONSUMER_SECRET>",
+    "accessToken": "<TWITTER_ACCESS_TOKEN>",
+    "accessTokenSecret": "<TWITTER_ACCESS_TOKEN_SECRET>",
+    "postTwitterUpdates": true,
+    "users": [
+      000000001
+    ],
+    "updatesChannelWebHook": "<DISCORD_WEBHOOK_URL>"
+  },
+  "advertisement": {
+    "enabled": true,
+    "lastMessageId": 413256301938737152,
+    "postIntervalMinutes": 5,
+    "message": ":arrows_counterclockwise: Welcome to **{server}**'s server, to assign yourself to a city feed or team please review the pinned messages in the {bot} channel.",
+    "channelId": 392117260317360129,
+    "messageThreshold": 10
+  },
+  "nearbyNests": {
+    "Ruben S. Ayala Park": 77,
+    "Upland Memorial Park": 258,
+    "John Galvin Park": 124,
+    "Homer F. Briggs Park": 10,
+    "Cabrillo Park": 27,
+    "Red Hill Community Park": 86,
+    "Upland Hills Country Club": 140
+  },
+  "feedStatus": {
+    "channels": [
+      00000000000000001,
+      00000000000000002,
+     ],
+    "enabled": true
+  },
+  "supporters": null,
   "customCommands": {
     "lolcat": "https://i.giphy.com/media/PUBxelwT57jsQ/200.gif"
-  }
+  },
+  "raidLobbies": {
+    "enabled": true,
+    "raidLobbiesChannelId": 0000000000000005,
+    "lobbies": {
+    }
+  },
+  "geofenceFolder": "<GEOFENCE_FOLDER_PATH>",
+  "accuWeatherApiKey": null
 }

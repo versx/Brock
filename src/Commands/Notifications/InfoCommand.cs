@@ -114,12 +114,14 @@
 
                 var exceedsLimits = pokemon.Count > MaxPokemonDisplayed;
                 var defaultIV = 0;
+                var defaultCount = 0;
                 var results = pokemon.GroupBy(p => p.MinimumIV, (key, g) => new { IV = key, Pokes = g.ToList() });
                 foreach (var result in results)
                 {
                     if (result.Pokes.Count > defaultIV)
                     {
                         defaultIV = result.IV;
+                        defaultCount = result.Pokes.Count;
                     }
                 }
 
@@ -131,7 +133,7 @@
 
                 if (exceedsLimits)
                 {
-                    msg += $"Default: {defaultIV}% (All unlisted)\r\n";
+                    msg += $"Default: {defaultIV}% ({defaultCount.ToString("N0")} unlisted)\r\n";
                 }
 
                 foreach (var sub in results)

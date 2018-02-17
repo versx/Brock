@@ -59,7 +59,7 @@
             }
 
             var city = command.Args[0];
-            if (!_config.CityRoles.Contains(city))
+            if (!_config.CityRoles.Exists(x => string.Compare(x, city, true) == 0))
             {
                 await message.RespondAsync($"{message.Author.Mention} you may only check weather conditions of one of the following cities: **{string.Join("**, **", _config.CityRoles)}**.");
                 return;
@@ -73,9 +73,9 @@
             }
 
             var eb = new DiscordEmbedBuilder();
-            eb.AddField("City", city);
-            eb.AddField("Weather", weather.WeatherText);
-            eb.AddField("Temperature", $"{weather.Temperature.Imperial.Value}°{weather.Temperature.Imperial.Unit}");
+            eb.WithTitle($"{city} Weather Conditions");
+            eb.AddField("Weather", weather.WeatherText, true);
+            eb.AddField("Temperature", $"{weather.Temperature.Imperial.Value}°{weather.Temperature.Imperial.Unit}", true);
             eb.WithImageUrl(string.Format(WeatherIconUrl, weather.WeatherIcon.ToString("D2")));
             eb.WithUrl(weather.Link);
 

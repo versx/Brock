@@ -179,7 +179,8 @@
                         ? DefaultAdvertisementMessage
                         : _config.Advertisement.Message)
                         .Replace("{server}", advertisementChannel.Guild.Name)
-                        .Replace("{bot}", cmdChannel.Mention);
+                        .Replace("{bot}", cmdChannel.Mention)
+                        .Replace("{faq}", faqChannel.Mention);
                     var sentMessage = await advertisementChannel.SendMessageAsync(msg);
                     _config.Advertisement.LastMessageId = sentMessage.Id;
                     _config.Save();
