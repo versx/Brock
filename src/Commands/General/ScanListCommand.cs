@@ -48,7 +48,7 @@
                 return;
             }
 
-            var encounterListFilePath = Path.Combine(SetEncounterListCommand.MapPath, $"enc-whitelist-rares-{city}.txt");
+            var encounterListFilePath = Path.Combine(_config.MapFolder, $"enc-whitelist-rares-{city}.txt");
             if (!File.Exists(encounterListFilePath))
             {
                 await message.RespondAsync($"{message.Author.Mention} the specified encounter list does not exist.");

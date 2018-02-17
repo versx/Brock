@@ -53,16 +53,16 @@
             //if (command.Args.Count != 1) return;
 
             //var cmd = command.Args[0];
-            var good = Path.Combine(SetEncounterListCommand.MapPath, "good.txt");
+            var good = Path.Combine(_config.MapFolder, "good.txt");
             //if (!File.Exists(good))
             //{
             //    await message.RespondAsync($"{message.Author.Mention}, {cmd}.txt does not exist.");
             //    return;
             //}
 
-            var banned = Path.Combine(SetEncounterListCommand.MapPath, "..\\Accounts - Level 30 (Shadow Banned).txt");
+            var banned = Path.Combine(_config.MapFolder, "..\\Accounts - Level 30 (Shadow Banned).txt");
 
-            SwitchLevel30s(_config.CityRoles, SetEncounterListCommand.MapPath, good, banned);
+            SwitchLevel30s(_config.CityRoles, _config.MapFolder, good, banned);
             await message.RespondAsync($"{message.Author.Mention} switched the level 30 accounts successfully.");
         }
 

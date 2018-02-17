@@ -6,7 +6,6 @@
     using System.Threading.Tasks;
 
     using BrockBot.Configuration;
-    using BrockBot.Data;
     using BrockBot.Diagnostics;
     using BrockBot.Extensions;
 
@@ -21,8 +20,6 @@
     )]
     public class SetEncounterListCommand : ICustomCommand
     {
-        public const string MapPath = @"C:\Users\Jeremy\Sync\PoGO\RocketMap";
-
         private readonly DiscordClient _client;
         private readonly IEventLogger _logger;
         private readonly Config _config;
@@ -57,7 +54,9 @@
                     var switched = new List<string>();
                     foreach (var feed in _config.CityRoles)
                     {
-                        if (!SetEncounterList(MapPath, feed, result))
+                        if (string.IsNullOrEmpty(feed)) continue;
+
+                        if (!SetEncounterList(_config.MapFolder, feed, result))
                         {
                             await message.RespondAsync($"{message.Author.Mention}, failed to switch encounter list for {feed} to {result}.");
                             continue;
@@ -70,7 +69,7 @@
                     return;
                 }
 
-                if (!SetEncounterList(MapPath, city, result))
+                if (!SetEncounterList(_config.MapFolder, city, result))
                 {
                     await message.RespondAsync($"{message.Author.Mention}, failed to switch encounter list for {city} to {result}.");
                     return;

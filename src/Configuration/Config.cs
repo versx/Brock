@@ -168,6 +168,9 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
         [JsonIgnore]
         public List<uint> RaidBosses { get; set; }
 
+        [JsonProperty("mapFolder")]
+        public string MapFolder { get; set; }
+
         [JsonProperty("geofenceFolder")]
         public string GeofenceFolder { get; set; }
 
