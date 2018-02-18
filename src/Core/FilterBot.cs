@@ -205,8 +205,50 @@
             if (e.Message.Author.IsBot)
             {
                 await CheckSponsoredRaids(e.Message);
+                return;
             }
-            else if (e.Message.Channel.Id == _config.CommandsChannelId ||
+
+            if (e.Message.Channel.Id == _config.GiveawayChannelId)
+            {
+                var command = new Command(_config.CommandsPrefix, e.Message.Content);
+                if (!command.ValidCommand && !e.Message.Author.IsBot) return;
+
+                foreach (var giveaway in _config.Giveaways)
+                {
+                    if (!giveaway.Started) continue;
+                    if (giveaway.Winner > 0) continue;
+
+                    var pokemon = _db.Pokemon[giveaway.PokemonId.ToString()].Name;
+                    if (string.Compare(e.Message.Content, pokemon, true) != 0) continue;
+
+                    var giveawaysChannel = await _client.GetChannel(_config.AdminCommandsChannelId);
+                    if (giveawaysChannel == null)
+                    {
+                        _logger.Error($"Failed to get giveaways channel with id {0}.");
+                        return;
+                    }
+
+                    giveaway.Winner = e.Message.Author.Id;
+
+                    var owner = await _client.GetUser(_config.OwnerId);
+                    if (owner == null)
+                    {
+                        _logger.Error($"Failed to find owner with id {_config.OwnerId}.");
+                        continue;
+                    }
+
+                    await e.Message.RespondAsync($"{pokemon} was correct {e.Message.Author.Mention}! Congratulations you've won a month of supporter status! I will send {owner.Mention} a DM regarding it right now.\r\nThank you all who participated, more giveaways to come.");
+
+                    await _client.SendDirectMessage(owner, $"{e.Message.Author.Mention} guessed correctly with {pokemon} in the giveaway.", null);
+                    await giveawaysChannel.GrantPermissions(e.Guild.EveryoneRole, Permissions.None, Permissions.ReadMessageHistory | Permissions.SendMessages);
+
+
+                    _config.Supporters.Add(e.Message.Author.Id, new Data.Models.Donator { DateDonated = DateTime.Now });
+
+                    //TODO: Add support for supporters list that is checked by Brock, set/remove role etc.
+                }
+            }
+            if (e.Message.Channel.Id == _config.CommandsChannelId ||
                      e.Message.Channel.Id == _config.AdminCommandsChannelId)// ||
                      //_db.Lobbies.Exists(x => string.Compare(x.LobbyName, e.Message.Channel.Name, true) == 0))
             {
@@ -1019,15 +1061,15 @@
             {
                 foreach (var category in categories)
                 {
-                    if (category.Value.Exists(x => x.PermissionLevel == CommandPermissionLevel.Admin))
-                    {
-                        if (!isOwner) continue;
-                    }
+                    //if (category.Value.Exists(x => x.PermissionLevel == CommandPermissionLevel.Admin))
+                    //{
+                    //    if (!isOwner) continue;
+                    //}
 
-                    if (category.Value.Exists(x => x.PermissionLevel == CommandPermissionLevel.Moderator))
-                    {
-                        if (!message.Author.Id.IsModerator(_config)) continue;
-                    }
+                    //if (category.Value.Exists(x => x.PermissionLevel == CommandPermissionLevel.Moderator))
+                    //{
+                    //    if (!message.Author.Id.IsModerator(_config)) continue;
+                    //}
 
                     //var isSupporterOrHigher = await _client.IsSupporterOrHigher(message.Author.Id, _config);
                     //if (category.Value.Exists(x => x.PermissionLevel == CommandPermissionLevel.Supporter)) if (!isSupporterOrHigher) continue;

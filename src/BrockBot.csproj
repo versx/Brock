@@ -130,6 +130,7 @@
     <Compile Include="Commands\Administrative\LeaveGuildCommand.cs" />
     <Compile Include="Commands\Administrative\Twitter\ListTwitterCommand.cs" />
     <Compile Include="Commands\Administrative\SayCommand.cs" />
+    <Compile Include="Commands\Fun\GiveawayCommand.cs" />
     <Compile Include="Commands\General\GetWeatherCommand.cs" />
     <Compile Include="Commands\Moderator\SetEncounterListCommand.cs" />
     <Compile Include="Commands\General\CheckApiCommand.cs" />
@@ -195,6 +196,7 @@
     <Compile Include="Services\FeedMonitorService.cs" />
     <Compile Include="Services\Geofence\Geofence.cs" />
     <Compile Include="Services\Geofence\GeofenceService.cs" />
+    <Compile Include="Services\GiveawayService.cs" />
     <Compile Include="Services\NotificationLimiter.cs" />
     <Compile Include="Services\RaidLobby\RaidLobbyEta.cs" />
     <Compile Include="Services\RaidLobby\RaidLobbyManager.cs" />

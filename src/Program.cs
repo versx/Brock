@@ -54,6 +54,8 @@
                 bot.RegisterCommand<GetWeatherCommand>();
                 bot.RegisterCommand<VersionCommand>();
 
+                bot.RegisterCommand<GiveawayCommand>();
+
                 //Custom Commands
                 bot.RegisterCommand<ListCmdCommand>();
                 bot.RegisterCommand<AddCmdCommand>();

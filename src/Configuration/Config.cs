@@ -180,7 +180,6 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
         /// <summary>
         /// Gets the config full config file path.
         /// </summary>
-        [XmlIgnore]
         [JsonIgnore]
         public static string ConfigFilePath
         {
@@ -193,6 +192,12 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
                 );
             }
         }
+
+        [JsonProperty("giveawayChannelId")]
+        public ulong GiveawayChannelId { get; set; }
+
+        [JsonProperty("giveaways")]
+        public List<Giveaway> Giveaways { get; set; }
 
         #endregion
 
@@ -240,6 +245,7 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
             Advertisement = new AdvertisementConfig();
             FeedStatus = new FeedStatusConfig();
 
+            Giveaways = new List<Giveaway>();
             RaidBosses = new List<uint>();
             var raidsFileName = Path.Combine(Data.Database.DataFolderName, RaidsFileName);
             var lines = File.ReadAllLines(raidsFileName);
@@ -355,5 +361,18 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
         }
 
         #endregion
+    }
+
+    [JsonObject("giveaway")]
+    public class Giveaway
+    {
+        [JsonProperty("pokemonId")]
+        public uint PokemonId { get; set; }
+
+        [JsonProperty("winner")]
+        public ulong Winner { get; set; }
+
+        [JsonProperty("started")]
+        public bool Started { get; set; }
     }
 }

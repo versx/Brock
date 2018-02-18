@@ -44,5 +44,15 @@
                 return null;
             }
         }
+
+        public static async Task LockChannel(this DiscordChannel channel, DiscordRole role)
+        {
+            await channel.GrantPermissions(role, Permissions.ReadMessageHistory | Permissions.AccessChannels, Permissions.SendMessages);
+        }
+
+        public static async Task UnlockChannel(this DiscordChannel channel, DiscordRole role)
+        {
+            await channel.GrantPermissions(role, Permissions.ReadMessageHistory | Permissions.AccessChannels | Permissions.SendMessages, Permissions.None);
+        }
     }
 }

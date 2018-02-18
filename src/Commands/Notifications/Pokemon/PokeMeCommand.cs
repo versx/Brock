@@ -121,7 +121,7 @@
 				
 				var previousIV = iv;
 
-                for (uint i = 1; i < 390; i++)
+                for (uint i = 1; i < 386; i++)
                 {
                     //Always ignore the user's input for Unown and set it to 0 by default.
                     if (i == 201) iv = 0;

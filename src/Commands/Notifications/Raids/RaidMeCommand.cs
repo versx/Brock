@@ -72,7 +72,7 @@
                     return;
                 }
 
-                for (uint i = 1; i < 390; i++)
+                for (uint i = 1; i < 386; i++)
                 {
                     if (!i.IsValidRaidBoss(_config.RaidBosses)) continue;
 

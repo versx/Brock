@@ -15,7 +15,8 @@
     [Command(Categories.Administrative,
         "Sets the encounter list for a specific city feed.",
         "\tExample: `.setlist Upland Clear` (Sets a city feed's scan list)\r\n" +
-        "\tExample: `.setlist all Clear` (Sets all city feed's scan list)",
+        "\tExample: `.setlist Upland,Pomona,EastLA PartlyCloudy` (Sets multiple city feed scan lists)\r\n" +
+        "\tExample: `.setlist all windy` (Sets all city feed's scan list)",
         "setlist"
     )]
     public class SetEncounterListCommand : ICustomCommand
@@ -66,6 +67,12 @@
                     }
 
                     await message.RespondAsync($"{message.Author.Mention} switched encounter list for {string.Join(", ", switched)} to {result}.");
+                    return;
+                }
+
+                if (city == null)
+                {
+                    await message.RespondAsync($"{message.Author.Mention} you've specified an invalid city '{city}'.");
                     return;
                 }
 
