@@ -211,7 +211,11 @@
             if (e.Message.Channel.Id == _config.GiveawayChannelId)
             {
                 var command = new Command(_config.CommandsPrefix, e.Message.Content);
-                if (!command.ValidCommand && !e.Message.Author.IsBot) return;
+                if (command.ValidCommand && !e.Message.Author.IsBot)
+                {
+                    await ParseCommand(e.Message);
+                    return;
+                }
 
                 foreach (var giveaway in _config.Giveaways)
                 {
