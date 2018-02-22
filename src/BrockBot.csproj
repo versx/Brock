@@ -186,13 +186,25 @@
     <Compile Include="Core\CommandList.cs" />
     <Compile Include="Core\CommandPermissionAttribute.cs" />
     <Compile Include="Core\CommandPermissionLevel.cs" />
+    <Compile Include="Core\PokemonGender.cs" />
+    <Compile Include="Core\Strings.cs" />
+    <Compile Include="Core\GymTeam.cs" />
     <Compile Include="Extensions\DiscordChannelExtensions.cs" />
     <Compile Include="Extensions\DiscordMessageExtensions.cs" />
     <Compile Include="Extensions\DiscordRoleExtensions.cs" />
     <Compile Include="Extensions\DiscordUserExtensions.cs" />
     <Compile Include="Extensions\Extensions.cs" />
     <Compile Include="Extensions\HelpExtensions.cs" />
+    <Compile Include="Extensions\IntegerExtensions.cs" />
+    <Compile Include="Net\PokemonData.cs" />
+    <Compile Include="Net\PokemonReceivedEventArgs.cs" />
+    <Compile Include="Net\RaidData.cs" />
+    <Compile Include="Net\RaidReceivedEventArgs.cs" />
     <Compile Include="Services\AdvertisementService.cs" />
+    <Compile Include="Services\Alarms\AlarmList.cs" />
+    <Compile Include="Services\Alarms\AlarmObject.cs" />
+    <Compile Include="Services\Alarms\FilterObject.cs" />
+    <Compile Include="Services\Alarms\FilterType.cs" />
     <Compile Include="Services\FeedMonitorService.cs" />
     <Compile Include="Services\Geofence\Geofence.cs" />
     <Compile Include="Services\Geofence\GeofenceService.cs" />
@@ -247,7 +259,9 @@
   <ItemGroup>
     <Content Include="brock.ico" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Services\Alarms\Discord\" />
+  </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>move /Y "$(TargetDir)*.dll" "$(TargetDir)Libs\"</PostBuildEvent>

@@ -76,7 +76,6 @@
                 return;
             }
             var channel = await client.GetChannel(channelId);
-            //var channel = await client.GetChannelAsync(channelId);
             if (channel == null)
             {
                 Console.ForegroundColor = ConsoleColor.Red;

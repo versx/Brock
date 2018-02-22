@@ -1,6 +1,7 @@
 ﻿namespace BrockBot.Services
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Threading.Tasks;
 
@@ -12,6 +13,7 @@
     using BrockBot.Diagnostics;
     using BrockBot.Extensions;
     using BrockBot.Net;
+    using BrockBot.Services.Alarms;
     using BrockBot.Services.Geofence;
     using BrockBot.Utilities;
 
@@ -30,8 +32,13 @@
         private readonly DiscordClient _client;
         private readonly IDatabase _db;
         private readonly Config _config;
-        private readonly GeofenceService _geofence;
         private readonly IEventLogger _logger;
+
+        #endregion
+
+        #region Properties
+
+        public GeofenceService GeofenceSvc { get; }
 
         #endregion
 
@@ -44,15 +51,58 @@
             _config = config;
             _logger = logger;
 
-            _geofence = new GeofenceService(GeofenceItem.Load(_config.GeofenceFolder, _config.CityRoles));
+            GeofenceSvc = new GeofenceService(GeofenceItem.Load(_config.GeofenceFolder, _config.CityRoles));
         }
 
         #endregion
 
         #region Public Methods
 
+        public async Task ProcessAlarms(PokemonData pkmn, Dictionary<string, List<AlarmObject>> alarms)
+        {
+            if (pkmn == null) return;
+            if (alarms == null || alarms.Count == 0) return;
+
+            if (_db == null)
+            {
+                _logger.Error($"Database is not initialized...");
+                return;
+            }
+
+            if (!_db.Pokemon.ContainsKey(pkmn.PokemonId.ToString())) return;
+            var pokemon = _db.Pokemon[pkmn.PokemonId.ToString()];
+            if (pokemon == null) return;
+
+            if (_client == null) return;
+
+            foreach (var item in alarms)
+            {
+                foreach (var alarm in item.Value)
+                {
+                    //if (string.Compare(alarm.Geofence.Name, item.Key, true) != 0)
+                    //    continue;
+
+                    if (!MatchesGeofenceFilter(alarm.Geofence, new Location(pkmn.Latitude, pkmn.Longitude)))
+                        continue;
+
+                    if (!AlarmMatchesIvFilters(pkmn.IV, alarm.Filters))
+                        continue;
+
+                    var embed = BuildEmbedPokemonFromAlarm(pkmn, alarm);
+                    if (embed == null) continue;
+
+                    _logger.Info($"Notifying alarm {alarm.Name} that a {pokemon.Name} {pkmn.CP}CP {pkmn.IV} IV L{pkmn.PlayerLevel} has spawned...");
+                    Notify(pokemon.Name, embed);
+
+                    await _client.SendMessage(alarm.Webhook, null, embed);
+                }
+            }
+        }
+
         public async Task ProcessPokemon(PokemonData pkmn)
         {
+            if (pkmn == null) return;
+
             if (_db == null)
             {
                 _logger.Error($"Database is not initialized...");
@@ -62,65 +112,76 @@
             DiscordUser discordUser;
             for (int i = 0; i < _db.Subscriptions.Count; i++)
             {
-                var user = _db.Subscriptions[i];
-                if (!user.Enabled) continue;
-
-                discordUser = await _client.GetUser(user.UserId);
-                if (discordUser == null) continue;
-
-                if (!user.Pokemon.Exists(x => x.PokemonId == pkmn.PokemonId)) continue;
-                var subscribedPokemon = user.Pokemon.Find(x => x.PokemonId == pkmn.PokemonId);
-
-                if (!_db.Pokemon.ContainsKey(subscribedPokemon.PokemonId.ToString())) continue;
-                var pokemon = _db.Pokemon[subscribedPokemon.PokemonId.ToString()];
-                if (pokemon == null) continue;
-
-                if (_client == null) continue;
-                //if (!await _client.IsSupporterOrHigher(user.UserId, _config)) continue;
-
-                var matchesIV = MatchesIvFilter(pkmn.IV, subscribedPokemon.MinimumIV);
-                //var matchesCP = MatchesCpFilter(pkmn.CP, subscribedPokemon.MinimumCP);
-                var matchesLvl = MatchesLvlFilter(pkmn.PlayerLevel, subscribedPokemon.MinimumLevel);
-                //var matchesGender = MatchesGenderFilter(pkmn.Gender, subscribedPokemon.MinimumGender);
-                //var matchesAtk = MatchesAttackFilter(pkmn.Attack, subscribedPokemon.MinimumAtk);
-                //var matchesDef = MatchesDefenseFilter(pkmn.Defense, subscribedPokemon.MinimumDef);
-                //var matchesSta = MatchesStaminaFilter(pkmn.Stamina, subscribedPokemon.MinimumSta);
-                //var matchesGeofence = MatchesGeofenceFilter(null, new Location(pkmn.Latitude, pkmn.Longitude));
-
-                //if (!(matchesIV || matchesCP || matchesLvl || matchesGender || matchesAtk || matchesDef || matchesSta)) continue;
-                if (!(matchesIV && matchesLvl)) continue;
-
-                if (user.NotificationLimiter.IsLimited())
+                try
                 {
-                    if (!user.NotifiedOfLimited)
+                    var user = _db.Subscriptions[i];
+                    if (user == null) continue;
+                    if (!user.Enabled) continue;
+
+                    discordUser = await _client.GetUser(user.UserId);
+                    if (discordUser == null) continue;
+
+                    if (!user.Pokemon.Exists(x => x.PokemonId == pkmn.PokemonId)) continue;
+                    var subscribedPokemon = user.Pokemon.Find(x => x.PokemonId == pkmn.PokemonId);
+                    if (subscribedPokemon == null) continue;
+
+                    if (!_db.Pokemon.ContainsKey(subscribedPokemon.PokemonId.ToString())) continue;
+                    var pokemon = _db.Pokemon[subscribedPokemon.PokemonId.ToString()];
+                    if (pokemon == null) continue;
+
+                    if (_client == null) continue;
+                    //if (!await _client.IsSupporterOrHigher(user.UserId, _config)) continue;
+
+                    var matchesIV = MatchesIvFilter(pkmn.IV, subscribedPokemon.MinimumIV);
+                    //var matchesCP = MatchesCpFilter(pkmn.CP, subscribedPokemon.MinimumCP);
+                    var matchesLvl = MatchesLvlFilter(pkmn.PlayerLevel, subscribedPokemon.MinimumLevel);
+                    //var matchesGender = MatchesGenderFilter(pkmn.Gender, subscribedPokemon.MinimumGender);
+                    //var matchesAtk = MatchesAttackFilter(pkmn.Attack, subscribedPokemon.MinimumAtk);
+                    //var matchesDef = MatchesDefenseFilter(pkmn.Defense, subscribedPokemon.MinimumDef);
+                    //var matchesSta = MatchesStaminaFilter(pkmn.Stamina, subscribedPokemon.MinimumSta);
+                    //var matchesGeofence = MatchesGeofenceFilter(null, new Location(pkmn.Latitude, pkmn.Longitude));
+
+                    //if (!(matchesIV || matchesCP || matchesLvl || matchesGender || matchesAtk || matchesDef || matchesSta)) continue;
+                    if (!(matchesIV && matchesLvl)) continue;
+
+                    if (user.NotificationLimiter.IsLimited())
                     {
-                        await _client.SendDirectMessage(discordUser, string.Format(NotificationsLimitedMessage, NotificationLimiter.MaxNotificationsPerMinute), null);
-                        user.NotifiedOfLimited = true;
+                        if (!user.NotifiedOfLimited)
+                        {
+                            await _client.SendDirectMessage(discordUser, string.Format(NotificationsLimitedMessage, NotificationLimiter.MaxNotificationsPerMinute), null);
+                            user.NotifiedOfLimited = true;
+                        }
+
+                        return;
                     }
 
-                    return;
+                    user.NotifiedOfLimited = false;
+
+                    _logger.Info($"Notifying user {discordUser.Username} that a {pokemon.Name} {pkmn.CP}CP {pkmn.IV} IV L{pkmn.PlayerLevel} has spawned...");
+
+                    var embed = await BuildEmbedPokemon(pkmn, user.UserId);
+                    if (embed == null) continue;
+
+                    //if (await CheckIfExceededNotificationLimit(user)) return;
+
+                    user.NotificationsToday++;
+
+                    Notify(pokemon.Name, embed);
+
+                    await _client.SendDirectMessage(discordUser, string.Empty, embed);
+                    await Utils.Wait(NotificationTimeout);
                 }
-
-                user.NotifiedOfLimited = false;
-
-                _logger.Info($"Notifying user {discordUser.Username} that a {pokemon.Name} {pkmn.CP}CP {pkmn.IV} IV L{pkmn.PlayerLevel} has spawned...");
-
-                var embed = await BuildEmbedPokemon(pkmn, user.UserId);
-                if (embed == null) continue;
-
-                //if (await CheckIfExceededNotificationLimit(user)) return;
-
-                user.NotificationsToday++;
-
-                Notify(pokemon.Name, embed);
-
-                await _client.SendDirectMessage(discordUser, string.Empty, embed);
-                await Utils.Wait(NotificationTimeout);
+                catch (Exception ex)
+                {
+                    _logger.Error(ex);
+                }
             }
         }
 
         public async Task ProcessRaid(RaidData raid)
         {
+            if (raid == null) return;
+
             if (_db == null)
             {
                 _logger.Error($"Database is not initialized...");
@@ -130,50 +191,59 @@
             DiscordUser discordUser;
             for (int i = 0; i < _db.Subscriptions.Count; i++)
             {
-                var user = _db.Subscriptions[i];
-                if (!user.Enabled) continue;
-
-                discordUser = await _client.GetUser(user.UserId);
-                if (discordUser == null) continue;
-
-                if (!user.Raids.Exists(x => x.PokemonId == raid.PokemonId)) continue;
-                var subscribedRaid = user.Raids.Find(x => x.PokemonId == raid.PokemonId);
-
-                if (!_db.Pokemon.ContainsKey(subscribedRaid.PokemonId.ToString())) continue;
-                var pokemon = _db.Pokemon[subscribedRaid.PokemonId.ToString()];
-                if (pokemon == null) continue;
-
-                if (_client == null) continue;
-                //if (!await _client.IsSupporterOrHigher(user.UserId, _config)) continue;
-
-                if (subscribedRaid.PokemonId != raid.PokemonId) continue;
-
-                if (user.NotificationLimiter.IsLimited())
+                try
                 {
-                    if (!user.NotifiedOfLimited)
+                    var user = _db.Subscriptions[i];
+                    if (user == null) continue;
+                    if (!user.Enabled) continue;
+
+                    discordUser = await _client.GetUser(user.UserId);
+                    if (discordUser == null) continue;
+
+                    if (!user.Raids.Exists(x => x.PokemonId == raid.PokemonId)) continue;
+                    var subscribedRaid = user.Raids.Find(x => x.PokemonId == raid.PokemonId);
+                    if (subscribedRaid == null) continue;
+
+                    if (!_db.Pokemon.ContainsKey(subscribedRaid.PokemonId.ToString())) continue;
+                    var pokemon = _db.Pokemon[subscribedRaid.PokemonId.ToString()];
+                    if (pokemon == null) continue;
+
+                    if (_client == null) continue;
+                    //if (!await _client.IsSupporterOrHigher(user.UserId, _config)) continue;
+
+                    if (subscribedRaid.PokemonId != raid.PokemonId) continue;
+
+                    if (user.NotificationLimiter.IsLimited())
                     {
-                        await _client.SendDirectMessage(discordUser, string.Format(NotificationsLimitedMessage, NotificationLimiter.MaxNotificationsPerMinute), null);
-                        user.NotifiedOfLimited = true;
+                        if (!user.NotifiedOfLimited)
+                        {
+                            await _client.SendDirectMessage(discordUser, string.Format(NotificationsLimitedMessage, NotificationLimiter.MaxNotificationsPerMinute), null);
+                            user.NotifiedOfLimited = true;
+                        }
+
+                        return;
                     }
 
-                    return;
+                    user.NotifiedOfLimited = false;
+
+                    _logger.Info($"Notifying user {discordUser.Username} that a {pokemon.Name} raid is available...");
+
+                    var embed = await BuildEmbedRaid(raid, user.UserId);
+                    if (embed == null) continue;
+
+                    //if (await CheckIfExceededNotificationLimit(user)) return;
+
+                    user.NotificationsToday++;
+
+                    Notify(pokemon.Name, embed);
+
+                    await _client.SendDirectMessage(discordUser, string.Empty, embed);
+                    await Utils.Wait(NotificationTimeout);
                 }
-
-                user.NotifiedOfLimited = false;
-
-                _logger.Info($"Notifying user {discordUser.Username} that a {pokemon.Name} raid is available...");
-
-                var embed = await BuildEmbedRaid(raid, user.UserId);
-                if (embed == null) continue;
-
-                //if (await CheckIfExceededNotificationLimit(user)) return;
-
-                user.NotificationsToday++;
-
-                Notify(pokemon.Name, embed);
-
-                await _client.SendDirectMessage(discordUser, string.Empty, embed);
-                await Utils.Wait(NotificationTimeout);
+                catch (Exception ex)
+                {
+                    _logger.Error(ex);
+                }
             }
         }
 
@@ -206,6 +276,34 @@
 
         #region Private Methods
 
+        private DiscordEmbed BuildEmbedPokemonFromAlarm(PokemonData pokemon, AlarmObject alarm)
+        {
+            var pkmn = _db.Pokemon[pokemon.PokemonId.ToString()];
+            if (pkmn == null)
+            {
+                _logger.Error($"Failed to lookup Pokemon '{pokemon.PokemonId}' in database.");
+                return null;
+            }
+
+            var eb = new DiscordEmbedBuilder
+            {
+                Title = alarm == null || string.IsNullOrEmpty(alarm.Name) ? "DIRECTIONS" : alarm.Name,
+                Description = $"{pkmn.Name}{Helpers.GetPokemonGender(pokemon.Gender)} {pokemon.CP}CP {pokemon.IV} LV{pokemon.PlayerLevel} has spawned!",
+                Url = string.Format(Strings.GoogleMaps, pokemon.Latitude, pokemon.Longitude),
+                ImageUrl = string.Format(Strings.GoogleMapsStaticImage, pokemon.Latitude, pokemon.Longitude),
+                ThumbnailUrl = string.Format(Strings.PokemonImage, pokemon.PokemonId),
+                Color = DiscordHelpers.BuildColor(pokemon.IV)
+            };
+
+            eb.AddField($"{pkmn.Name} (#{pokemon.PokemonId}, {pokemon.Gender})", $"CP: {pokemon.CP} IV: {pokemon.IV} (Sta: {pokemon.Stamina}/Atk: {pokemon.Attack}/Def: {pokemon.Defense}) LV: {pokemon.PlayerLevel}");
+            eb.AddField("Available Until:", $"{pokemon.DespawnTime.ToLongTimeString()} ({pokemon.SecondsLeft} remaining)");
+            eb.AddField("Location:", $"{pokemon.Latitude},{pokemon.Longitude}");
+            eb.WithImageUrl(string.Format(Strings.GoogleMapsStaticImage, pokemon.Latitude, pokemon.Longitude) + $"&key={_config.GmapsKey}");
+            var embed = eb.Build();
+
+            return embed;
+        }
+
         private async Task<DiscordEmbed> BuildEmbedPokemon(PokemonData pokemon, ulong userId)
         {
             var pkmn = _db.Pokemon[pokemon.PokemonId.ToString()];
@@ -223,7 +321,7 @@
             }
 
             //var loc = Utils.GetGoogleAddress(pokemon.Latitude, pokemon.Longitude, _config.GmapsKey);
-            var loc = _geofence.GetGeofence(new Location(pokemon.Latitude, pokemon.Longitude));
+            var loc = GeofenceSvc.GetGeofence(new Location(pokemon.Latitude, pokemon.Longitude));
             if (loc == null)
             {
                 _logger.Error($"Failed to lookup city for coordinates {pokemon.Latitude},{pokemon.Longitude}, skipping...");
@@ -247,20 +345,16 @@
             {
                 Title = loc == null || string.IsNullOrEmpty(loc.Name) ? "DIRECTIONS" : loc.Name,
                 Description = $"{pkmn.Name}{Helpers.GetPokemonGender(pokemon.Gender)} {pokemon.CP}CP {pokemon.IV} LV{pokemon.PlayerLevel} has spawned!",
-                Url = string.Format(HttpServer.GoogleMaps, pokemon.Latitude, pokemon.Longitude),
-                ImageUrl = string.Format(HttpServer.GoogleMapsImage, pokemon.Latitude, pokemon.Longitude),
-                ThumbnailUrl = string.Format(HttpServer.PokemonImage, pokemon.PokemonId),
+                Url = string.Format(Strings.GoogleMaps, pokemon.Latitude, pokemon.Longitude),
+                ImageUrl = string.Format(Strings.GoogleMapsStaticImage, pokemon.Latitude, pokemon.Longitude),
+                ThumbnailUrl = string.Format(Strings.PokemonImage, pokemon.PokemonId),
                 Color = DiscordHelpers.BuildColor(pokemon.IV)
             };
 
-            eb.AddField($"{pkmn.Name} (#{pokemon.PokemonId}, {pokemon.Gender})", $"CP: {pokemon.CP} IV: {pokemon.IV} (Sta: {pokemon.Stamina}/Atk: {pokemon.Attack}/Def: {pokemon.Defense}) LV: {pokemon.PlayerLevel}");
+            eb.AddField($"{pkmn.Name} (#{pokemon.PokemonId}, {pokemon.Gender})", $"CP: {pokemon.CP} IV: {pokemon.IV} (Atk: {pokemon.Attack}/Def: {pokemon.Defense}/Sta: {pokemon.Stamina}) LV: {pokemon.PlayerLevel}");
             eb.AddField("Available Until:", $"{pokemon.DespawnTime.ToLongTimeString()} ({pokemon.SecondsLeft} remaining)");
-            //if (loc != null)
-            //{
-            //    eb.AddField("Address:", loc.Address);
-            //}
             eb.AddField("Location:", $"{pokemon.Latitude},{pokemon.Longitude}");
-            eb.WithImageUrl(string.Format(HttpServer.GoogleMapsImage, pokemon.Latitude, pokemon.Longitude) + $"&key={_config.GmapsKey}");
+            eb.WithImageUrl(string.Format(Strings.GoogleMapsStaticImage, pokemon.Latitude, pokemon.Longitude) + $"&key={_config.GmapsKey}");
             var embed = eb.Build();
 
             return embed;
@@ -283,7 +377,7 @@
             }
 
             //var loc = Utils.GetGoogleAddress(raid.Latitude, raid.Longitude, _config.GmapsKey);
-            var loc = _geofence.GetGeofence(new Location(raid.Latitude, raid.Longitude));
+            var loc = GeofenceSvc.GetGeofence(new Location(raid.Latitude, raid.Longitude));
             if (loc == null)
             {
                 _logger.Error($"Failed to lookup city for coordinates {raid.Longitude},{raid.Longitude}, skipping...");
@@ -295,7 +389,6 @@
                 File.AppendAllText("cities.txt", $"City: {loc.Name}\r\n");
             }
 
-            //if (!_client.HasRole(user, SanitizeCityName(loc.City)))
             if (!_client.HasRole(user, loc.Name))
             {
                 _logger.Debug($"Skipping notification for user {user.DisplayName} ({user.Id}) for Pokemon {pkmn.Name} because they do not have the city role '{loc.Name}'.");
@@ -306,9 +399,9 @@
             {
                 Title = loc == null || string.IsNullOrEmpty(loc.Name) ? "DIRECTIONS" : loc.Name,
                 Description = $"{pkmn.Name} raid is available!",
-                Url = string.Format(HttpServer.GoogleMaps, raid.Latitude, raid.Longitude),
-                ImageUrl = string.Format(HttpServer.GoogleMapsImage, raid.Latitude, raid.Longitude),
-                ThumbnailUrl = string.Format(HttpServer.PokemonImage, raid.PokemonId),
+                Url = string.Format(Strings.GoogleMaps, raid.Latitude, raid.Longitude),
+                ImageUrl = string.Format(Strings.GoogleMapsStaticImage, raid.Latitude, raid.Longitude),
+                ThumbnailUrl = string.Format(Strings.PokemonImage, raid.PokemonId),
                 Color = DiscordHelpers.BuildRaidColor(Convert.ToInt32(raid.Level))
             };
 
@@ -330,12 +423,8 @@
                 eb.AddField("Charge Move:", $"{chargeMove.Name} ({chargeMove.Type}, {chargeMove.Damage} dmg, {chargeMove.DamagePerSecond} dps)");
             }
 
-            //if (loc != null)
-            //{
-            //    eb.AddField("Address:", loc.Address);
-            //}
             eb.AddField("Location:", $"{raid.Latitude},{raid.Longitude}");
-            eb.WithImageUrl(string.Format(HttpServer.GoogleMapsImage, raid.Latitude, raid.Longitude));
+            eb.WithImageUrl(string.Format(Strings.GoogleMapsStaticImage, raid.Latitude, raid.Longitude));
             var embed = eb.Build();
 
             return embed;
@@ -420,6 +509,47 @@
 
         #region Filter Checks
 
+        private bool AlarmMatchesIvFilters(string iv, List<FilterObject> filters, bool ignoreMissing = true)
+        {
+            var matchesIV = false;
+            if (iv != "?")
+            {
+                if (!double.TryParse(iv.Replace("%", ""), out double resultIV))
+                {
+                    _logger.Error($"Failed to parse pokemon IV value '{iv}', skipping filter check.");
+                    return false;
+                }
+
+                foreach (var filter in filters)
+                {
+                    matchesIV |= Math.Round(resultIV) >= filter.MinimumIV && Math.Round(resultIV) <= filter.MaximumIV;
+                }
+            }
+
+            matchesIV |= (iv == "?" && !ignoreMissing);
+
+            return matchesIV;
+        }
+
+        private bool MatchesIvFilter(string iv, int minimumIV, int maximumIV)
+        {
+            var matchesIV = false;
+            if (iv != "?")
+            {
+                if (!double.TryParse(iv.Replace("%", ""), out double resultIV))
+                {
+                    _logger.Error($"Failed to parse pokemon IV value '{iv}', skipping filter check.");
+                    return false;
+                }
+
+                matchesIV |= Math.Round(resultIV) >= minimumIV && Math.Round(resultIV) <= maximumIV;
+            }
+
+            matchesIV |= (iv == "?" && minimumIV == 0);
+
+            return matchesIV;
+        }
+
         private bool MatchesIvFilter(string iv, int minimumIV)
         {
             var matchesIV = false;
@@ -479,7 +609,7 @@
 
         private bool MatchesGeofenceFilter(GeofenceItem geofence, Location location)
         {
-            return _geofence.Contains(geofence, location);
+            return GeofenceSvc.Contains(geofence, location);
         }
 
         private bool MatchesGenderFilter(PokemonGender gender, PokemonGender desiredGender)

@@ -136,7 +136,7 @@
                 eb.AddField("Weaknesses:", string.Join(", ", weaknesses));
             }
 
-            eb.ImageUrl = string.Format(HttpServer.PokemonImage, pokeId);
+            eb.ImageUrl = string.Format(Strings.PokemonImage, pokeId);
             var embed = eb.Build();
 
             await message.RespondAsync(string.Empty, false, embed);

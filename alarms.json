@@ -1,0 +1,28 @@
+{
+	"Upland": [
+		{
+			"Name": "Upland-90iv",
+			"Webhook": "https://discordapp.com/api/webhooks/392118341667520512/lzCADZSB4OuA07xTco_9v5P_lLXj4XvlmlV8fCJFJcveSHnXTg_hCDKDZSqek8NYs4ZC",
+			"GeofenceFile": "C:\Users\Jeremy\Sync\PoGO\PokeAlarm\geofences\Upland.txt",
+			"Filters": [
+				{
+					"MinimumIV": 90,
+					"FilterType": "Include",
+					"IgnoreMissing": true
+				}
+			]
+		},
+		{
+			"Name": "Ontario-90iv",
+			"Webhook": "https://discordapp.com/api/webhooks/392119260689727489/rXeqrGkLDby14Zx75_vxkMEx1hrfX4Q0aEJdauLLqoRyZiVmz29Jy0ZYJt4BLEAYhN1e",
+			"GeofenceFile": "C:\Users\Jeremy\Sync\PoGO\PokeAlarm\geofences\Ontario.txt",
+			"Filters": [
+				{
+					"MinimumIV": 90,
+					"FilterType": "Include",
+					"IgnoreMissing": true
+				}
+			]
+		}
+	]
+}

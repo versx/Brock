@@ -34,7 +34,7 @@
                     Directory.CreateDirectory(LogsFolder);
                 }
 
-                bot = new FilterBot(new EventLogger(Log));
+                bot = new FilterBot(new EventLogger(OnLog));
 
                 //General Commands
                 bot.RegisterCommand<HelpCommand>();
@@ -55,6 +55,9 @@
                 bot.RegisterCommand<VersionCommand>();
 
                 bot.RegisterCommand<GiveawayCommand>();
+
+                //Voting Commands
+                bot.RegisterCommand<CreateVoteCommand>();
 
                 //Custom Commands
                 bot.RegisterCommand<ListCmdCommand>();
@@ -117,12 +120,12 @@
             }
         }
 
-        static void Log(LogType logType, string message)
+        static void OnLog(LogType logType, string message)
         {
             try
             {
                 Console.WriteLine($"{DateTime.Now.ToLongTimeString()}: {logType.ToString().ToUpper()} >> {message}");
-                File.AppendAllText(Path.Combine(LogsFolder, DateTime.Now.ToString("yyyy-MM-dd") + ".log"), $"{DateTime.Now.ToLongTimeString()}: {logType.ToString().ToUpper()} >> {message}\r\n");
+                File.AppendAllText(Path.Combine(LogsFolder, DateTime.Now.ToString("yyyy-MM-dd") + $"_{logType}.log"), $"{DateTime.Now.ToLongTimeString()}: {logType.ToString().ToUpper()} >> {message}\r\n");
             }
             catch (Exception ex)
             {
@@ -130,7 +133,19 @@
             }
         }
 
-        private static Assembly OnAssemblyResolve(object sender, ResolveEventArgs args)
+        static async void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            OnLog(LogType.Error, $"IsTerminating: {e.IsTerminating}\r\n{((Exception)e.ExceptionObject).ToString()}");
+
+            await bot.AlertOwnerOfCrash();
+
+            if (e.IsTerminating)
+            {
+                Application.Restart();
+            }
+        }
+
+        static Assembly OnAssemblyResolve(object sender, ResolveEventArgs args)
         {
             try
             {
@@ -253,19 +268,7 @@
             return null;
         }
 
-        static async void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
-        {
-            Log(LogType.Error, $"IsTerminating: {e.IsTerminating}\r\n{((Exception)e.ExceptionObject).ToString()}");
-
-            await bot.AlertOwnerOfCrash();
-
-            if (e.IsTerminating)
-            {
-                Application.Restart();
-            }
-        }
-
-        private static Assembly GetAssembly(string name)
+        static Assembly GetAssembly(string name)
         {
             try
             {

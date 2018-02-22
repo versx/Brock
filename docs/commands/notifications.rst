@@ -4,9 +4,20 @@ Notification Commands
 
 Commands to setup notifications if a certain Pokemon spawns or a raid boss takes over a gym. 
 
+**Notes:**
+
+- The 'all' and 'level' parameters are only available to Supporters but everyone is able to use the IV parameter.
+- Normal members have a maximum of 25 different Pokemon subscriptions.
+- **Everyone** is limited to 50 DM notifications from Brock a minute.
+- Supporters have unlimited different Pokemon and Raid subscriptions (Complete pokdex and raid boss list).
+- Brock rounds the IVs for the Pokemon so if it's 95.6% and you specified 95.6% you'll still get the notification.
+- Please keep your IV values set to decent values. Using 0% IV is ok for rare Pokemon but not common types such as Mankey, Pikachu, Pidgey (eek), etc.
+- You are only sent DM notifications of Pokemon spawns for city feed zones that you're assigned to, others will be ignored.
+
 
 **.pokeme**  
 
+:Usage: ``.pokeme <pokemon(s),all> <IV> <Level>``  
 :Description: Subscribe to Pokemon notifications based on the pokedex number or name, minimum IV stats, or minimum level.  
 :Examples:  
 |   ``.pokeme 147 95``  
@@ -21,6 +32,7 @@ Commands to setup notifications if a certain Pokemon spawns or a raid boss takes
 
 **.pokemenot**  
 
+:Usage: ``.pokemenot <pokemon(s),all>``  
 :Description: Unsubscribe from a one or more or even all subscribed Pokemon notifications by pokedex number or name.  
 :Examples:  
 |   ``.pokemenot 149``
@@ -33,6 +45,7 @@ Commands to setup notifications if a certain Pokemon spawns or a raid boss takes
 
 **.raidme**  
 
+:Usage: ``.raidme <pokemon(s),all>``  
 :Description: Subscribe to raid boss Pokemon notifications.  
 :Examples:  
 |   ``.raidme Absol`` (Subscribe to Absol raid notifications.) 
@@ -43,6 +56,7 @@ Commands to setup notifications if a certain Pokemon spawns or a raid boss takes
 
 **.raidmenot**  
 
+:Usage: ``.raidmenot <pokemon(s),all>``  
 :Description: Unsubscribe from a one or more or even all subscribed Raid notifications.  
 :Examples:  
 |   ``.raidmenot Absol``  
@@ -53,6 +67,7 @@ Commands to setup notifications if a certain Pokemon spawns or a raid boss takes
 
 **.enable**  
 
+:Usage: ``.enable``  
 :Description: Enables all of your Pokemon and Raid notification subscriptions at once.  
 :Example: ``.enable``  
 
@@ -60,6 +75,7 @@ Commands to setup notifications if a certain Pokemon spawns or a raid boss takes
 
 **.disable**  
 
+:Usage: ``.disable``  
 :Description: Disables all of your current Pokemon and Raid boss notification subscriptions at once.  
 :Example: ``.disable``  
 
@@ -67,6 +83,7 @@ Commands to setup notifications if a certain Pokemon spawns or a raid boss takes
 
 **.info**  
 
+:Usage: ``.info``  
 :Description: Shows your current Pokemon and Raid boss notification subscriptions.  
 :Example: ``.info``  
 
@@ -74,5 +91,6 @@ Commands to setup notifications if a certain Pokemon spawns or a raid boss takes
 
 **.demo**  
 
+:Usage: ``.demo``  
 :Description: Displays a demos regarding how to use Brock.  
 :Example: ``.demo``  

@@ -6,6 +6,8 @@
     using DSharpPlus;
     using DSharpPlus.Entities;
 
+    using BrockBot.Utilities;
+
     public static class DiscordChannelExtensions
     {
         public static async Task IsDirectMessageSupported(this DiscordMessage message)
@@ -47,12 +49,26 @@
 
         public static async Task LockChannel(this DiscordChannel channel, DiscordRole role)
         {
-            await channel.GrantPermissions(role, Permissions.ReadMessageHistory | Permissions.AccessChannels, Permissions.SendMessages);
+            try
+            {
+                await channel.GrantPermissions(role, Permissions.ReadMessageHistory | Permissions.AccessChannels, Permissions.SendMessages);
+            }
+            catch (Exception ex)
+            {
+                Utils.LogError(ex);
+            }
         }
 
         public static async Task UnlockChannel(this DiscordChannel channel, DiscordRole role)
         {
-            await channel.GrantPermissions(role, Permissions.ReadMessageHistory | Permissions.AccessChannels | Permissions.SendMessages, Permissions.None);
+            try
+            {
+                await channel.GrantPermissions(role, Permissions.ReadMessageHistory | Permissions.AccessChannels | Permissions.SendMessages, Permissions.None);
+            }
+            catch (Exception ex)
+            {
+                Utils.LogError(ex);
+            }
         }
     }
 }

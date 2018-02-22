@@ -177,6 +177,15 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
         [JsonProperty("accuWeatherApiKey")]
         public string AccuWeatherApiKey { get; set; }
 
+        [JsonProperty("giveawayChannelId")]
+        public ulong GiveawayChannelId { get; set; }
+
+        [JsonProperty("giveaways")]
+        public List<Giveaway> Giveaways { get; set; }
+
+        [JsonProperty("votingPollsChannelId")]
+        public ulong VotingPollsChannelId { get; set; }
+
         /// <summary>
         /// Gets the config full config file path.
         /// </summary>
@@ -192,12 +201,6 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
                 );
             }
         }
-
-        [JsonProperty("giveawayChannelId")]
-        public ulong GiveawayChannelId { get; set; }
-
-        [JsonProperty("giveaways")]
-        public List<Giveaway> Giveaways { get; set; }
 
         #endregion
 
@@ -240,6 +243,7 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
             WebHookPort = 8008;
             WelcomeMessage = DefaultWelcomeMessage;
             SponsoredRaids = new List<SponsoredRaidsConfig>();
+            Supporters = new Dictionary<ulong, Donator>();
             RaidLobbies = new RaidLobbyConfig();
             TwitterUpdates = new TwitterUpdatesConfig();
             Advertisement = new AdvertisementConfig();
@@ -251,9 +255,11 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
             var lines = File.ReadAllLines(raidsFileName);
             foreach (var line in lines)
             {
-                if (!RaidBosses.Contains(Convert.ToUInt32(line)))
+                if (!uint.TryParse(line, out uint bossId)) continue;
+
+                if (!RaidBosses.Contains(bossId))
                 {
-                    RaidBosses.Add(Convert.ToUInt32(line));
+                    RaidBosses.Add(bossId);
                 }
             }
         }
@@ -371,6 +377,8 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
 
         [JsonProperty("winner")]
         public ulong Winner { get; set; }
+
+        public DateTime StartTime { get; set; }
 
         [JsonProperty("started")]
         public bool Started { get; set; }

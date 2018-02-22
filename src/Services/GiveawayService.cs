@@ -11,11 +11,24 @@
 
     public class GiveawayService
     {
+        #region Constants
+
+        private const int MinPokemon = 1;
+        private const int MaxPokemon = 387;
+
+        #endregion
+
+        #region Variables
+
         private readonly DiscordClient _client;
         private readonly ulong _giveawayChannelId;
         private readonly Timer _timer;
         private readonly Config _config;
         private uint _pokemonId;
+
+        #endregion
+
+        #region Constructor
 
         public GiveawayService(DiscordClient client, ulong giveawayChannelId, Config config)
         {
@@ -27,34 +40,56 @@
             _timer.Elapsed += OnElapsed;
         }
 
-        public void Start(DateTime startTime)
+        #endregion
+
+        #region Public Methods
+
+        public void Start(DateTime startTime, uint pokeId = 0)
         {
             _config.Giveaways.Clear();
 
-            _pokemonId = (uint)BrockBot.Utilities.Utils.RandomInt(1, 387);
-            while (_config.Giveaways.Exists(x => x.PokemonId == _pokemonId))
+            if (pokeId == 0)
             {
-                _pokemonId = (uint)BrockBot.Utilities.Utils.RandomInt(1, 387);
+                _pokemonId = (uint)BrockBot.Utilities.Utils.RandomInt(MinPokemon, MaxPokemon);
+                while (_config.Giveaways.Exists(x => x.PokemonId == _pokemonId))
+                {
+                    _pokemonId = (uint)BrockBot.Utilities.Utils.RandomInt(MinPokemon, MaxPokemon);
+                }
+            }
+            else
+            {
+                _pokemonId = pokeId;
             }
 
             Console.WriteLine($"Pokemon to guess is {_pokemonId}");
             File.AppendAllText("giveaway_answers.txt", $"Pokemon to guess is {_pokemonId}\r\n");
 
-            _config.Giveaways.Add(new Giveaway { PokemonId = _pokemonId });
+            if (_config.Giveaways.Exists(x => x.PokemonId == _pokemonId && x.StartTime == startTime))
+            {
+                Console.WriteLine($"Giveaway with pokemon id {_pokemonId} and start time {startTime} already exists.");
+                return;
+            }
 
             if (!_timer.Enabled)
             {
                 _timer.Interval = startTime.Subtract(DateTime.Now).TotalMilliseconds - TimeSpan.FromSeconds(10).TotalMilliseconds;
                 _timer.Start();
             }
+
+            _config.Giveaways.Add(new Giveaway { PokemonId = _pokemonId, StartTime = startTime });
+            _config.Save();
         }
+
+        #endregion
+
+        #region Private Methods
 
         private async void OnElapsed(object sender, ElapsedEventArgs e)
         {
             var channel = await _client.GetChannel(_giveawayChannelId);
             if (channel == null)
             {
-                Console.WriteLine("Failed to find channel.");
+                Console.WriteLine("ERROR: Failed to find giveaway channel, aborting...");
                 return;
             }
 
@@ -105,8 +140,6 @@
 
             Console.WriteLine("Channel is unlocked, GO!");
             await channel.SendMessageAsync("Channel is unlocked, GO!");
-            //TODO: Change start message.
-            //TODO: Display rules.
 
             if (_config.Giveaways.Exists(x => x.PokemonId == _pokemonId))
             {
@@ -117,5 +150,7 @@
             _timer.Stop();
             _timer.Dispose();
         }
+
+        #endregion
     }
 }

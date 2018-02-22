@@ -104,6 +104,8 @@
 
         public static async Task<bool> IsSupporterStatusExpired(this DiscordClient client, Config config, ulong userId)
         {
+            if (client == null) return false;
+
             var user = await client.GetUser(userId);
             if (user == null)
             {
@@ -118,9 +120,8 @@
             }
 
             var supporter = config.Supporters[userId];
-            var diff = DateTime.Now.Subtract(supporter.DateDonated);
-
-            return diff.Days > 0 || diff.Hours > 0;
+            var diff = DateTime.Now > supporter.DateDonated.AddDays(30);
+            return diff;
         }
     }
 }

@@ -175,6 +175,12 @@
                     }
                 }
 
+                if (IsCommonPokemon(pokeId) && iv < 97)
+                {
+                    await message.RespondAsync($"{message.Author.Mention} {pokeId} is a common type Pokemon and cannot be subscribed to for notifications unless the IV is set to at least 97% or higher.");
+                    continue;
+                }
+
                 //var pokeId = Convert.ToUInt32(arg);
                 if (!_db.Pokemon.ContainsKey(pokeId.ToString()))
                 {
@@ -230,6 +236,61 @@
                     ? $" {message.Author.Mention} is already subscribed to **{string.Join("**, **", alreadySubscribed)}** notifications with a minimum IV of {iv}%{(command.Args.Count > 2 ? $" and a minimum level of {lvl}" : null)}."
                     : string.Empty)
             );
+        }
+
+        private bool IsCommonPokemon(uint pokeId)
+        {
+            var commonPokemon = new List<uint>
+            {
+                10, //Caterpie
+                13, //Weedle
+                16, //Pidgey
+                17, //Pidgeotto
+                19, //Rattata
+                20, //Raticate
+                21, //Spearow
+                23, //Ekans
+                27, //Sandshrew
+                29, //Nidoran Female
+                32, //Nidoran Male
+                41, //Zubat
+                46, //Paras
+                48, //Venonat
+                50, //Diglett
+                52, //Meowth
+                104, //Cubone
+                133, //Eevee
+                161, //Sentret
+                163, //Noothoot
+                165, //Ledyba
+                167, //Spinarak
+                177, //Natu
+                187, //Hoppip
+                191, //Sunkern
+                193, //Yanma
+                //194, //Wooper
+                198, //Murkrow
+                209, //Snubbull
+                228, //Houndour
+                261, //Poochyena
+                263, //Zigzagoon
+                265, //Wurmple
+                273, //Seedot
+                276, //Taillow
+                293, //Whismur
+                300, //Skitty
+                307, //Meditite
+                309, //Electrike
+                315, //Roselia
+                316, //Gulpin
+                322, //Numel
+                325, //Spoink
+                331, //Cacnea
+                333, //Swablu
+                363, //Spheal
+
+            };
+            return commonPokemon.Contains(pokeId);
         }
     }
 }

@@ -92,7 +92,7 @@
                 {
                     if (!_config.CityRoles.Exists(x => string.Compare(city, x, true) == 0))
                     {
-                        await message.RespondAsync($"{message.Author.Mention} has entered an incorrect city name, please enter one of the following: {(string.Join(",", _config.CityRoles))}, or {FeedAll}.");
+                        await message.RespondAsync($"{message.Author.Mention} has entered an incorrect city name, please enter one or more of the following: {(string.Join(",", _config.CityRoles))}, or {FeedAll}.");
                         continue;
                     }
 
@@ -116,7 +116,7 @@
 
                 if (assigned.Count == 0 && alreadyAssigned.Count == 0)
                 {
-                    await message.RespondAsync($"{message.Author.Mention} you did not provide valid values that I could recognize.");
+                    //await message.RespondAsync($"{message.Author.Mention} you did not provide valid values that I could recognize.");
                     return;
                 }
 
