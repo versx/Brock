@@ -9,7 +9,7 @@
 
     using BrockBot.Data;
     using BrockBot.Data.Models;
-    using BrockBot.Net;
+    using BrockBot.Extensions;
 
     [Command(
         Categories.General,
@@ -110,14 +110,14 @@
             var weaknesses = new List<string>();
             foreach (var type in types.Split('/'))
             {
-                foreach (var strength in Helpers.GetStrengths(type))
+                foreach (var strength in PokemonExtensions.GetStrengths(type))
                 {
                     if (!strengths.Contains(strength))
                     {
                         strengths.Add(strength);
                     }
                 }
-                foreach (var weakness in Helpers.GetWeaknesses(type))
+                foreach (var weakness in PokemonExtensions.GetWeaknesses(type))
                 {
                     if (!weaknesses.Contains(weakness))
                     {

@@ -101,16 +101,14 @@
             {
                 if (string.IsNullOrEmpty(data)) return;
 
-                //File.AppendAllText("debug.txt", data + Environment.NewLine);
-
-                //Log("Request: {0}", data);
-                dynamic obj = JsonConvert.DeserializeObject(data);
+                var obj = JsonConvert.DeserializeObject<dynamic>(data);
                 if (obj == null) return;
 
                 foreach (dynamic part in obj)
                 {
                     string type = Convert.ToString(part["type"]);
                     dynamic message = part["message"];
+
                     switch (type)
                     {
                         case "pokemon":
@@ -123,7 +121,7 @@
                         //case "gym_details":
                         //    ParseGymInfo(message);
                         //    break;
-                        case "egg":
+                        //case "egg":
                         case "raid":
                             ParseRaid(message);
                             break;
@@ -179,22 +177,23 @@
 
             try
             {
-                int pokeId = Convert.ToInt32(Convert.ToString(message["pokemon_id"]));
-                int secondsUntilDespawn = Convert.ToInt32(Convert.ToString(message["seconds_until_despawn"]));
-                long disappearTime = Convert.ToInt64(Convert.ToString(message["disappear_time"]));
-                string cp = Convert.ToString(message["cp"] ?? "?");
-                string stamina = Convert.ToString(message["individual_stamina"] ?? "?");
-                string attack = Convert.ToString(message["individual_attack"] ?? "?");
-                string defense = Convert.ToString(message["individual_defense"] ?? "?");
-                string gender = Convert.ToString(message["gender"] ?? "?");
-                double latitude = Convert.ToDouble(Convert.ToString(message["latitude"]));
-                double longitude = Convert.ToDouble(Convert.ToString(message["longitude"]));
-                string level = Convert.ToString(message["pokemon_level"] ?? "?");
-                string move1 = Convert.ToString(message["move_1"] ?? "?");
-                string move2 = Convert.ToString(message["move_2"] ?? "?");
-                string height = Convert.ToString(message["height"] ?? "?");
-                string weight = Convert.ToString(message["weight"] ?? "?");
-                bool verified = Convert.ToBoolean(Convert.ToString(message["verified"]));
+                var pokeId = Convert.ToInt32(Convert.ToString(message["pokemon_id"]));
+                var secondsUntilDespawn = Convert.ToInt32(Convert.ToString(message["seconds_until_despawn"]));
+                var disappearTime = Convert.ToInt64(Convert.ToString(message["disappear_time"]));
+                var cp = Convert.ToString(message["cp"] ?? "?");
+                var stamina = Convert.ToString(message["individual_stamina"] ?? "?");
+                var attack = Convert.ToString(message["individual_attack"] ?? "?");
+                var defense = Convert.ToString(message["individual_defense"] ?? "?");
+                var gender = Convert.ToString(message["gender"] ?? "?");
+                var latitude = Convert.ToDouble(Convert.ToString(message["latitude"]));
+                var longitude = Convert.ToDouble(Convert.ToString(message["longitude"]));
+                var level = Convert.ToString(message["pokemon_level"] ?? "?");
+                var move1 = Convert.ToString(message["move_1"] ?? "?");
+                var move2 = Convert.ToString(message["move_2"] ?? "?");
+                var height = Convert.ToString(message["height"] ?? "?");
+                var weight = Convert.ToString(message["weight"] ?? "?");
+                //var verified = Convert.ToBoolean(Convert.ToString(message["verified"]));
+                var formId = Convert.ToString(message["form"]);
 
                 var iv = "?";
                 if (!string.IsNullOrEmpty(stamina) && stamina != "?" &&
@@ -215,23 +214,6 @@
 
                 var pokeGender = (PokemonGender)Convert.ToInt32(gender);
 
-                //Log($"Pokemon Id: {pokeId}");
-                //Log($"Seconds Until Despawn: {TimeSpan.FromSeconds(secondsUntilDespawn)}");
-                //Log($"Disappear Time: {new DateTime(TimeSpan.FromMilliseconds(disappearTime).Ticks).ToLongTimeString()}");
-                //Log($"CP: {cp}");
-                //Log($"IV: {iv}");
-                //Log($"Stamina: {stamina}");
-                //Log($"Attack: {attack}");
-                //Log($"Defense: {defense}");
-                //Log($"Gender: {gender}");
-                //Log($"Level: {playerLevel}");
-                //Log($"Location: {latitude},{longitude}");
-                //Log($"Quick Move: {move1}");
-                //Log($"Charge Move: {move2}");
-                //Log($"Height: {height}");
-                //Log($"Weight: {weight}");
-                //Log($"Verified TTH: {verified}");
-
                 var pokemon = new PokemonData
                 (
                     pokeId,
@@ -248,13 +230,11 @@
                     move2,
                     height,
                     weight,
-                    Utils.FromUnix(disappearTime), 
-                    TimeSpan.FromSeconds(secondsUntilDespawn)
+                    Utils.FromUnix(disappearTime),
+                    TimeSpan.FromSeconds(secondsUntilDespawn),
+                    formId
                 );
                 OnPokemonReceived(pokemon);
-
-                //var embed = BuildEmbedPokemon(pokemon);//pokeId, cp, stamina, attack, defense, playerLevel, gender, latitude, longitude, new DateTime(TimeSpan.FromMilliseconds(disappearTime).Ticks), TimeSpan.FromSeconds(secondsUntilDespawn));
-                //await SendMessage(wh, string.Empty, embed);
             }
             catch (Exception ex)
             {
@@ -281,35 +261,24 @@
                 //cp | The raid boss’s CP | 42753 |
                 //move_1 | The raid boss’s quick move | 274 |
                 //move_2 | The raid boss’s charge move | 275 |
-                string gymId = Convert.ToString(message["gym_id"]);
-                double latitude = Convert.ToDouble(Convert.ToString(message["latitude"]));
-                double longitude = Convert.ToDouble(Convert.ToString(message["longitude"]));
-                long spawn = Convert.ToInt64(Convert.ToString(message["spawn"]));
-                long start = Convert.ToInt64(Convert.ToString(message["start"]));//"raid_begin"]));
-                long end = Convert.ToInt64(Convert.ToString(message["end"]));//"raid_end"]));
-                string level = Convert.ToString(message["level"] ?? "?");
 
                 if (message["pokemon_id"] == null)
                 {
                     Console.WriteLine("Raid Egg found, skipping...");
                     return;
                 }
-                int pokemonId = Convert.ToInt32(Convert.ToString(message["pokemon_id"] ?? 0));
-                string cp = Convert.ToString(message["cp"] ?? "?");
-                string move1 = Convert.ToString(message["move_1"] ?? "?");
-                string move2 = Convert.ToString(message["move_2"] ?? "?");
 
-                //Log($"Gym Id: {gymId}");
-                //Log($"Latitude: {latitude}");
-                //Log($"Longitude: {longitude}");
-                //Log($"Spawn Time: {new DateTime(spawn)}");
-                //Log($"Start Time: {new DateTime(start)}");
-                //Log($"End Time: {new DateTime(end)}");
-                //Log($"Level: {level}");
-                //Log($"Pokemon Id: {pokemonId}");
-                //Log($"CP: {cp}");
-                //Log($"Quick Move: {move1}");
-                //Log($"Charge Move: {move2}");
+                var gymId = Convert.ToString(message["gym_id"]);
+                var latitude = Convert.ToDouble(Convert.ToString(message["latitude"]));
+                var longitude = Convert.ToDouble(Convert.ToString(message["longitude"]));
+                var spawn = Convert.ToInt64(Convert.ToString(message["spawn"]));
+                var start = Convert.ToInt64(Convert.ToString(message["start"]));//"raid_begin"]));
+                var end = Convert.ToInt64(Convert.ToString(message["end"]));//"raid_end"]));
+                var level = Convert.ToString(message["level"] ?? "?");
+                var pokemonId = Convert.ToInt32(Convert.ToString(message["pokemon_id"] ?? 0));
+                var cp = Convert.ToString(message["cp"] ?? "?");
+                var move1 = Convert.ToString(message["move_1"] ?? "?");
+                var move2 = Convert.ToString(message["move_2"] ?? "?");
 
                 if (pokemonId == 0)
                 {

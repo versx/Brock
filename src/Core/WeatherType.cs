@@ -6,6 +6,7 @@
         Cloudy,
         PartlyCloudy,
         Windy,
-        Raining
+        Raining,
+        Event
     }
 }

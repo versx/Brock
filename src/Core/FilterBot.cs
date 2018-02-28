@@ -15,6 +15,7 @@
     using BrockBot.Serialization;
     using BrockBot.Services;
     using BrockBot.Services.Alarms;
+    using BrockBot.Services.Notifications;
     using BrockBot.Services.RaidLobby;
     using BrockBot.Utilities;
 
@@ -28,9 +29,11 @@
     //TODO: Fix new geofence lookup, Upland picked up as Montclair.
 
     //TODO: Add .cancel-giveaway command.
-    //TODO: Create .supporter @mention/userId <date> <days> command and add them to supporters list.
     //TODO: Notify user when supporter status is about to end.
     //TODO: Fix 10 min-> 5 min raid reaction issue.
+    //TODO: Fix double notification.
+    //TODO: Ignore user subscriptions during community day events and only send the event pokemon with 90%+ IV.
+    //TODO: Add deoxys forms
 
     /**PokeAlarm Alternative Logic
      *******************************
@@ -126,7 +129,7 @@
             _reminderSvc = new ReminderService(_client, _db, _logger);
             _notificationProcessor = new NotificationProcessor(_client, _db, _config, _logger);
             _lobbyManager = new RaidLobbyManager(_client, _config, _logger);
-            _weatherSvc = new WeatherService(_config.AccuWeatherApiKey, _logger);
+            _weatherSvc = new WeatherService(/*_config.AccuWeatherApiKey*/_notificationProcessor.GeofenceSvc, _logger);
 
             //LoadAlarms(Path.Combine(Directory.GetCurrentDirectory(), DefaultAlarmsFileName));
         }
@@ -141,16 +144,16 @@
             if (_notificationProcessor == null) return;
             if (e.Pokemon == null) return;
 
-//            try
-//            {
-//#pragma warning disable RECS0165
-//                new System.Threading.Thread(async x => await _notificationProcessor.ProcessAlarms(e.Pokemon, Alarms)) { IsBackground = true }.Start();
-//#pragma warning restore RECS0165
-//            }
-//            catch (Exception ex)
-//            {
-//                _logger.Error(ex);
-//            }
+            //            try
+            //            {
+            //#pragma warning disable RECS0165
+            //                new System.Threading.Thread(async x => await _notificationProcessor.ProcessAlarms(e.Pokemon, Alarms)) { IsBackground = true }.Start();
+            //#pragma warning restore RECS0165
+            //            }
+            //            catch (Exception ex)
+            //            {
+            //                _logger.Error(ex);
+            //            }
 
             try
             {
@@ -265,7 +268,7 @@
                     var giveawaysChannel = await _client.GetChannel(_config.AdminCommandsChannelId);
                     if (giveawaysChannel == null)
                     {
-                        _logger.Error($"Failed to get giveaways channel with id {0}.");
+                        _logger.Error($"Failed to get giveaways channel with id {_config.AdminCommandsChannelId}.");
                         return;
                     }
 
@@ -293,7 +296,7 @@
             }
             if (e.Message.Channel.Id == _config.CommandsChannelId ||
                 e.Message.Channel.Id == _config.AdminCommandsChannelId)// ||
-                     //_db.Lobbies.Exists(x => string.Compare(x.LobbyName, e.Message.Channel.Name, true) == 0))
+                                                                       //_db.Lobbies.Exists(x => string.Compare(x.LobbyName, e.Message.Channel.Name, true) == 0))
             {
                 await ParseCommand(e.Message);
             }
@@ -691,6 +694,9 @@
 
         private async Task CheckSupporterStatus()
         {
+            var owner = await _client.GetUser(_config.OwnerId);
+            if (owner == null) return;
+
             foreach (var guild in _client.Guilds)
             {
                 foreach (var member in guild.Value.Members)
@@ -699,21 +705,23 @@
 
                     if (!await _client.IsSupporterStatusExpired(_config, member.Id))
 
-                    _logger.Debug($"Removing supporter role from user {member.Id} because their time has expired...");
+                        _logger.Debug($"Removing supporter role from user {member.Id} because their time has expired...");
 
-                    if (_db.Subscriptions.Exists(x => x.UserId == member.Id))
-                    {
-                        _db.Subscriptions.Find(x => x.UserId == member.Id).Enabled = false;
-                        _db.Save();
+                    await _client.SendDirectMessage(owner, $"{member.Mention} (Alias: {member.Username}, Id: {member.Id}) supportor status has expired, please remove their role.", null);
 
-                        _logger.Debug($"Disabled Pokemon and Raid notifications for user {member.Username} ({member.Id}) because their subscription has expired.");
-                    }
+                    //if (_db.Subscriptions.Exists(x => x.UserId == member.Id))
+                    //{
+                    //    _db.Subscriptions.Find(x => x.UserId == member.Id).Enabled = false;
+                    //    _db.Save();
 
-                    if (!await _client.RemoveRole(member.Id, guild.Key, _config.SupporterRoleId))
-                    {
-                        _logger.Error($"Failed to remove supporter role from user {member.Id}.");
-                        continue;
-                    }
+                    //    _logger.Debug($"Disabled Pokemon and Raid notifications for user {member.Username} ({member.Id}) because their subscription has expired.");
+                    //}
+
+                    //if (!await _client.RemoveRole(member.Id, guild.Key, _config.SupporterRoleId))
+                    //{
+                    //    _logger.Error($"Failed to remove supporter role from user {member.Id}.");
+                    //    continue;
+                    //}
 
                     _logger.Debug($"Successfully removed supporter role from user {member.Id}.");
                 }
@@ -1070,313 +1078,5 @@
         //}
 
         //#endregion
-    }
-
-    public class Helpers
-    {
-        private readonly Database _db;
-
-        private static double[] cpMultipliers =
-        {
-            0.094, 0.16639787, 0.21573247, 0.25572005, 0.29024988,
-            0.3210876, 0.34921268, 0.37523559, 0.39956728, 0.42250001,
-            0.44310755, 0.46279839, 0.48168495, 0.49985844, 0.51739395,
-            0.53435433, 0.55079269, 0.56675452, 0.58227891, 0.59740001,
-            0.61215729, 0.62656713, 0.64065295, 0.65443563, 0.667934,
-            0.68116492, 0.69414365, 0.70688421, 0.71939909, 0.7317,
-            0.73776948, 0.74378943, 0.74976104, 0.75568551, 0.76156384,
-            0.76739717, 0.7731865, 0.77893275, 0.78463697, 0.79030001
-        };
-
-        public Helpers(Database db)
-        {
-            _db = db;
-        }
-
-        public static uint PokemonIdFromName(IDatabase db, string name)
-        {
-            foreach (var p in db.Pokemon)
-            {
-                if (p.Value.Name.ToLower().Contains(name.ToLower()))
-                {
-                    return Convert.ToUInt32(p.Key);
-                }
-            }
-
-            return 0;
-        }
-
-        public static string GetPokemonGender(PokemonGender gender)
-        {
-            switch (gender)
-            {
-                case PokemonGender.Male:
-                    return "♂";//\u2642
-                case PokemonGender.Female:
-                    return "♀";//\u2640
-                default:
-                    return "⚲";//?
-
-            }
-        }
-
-        public string GetSize(IDatabase db, int id, float height, float weight)
-        {
-            if (!db.Pokemon.ContainsKey(id.ToString())) return string.Empty;
-
-            var stats = db.Pokemon[id.ToString()];
-            float weightRatio = weight / (float)stats.BaseStats.Weight;
-            float heightRatio = height / (float)stats.BaseStats.Height;
-            float size = heightRatio + weightRatio;
-
-            if (size < 1.5) return "tiny";
-            if (size <= 1.75) return "small";
-            if (size < 2.25) return "normal";
-            if (size <= 2.5) return "large";
-            return "big";
-        }
-
-        public int MaxCpAtLevel(int id, int level)
-        {
-            double multiplier = cpMultipliers[level - 1];
-            double attack = (BaseAtk(id) + 15) * multiplier;
-            double defense = (BaseDef(id) + 15) * multiplier;
-            double stamina = (BaseSta(id) + 15) * multiplier;
-            return (int)Math.Max(10, Math.Floor(Math.Sqrt(attack * attack * defense * stamina) / 10));
-        }
-
-        public int GetLevel(double cpModifier)
-        {
-            double unRoundedLevel;
-
-            if (cpModifier < 0.734)
-            {
-                unRoundedLevel = (58.35178527 * cpModifier * cpModifier - 2.838007664 * cpModifier + 0.8539209906);
-            }
-            else
-            {
-                unRoundedLevel = 171.0112688 * cpModifier - 95.20425243;
-            }
-
-            return (int)Math.Round(unRoundedLevel);
-        }
-
-        public int GetRaidBossCp(int bossId, int raidLevel)
-        {
-            int stamina = 600;
-
-            switch (raidLevel)
-            {
-                case 1:
-                    stamina = 600;
-                    break;
-                case 2:
-                    stamina = 1800;
-                    break;
-                case 3:
-                    stamina = 3000;
-                    break;
-                case 4:
-                    stamina = 7500;
-                    break;
-                case 5:
-                    stamina = 12500;
-                    break;
-            }
-            return (int)Math.Floor(((BaseAtk(bossId) + 15) * Math.Sqrt(BaseDef(bossId) + 15) * Math.Sqrt(stamina)) / 10);
-        }
-
-        private double BaseAtk(int id)
-        {
-            if (!_db.Pokemon.ContainsKey(id.ToString())) return 0;
-
-            var stats = _db.Pokemon[id.ToString()];
-
-            return stats.BaseStats.Attack;
-        }
-
-        private double BaseDef(int id)
-        {
-            if (!_db.Pokemon.ContainsKey(id.ToString())) return 0;
-
-            var stats = _db.Pokemon[id.ToString()];
-
-            return stats.BaseStats.Defense;
-        }
-
-        private double BaseSta(int id)
-        {
-            if (!_db.Pokemon.ContainsKey(id.ToString())) return 0;
-
-            var stats = _db.Pokemon[id.ToString()];
-
-            return stats.BaseStats.Stamina;
-        }
-
-        public static List<string> GetStrengths(string type)
-        {
-            var types = new string[0];
-            switch (type.ToLower())
-            {
-                case "normal":
-                    break;
-                case "fighting":
-                    types = new string[] { "Normal", "Rock", "Steel", "Ice", "Dark" };
-                    break;
-                case "flying":
-                    types = new string[] { "Fighting", "Bug", "Grass" };
-                    break;
-                case "poison":
-                    types = new string[] { "Grass", "Fairy" };
-                    break;
-                case "ground":
-                    types = new string[] { "Poison", "Rock", "Steel", "Fire", "Electric" };
-                    break;
-                case "rock":
-                    types = new string[] { "Flying", "Bug", "Fire", "Ice" };
-                    break;
-                case "bug":
-                    types = new string[] { "Grass", "Psychic", "Dark" };
-                    break;
-                case "ghost":
-                    types = new string[] { "Ghost", "Psychic" };
-                    break;
-                case "steel":
-                    types = new string[] { "Rock", "Ice" };
-                    break;
-                case "fire":
-                    types = new string[] { "Bug", "Steel", "Grass", "Ice" };
-                    break;
-                case "water":
-                    types = new string[] { "Ground", "Rock", "Fire" };
-                    break;
-                case "grass":
-                    types = new string[] { "Ground", "Rock", "Water" };
-                    break;
-                case "electric":
-                    types = new string[] { "Flying", "Water" };
-                    break;
-                case "psychic":
-                    types = new string[] { "Fighting", "Poison" };
-                    break;
-                case "ice":
-                    types = new string[] { "Flying", "Ground", "Grass", "Dragon" };
-                    break;
-                case "dragon":
-                    types = new string[] { "Dragon" };
-                    break;
-                case "dark":
-                    types = new string[] { "Ghost", "Psychic" };
-                    break;
-                case "fairy":
-                    types = new string[] { "Fighting", "Dragon", "Dark" };
-                    break;
-            }
-            return new List<string>(types);
-        }
-
-        public static List<string> GetWeaknesses(string type)
-        {
-            var types = new string[0];
-            switch (type.ToLower())
-            {
-                case "normal":
-                    types = new string[] { "Fighting" };
-                    break;
-                case "fighting":
-                    types = new string[] { "Flying", "Psychic", "Fairy" };
-                    break;
-                case "flying":
-                    types = new string[] { "Rock", "Electric", "Ice" };
-                    break;
-                case "poison":
-                    types = new string[] { "Ground", "Psychic" };
-                    break;
-                case "ground":
-                    types = new string[] { "Water", "Grass", "Ice" };
-                    break;
-                case "rock":
-                    types = new string[] { "Fighting", "Ground", "Steel", "Water", "Grass" };
-                    break;
-                case "bug":
-                    types = new string[] { "Flying", "Rock", "Fire" };
-                    break;
-                case "ghost":
-                    types = new string[] { "Ghost", "Dark" };
-                    break;
-                case "steel":
-                    types = new string[] { "Fighting", "Ground", "Fire" };
-                    break;
-                case "fire":
-                    types = new string[] { "Ground", "Rock", "Water" };
-                    break;
-                case "water":
-                    types = new string[] { "Grass", "Electric" };
-                    break;
-                case "grass":
-                    types = new string[] { "Flying", "Poison", "Bug", "Fire", "Ice" };
-                    break;
-                case "electric":
-                    types = new string[] { "Ground" };
-                    break;
-                case "psychic":
-                    types = new string[] { "Bug", "Ghost", "Dark" };
-                    break;
-                case "ice":
-                    types = new string[] { "Fighting", "Rock", "Steel", "Fire" };
-                    break;
-                case "dragon":
-                    types = new string[] { "Ice", "Dragon", "Fairy" };
-                    break;
-                case "dark":
-                    types = new string[] { "Fighting", "Bug", "Fairy" };
-                    break;
-                case "fairy":
-                    types = new string[] { "Poison", "Steel" };
-                    break;
-            }
-            return new List<string>(types);
-        }
-    }
-
-    public class SwitchWorkers : ICustomCommand
-    {
-        private readonly DiscordClient _client;
-        private readonly Config _config;
-        private readonly IEventLogger _logger;
-
-        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Admin;
-
-        public SwitchWorkers(DiscordClient client, Config config, IEventLogger logger)
-        {
-            _client = client;
-            _config = config;
-            _logger = logger;
-        }
-
-        public async Task Execute(DiscordMessage message, Command command)
-        {
-            await Task.CompletedTask;
-        }
-
-        private void SwitchWorkerAccounts(string city, int amount)
-        {
-            var goodWorkersFile = Path.Combine(_config.MapFolder, "..\\Accounts\\Accounts - PTC.txt");
-            if (!File.Exists(goodWorkersFile))
-            {
-                _logger.Error($"Failed to find workers file...");
-                return;
-            }
-
-            var goodWorkers = File.ReadAllLines(goodWorkersFile);
-            if (goodWorkers.Length == 0)
-            {
-                _logger.Error($"Failed to get list of workers, file is empty...");
-                return;
-            }
-
-            //TODO: Take workers from pool, write pool out.
-            //var goodCityWorkers = goodWorkers.
-        }
     }
 }

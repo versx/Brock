@@ -56,7 +56,7 @@
             if (!command.HasArgs) return;
             if (command.Args.Count != 1)
             {
-                await message.RespondAsync($"{message.Author.Mention} please provide correct values such as `{_config.CommandsPrefix}{command.Name} tyranitar`, `{_config.CommandsPrefix}{command.Name} Magikarp,Absol,Mawile`");
+                await message.RespondAsync($"{message.Author.Mention} please provide correct values such as `{_config.CommandsPrefix}{command.Name} tyranitar` or `{_config.CommandsPrefix}{command.Name} Magikarp,Absol,Mawile`");
                 return;
             }
 
@@ -101,7 +101,7 @@
 
             foreach (var arg in cmd.Split(','))
             {
-                var pokeId = Helpers.PokemonIdFromName(_db, arg);
+                var pokeId = _db.PokemonIdFromName(arg);
                 if (pokeId == 0)
                 {
                     await message.RespondAsync($"{message.Author.Mention}, failed to find raid Pokemon {arg}.");

@@ -61,7 +61,8 @@
             {
                 if (!await _client.IsSupporterOrHigher(message.Author.Id, _config))
                 {
-                    await message.RespondAsync($"{message.Author.Mention} please provide correct values such as `{_config.CommandsPrefix}{command.Name} 25 97` or `{_config.CommandsPrefix}{command.Name} 25,26,89,90 100`");
+                    //await message.RespondAsync($"{message.Author.Mention} please provide correct values such as `{_config.CommandsPrefix}{command.Name} pikachu 97` or `{_config.CommandsPrefix}{command.Name} 25,raichu,89,90 100`");
+                    await message.RespondAsync($"{message.Author.Mention} the minimum level parameter is only available to Supporter members, please consider donating to unlock this feature..");
                     return;
                 }
             }
@@ -72,7 +73,7 @@
             var cmd = command.Args[0];
             //var cpArg = command.Args.Count == 1 ? "0" : command.Args[1];
             var ivArg = command.Args.Count == 1 ? "0" : command.Args[1];
-            var lvlArg = command.Args.Count < 3 ? "L0" : command.Args[2];
+            var lvlArg = command.Args.Count < 3 ? "0" : command.Args[2];
 
             //if (!int.TryParse(cpArg, out int cp))
             //{
@@ -82,25 +83,32 @@
 
             if (!int.TryParse(ivArg, out int iv))
             {
-                await message.RespondAsync($"{message.Author.Mention}, '{ivArg}' is not a valid value for IV.");
+                await message.RespondAsync($"{message.Author.Mention} '{ivArg}' is not a valid IV value.");
                 return;
             }
 
+            //if (iv == 0)
+            //{
+            //    //TODO: Check if Pokemon is rare, in which allow a low IV otherwise restrict the IV to a high value.
+            //    await message.RespondAsync($"{message.Author.Mention} you must specify an IV higher than ");
+            //    return;
+            //}
+
             if (iv < 0 || iv > 100)
             {
-                await message.RespondAsync($"{message.Author.Mention}, {iv} must be within the range of 0-100.");
+                await message.RespondAsync($"{message.Author.Mention} {iv} must be within the range of 0-100.");
                 return;
             }
 
             if (!int.TryParse(lvlArg.Replace("l", null).Replace("L", null), out int lvl))
             {
-                await message.RespondAsync($"{message.Author.Mention}, '{lvlArg}' is not a valid value for Level.");
+                await message.RespondAsync($"{message.Author.Mention} '{lvlArg}' is not a valid value for Level.");
                 return;
             }
 
             if (lvl < 0 || lvl > 35)
             {
-                await message.RespondAsync($"{message.Author.Mention}, {lvl} must be within the range of 0-35.");
+                await message.RespondAsync($"{message.Author.Mention} {lvl} must be within the range of 0-35.");
                 return;
             }
 
@@ -165,12 +173,12 @@
             {
                 //TODO: Check if common type pokemon e.g. Pidgey, Ratatta, Spinarak 'they are beneath him and he refuses to discuss them further'
 
-                var pokeId = Helpers.PokemonIdFromName(_db, arg);
+                var pokeId = _db.PokemonIdFromName(arg);
                 if (pokeId == 0)
                 {
                     if (!uint.TryParse(arg, out pokeId))
                     {
-                        await message.RespondAsync($"{message.Author.Mention}, failed to lookup Pokemon by name and pokedex id using {arg}.");
+                        await message.RespondAsync($"{message.Author.Mention} failed to lookup Pokemon by name and pokedex id using {arg}.");
                         return;
                     }
                 }
@@ -184,7 +192,7 @@
                 //var pokeId = Convert.ToUInt32(arg);
                 if (!_db.Pokemon.ContainsKey(pokeId.ToString()))
                 {
-                    await message.RespondAsync($"{message.Author.Mention}, pokedex number {pokeId} is not a valid Pokemon id.");
+                    await message.RespondAsync($"{message.Author.Mention} {pokeId} is not a valid Pokemon id.");
                     continue;
                 }
 
@@ -233,7 +241,7 @@
                     ? $"{message.Author.Mention} has subscribed to **{string.Join("**, **", subscribed)}** notifications with a minimum IV of {iv}%{(command.Args.Count > 2 ? $" and a minimum level of {lvl}" : null)}."
                     : string.Empty) +
                 (alreadySubscribed.Count > 0
-                    ? $" {message.Author.Mention} is already subscribed to **{string.Join("**, **", alreadySubscribed)}** notifications with a minimum IV of {iv}%{(command.Args.Count > 2 ? $" and a minimum level of {lvl}" : null)}."
+                    ? $"\r\n{message.Author.Mention} is already subscribed to **{string.Join("**, **", alreadySubscribed)}** notifications with a minimum IV of {iv}%{(command.Args.Count > 2 ? $" and a minimum level of {lvl}" : null)}."
                     : string.Empty)
             );
         }
@@ -242,6 +250,9 @@
         {
             var commonPokemon = new List<uint>
             {
+                1, //Bulbasaur
+                4, //Charmander
+                //7, //Squirtle
                 10, //Caterpie
                 13, //Weedle
                 16, //Pidgey
@@ -250,6 +261,7 @@
                 20, //Raticate
                 21, //Spearow
                 23, //Ekans
+                25, //Pikachu
                 27, //Sandshrew
                 29, //Nidoran Female
                 32, //Nidoran Male
@@ -260,6 +272,8 @@
                 52, //Meowth
                 104, //Cubone
                 133, //Eevee
+                152, //Chikorita
+                155, //Cyndaquil
                 161, //Sentret
                 163, //Noothoot
                 165, //Ledyba
@@ -268,10 +282,12 @@
                 187, //Hoppip
                 191, //Sunkern
                 193, //Yanma
-                //194, //Wooper
+                194, //Wooper
                 198, //Murkrow
                 209, //Snubbull
                 228, //Houndour
+                252, //Treecko
+                255, //Torchic
                 261, //Poochyena
                 263, //Zigzagoon
                 265, //Wurmple

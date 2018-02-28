@@ -19,7 +19,7 @@
     {
         #region Constants
 
-        private const string WeatherIconUrl = "http://ver.sx/x/Brock/Weather/Icons/{0}-s.png";
+        //private const string WeatherIconUrl = "http://ver.sx/x/Brock/Weather/Icons/{0}-s.png";
 
         #endregion
 
@@ -65,7 +65,7 @@
                 return;
             }
 
-            var weather = _weatherSvc.GetWeatherCondition(city);
+            var weather = _weatherSvc.GetWeatherConditions(city);
             if (weather == null)
             {
                 await message.RespondAsync($"{message.Author.Mention} failed to retrieve the weather conditions for {city}.");
@@ -74,10 +74,21 @@
 
             var eb = new DiscordEmbedBuilder();
             eb.WithTitle($"{city} Weather Conditions");
-            eb.AddField("Weather", weather.WeatherText, true);
-            eb.AddField("Temperature", $"{weather.Temperature.Imperial.Value}°{weather.Temperature.Imperial.Unit}", true);
-            eb.WithImageUrl(string.Format(WeatherIconUrl, weather.WeatherIcon.ToString("D2")));
-            eb.WithUrl(weather.Link);
+            eb.AddField("Weather", weather.GameplayWeather.ToString().Replace("_", null), true);
+            eb.AddField("Time", weather.WorldTime.ToString(), true);
+            eb.AddField("Severity", weather.Severity.ToString(), true);
+            eb.AddField("Warning Weather", weather.WarnWeather.ToString(), true);
+            eb.AddField("Cloud Level", weather.CloudLevel.ToString(), true);
+            eb.AddField("Rain Level", weather.RainLevel.ToString(), true);
+            eb.AddField("Fog Level", weather.FogLevel.ToString(), true);
+            eb.AddField("Snow Level", weather.SnowLevel.ToString(), true);
+            eb.AddField("Wind Level", weather.WindLevel.ToString(), true);
+            eb.AddField("Wind Direction", weather.WindDirection.ToString(), true);
+            eb.AddField("Last Updated", weather.LastUpdated.ToString());
+            //eb.AddField("Weather", weather.WeatherText, true);
+            //eb.AddField("Temperature", $"{weather.Temperature.Imperial.Value}°{weather.Temperature.Imperial.Unit}", true);
+            //eb.WithImageUrl(string.Format(WeatherIconUrl, weather.WeatherIcon.ToString("D2")));
+            //eb.WithUrl(weather.Link);
 
             var embed = eb.Build();
             if (embed == null) return;

@@ -110,17 +110,17 @@
             if (user == null)
             {
                 Utils.LogError(new Exception($"User with id {userId} does not exist..."));
-                return true;
+                return false;
             }
 
             if (!config.Supporters.ContainsKey(userId))
             {
                 Utils.LogError(new Exception($"User with id {userId} does not exist in the supporters list..."));
-                return true;
+                return false;
             }
 
             var supporter = config.Supporters[userId];
-            var diff = DateTime.Now > supporter.DateDonated.AddDays(30);
+            var diff = DateTime.Now > supporter.DateDonated.AddDays(supporter.DaysAvailable);
             return diff;
         }
     }

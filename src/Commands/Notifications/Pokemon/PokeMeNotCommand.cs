@@ -9,6 +9,7 @@
 
     using BrockBot.Configuration;
     using BrockBot.Data;
+    using BrockBot.Extensions;
 
     //TODO: Add confirmation when deleting user subscriptions.
 
@@ -88,7 +89,7 @@
 
             foreach (var arg in cmd.Split(','))
             {
-                var pokeId = Helpers.PokemonIdFromName(_db, arg);
+                var pokeId = _db.PokemonIdFromName(arg);
                 if (pokeId == 0)
                 {
                     if (!uint.TryParse(arg, out pokeId))

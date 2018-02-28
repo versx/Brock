@@ -9,6 +9,7 @@
 
     using BrockBot.Configuration;
     using BrockBot.Data;
+    using BrockBot.Extensions;
 
     [Command(
         Categories.Notifications,
@@ -84,7 +85,7 @@
 
             foreach (var arg in cmd.Split(','))
             {
-                var pokeId = Helpers.PokemonIdFromName(_db, arg);
+                var pokeId = _db.PokemonIdFromName(arg);
                 if (pokeId == 0)
                 {
                     await message.RespondAsync($"{message.Author.Mention}, failed to find raid Pokemon {arg}.");

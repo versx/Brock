@@ -105,7 +105,8 @@
                 bot.RegisterCommand<SetCommand>();
                 bot.RegisterCommand<SayCommand>();
                 //bot.RegisterCommand<LeaveGuildCommand>();
-                bot.RegisterCommand<SwitchAccountsCommand>();
+                bot.RegisterCommand<SwitchWorkersCommand>();
+                bot.RegisterCommand<SwitchHighLevelCommand>();
                 bot.RegisterCommand<ReloadConfigCommand>();
                 bot.RegisterCommand<RestartCommand>();
                 bot.RegisterCommand<ShutdownCommand>();

@@ -54,7 +54,7 @@
 
             if (!(command.Args.Count == 1))
             {
-                await message.RespondAsync($"{message.Author.Mention} please provide correct values such as `{_config.CommandsPrefix}{command.Name} Upland`, `{_config.CommandsPrefix}{command.Name} EastLA,Whittier`");
+                await message.RespondAsync($"{message.Author.Mention} please provide correct values such as `{_config.CommandsPrefix}{command.Name} Upland` or `{_config.CommandsPrefix}{command.Name} EastLA,Whittier`");
                 return;
             }
 

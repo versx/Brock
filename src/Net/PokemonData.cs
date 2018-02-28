@@ -4,7 +4,9 @@
 
     public sealed class PokemonData
     {
-        public int PokemonId { get; }
+        #region Properties
+
+        public int Id { get; }
 
         public string CP { get; }
 
@@ -18,7 +20,7 @@
 
         public PokemonGender Gender { get; }
 
-        public string PlayerLevel { get; }
+        public string Level { get; }
 
         public double Latitude { get; }
 
@@ -36,16 +38,22 @@
 
         public TimeSpan SecondsLeft { get; }
 
-        public PokemonData(int pokemonId, string cp, string iv, string stamina, string attack, string defense, PokemonGender gender, string level, double lat, double lng, string move1, string move2, string height, string weight, DateTime despawn, TimeSpan secondsLeft)
+        public string FormId { get; }
+
+        #endregion
+
+        #region Constructor
+
+        public PokemonData(int id, string cp, string iv, string sta, string atk, string def, PokemonGender gender, string lvl, double lat, double lng, string move1, string move2, string height, string weight, DateTime despawn, TimeSpan secondsLeft, string formId = null)
         {
-            PokemonId = pokemonId;
+            Id = id;
             CP = cp;
             IV = iv;
-            Stamina = stamina;
-            Attack = attack;
-            Defense = defense;
+            Stamina = sta;
+            Attack = atk;
+            Defense = def;
             Gender = gender;
-            PlayerLevel = level;
+            Level = lvl;
             Latitude = lat;
             Longitude = lng;
             FastMove = move1;
@@ -54,6 +62,9 @@
             Weight = weight;
             DespawnTime = despawn;
             SecondsLeft = secondsLeft;
+            FormId = formId;
         }
+
+        #endregion
     }
 }

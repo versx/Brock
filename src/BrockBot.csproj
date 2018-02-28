@@ -119,18 +119,20 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Commands\Administrative\AssignRoleCommand.cs" />
+    <Compile Include="Commands\Administrative\Accounts\SwitchHighLevelCommand.cs" />
+    <Compile Include="Commands\Administrative\Accounts\SwitchWorkersCommand.cs" />
+    <Compile Include="Commands\Administrative\Roles\AssignRoleCommand.cs" />
     <Compile Include="Commands\Administrative\ReloadConfigCommand.cs" />
-    <Compile Include="Commands\Administrative\SwitchAccountsCommand.cs" />
+    <Compile Include="Commands\Administrative\SupporterCommand.cs" />
     <Compile Include="Commands\CustomCommands\AddCmdCommand.cs" />
     <Compile Include="Commands\Administrative\Twitter\AddTwitterCommand.cs" />
-    <Compile Include="Commands\Administrative\AssignRolesCommand.cs" />
+    <Compile Include="Commands\Administrative\Roles\AssignRolesCommand.cs" />
     <Compile Include="Commands\Administrative\Twitter\DeleteTwitterCommand.cs" />
     <Compile Include="Commands\Administrative\Twitter\EnableDisableTwitterCommand.cs" />
     <Compile Include="Commands\Administrative\LeaveGuildCommand.cs" />
     <Compile Include="Commands\Administrative\Twitter\ListTwitterCommand.cs" />
     <Compile Include="Commands\Administrative\SayCommand.cs" />
-    <Compile Include="Commands\Fun\GiveawayCommand.cs" />
+    <Compile Include="Commands\Administrative\Fun\GiveawayCommand.cs" />
     <Compile Include="Commands\General\GetWeatherCommand.cs" />
     <Compile Include="Commands\Moderator\SetEncounterListCommand.cs" />
     <Compile Include="Commands\General\CheckApiCommand.cs" />
@@ -139,8 +141,8 @@
     <Compile Include="Commands\General\ScanListCommand.cs" />
     <Compile Include="Commands\Moderator\AssignEliteCommand.cs" />
     <Compile Include="Commands\RaidLobbies\CreateRaidLobbyCommand.cs" />
-    <Compile Include="Commands\Administrative\CreateRolesCommand.cs" />
-    <Compile Include="Commands\Administrative\DeleteRolesCommand.cs" />
+    <Compile Include="Commands\Administrative\Roles\CreateRolesCommand.cs" />
+    <Compile Include="Commands\Administrative\Roles\DeleteRolesCommand.cs" />
     <Compile Include="Commands\CustomCommands\DelCmdCommand.cs" />
     <Compile Include="Commands\Notifications\Pokemon\DemoCommand.cs" />
     <Compile Include="Commands\General\DonateCommand.cs" />
@@ -196,6 +198,7 @@
     <Compile Include="Extensions\Extensions.cs" />
     <Compile Include="Extensions\HelpExtensions.cs" />
     <Compile Include="Extensions\IntegerExtensions.cs" />
+    <Compile Include="Extensions\PokemonExtensions.cs" />
     <Compile Include="Net\PokemonData.cs" />
     <Compile Include="Net\PokemonReceivedEventArgs.cs" />
     <Compile Include="Net\RaidData.cs" />
@@ -206,10 +209,12 @@
     <Compile Include="Services\Alarms\FilterObject.cs" />
     <Compile Include="Services\Alarms\FilterType.cs" />
     <Compile Include="Services\FeedMonitorService.cs" />
+    <Compile Include="Services\Filters.cs" />
     <Compile Include="Services\Geofence\Geofence.cs" />
     <Compile Include="Services\Geofence\GeofenceService.cs" />
     <Compile Include="Services\GiveawayService.cs" />
-    <Compile Include="Services\NotificationLimiter.cs" />
+    <Compile Include="Services\Notifications\NotificationBuilder.cs" />
+    <Compile Include="Services\Notifications\NotificationLimiter.cs" />
     <Compile Include="Services\RaidLobby\RaidLobbyEta.cs" />
     <Compile Include="Services\RaidLobby\RaidLobbyManager.cs" />
     <Compile Include="Services\RaidLobby\RaidLobbySettings.cs" />
@@ -242,7 +247,7 @@
     <Compile Include="Core\Command.cs" />
     <Compile Include="Serialization\JsonStringSerializer.cs" />
     <Compile Include="Serialization\XmlStringSerializer.cs" />
-    <Compile Include="Services\NotificationProcessor.cs" />
+    <Compile Include="Services\Notifications\NotificationProcessor.cs" />
     <Compile Include="Services\ReminderService.cs" />
     <Compile Include="Services\TaskManager.cs" />
     <Compile Include="Services\TweetService.cs" />

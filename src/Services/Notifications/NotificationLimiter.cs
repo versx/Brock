@@ -1,4 +1,4 @@
-﻿namespace BrockBot.Services
+﻿namespace BrockBot.Services.Notifications
 {
     using System;
 
