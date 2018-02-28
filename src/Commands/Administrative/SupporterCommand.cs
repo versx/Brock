@@ -22,7 +22,7 @@
         private readonly Config _config;
         private readonly IEventLogger _logger;
 
-        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Admin;
 
         public SupporterCommand(DiscordClient client, Config config, IEventLogger logger)
         {
