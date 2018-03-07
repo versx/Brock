@@ -173,7 +173,7 @@
     <Compile Include="Commands\RaidLobbies\RaidLobbyCancelCommand.cs" />
     <Compile Include="Commands\RaidLobbies\RaidLobbyCheckInCommand.cs" />
     <Compile Include="Commands\RaidLobbies\RaidLobbyOnTheWayCommand.cs" />
-    <Compile Include="Commands\Administrative\RestartCommand.cs" />
+    <Compile Include="Commands\Administrative\RebootCommand.cs" />
     <Compile Include="Commands\Administrative\ShutdownCommand.cs" />
     <Compile Include="Commands\Notifications\Pokemon\PokeMeCommand.cs" />
     <Compile Include="Commands\General\TeamsCommand.cs" />

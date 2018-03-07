@@ -52,28 +52,35 @@
             var msg = string.Empty;
             var started = new List<string>();
             var failed = new List<string>();
-            foreach (var cityName in feeds)
-            {
-                if (TaskManager.StartTask(cityName))
-                {
-                    started.Add(cityName);
-                }
-                else
-                {
-                    failed.Add(cityName);
-                    await message.RespondAsync($"{message.Author.Mention} failed to start feed {cityName}.");
-                }
-            }
 
-            await message.RespondAsync
-            (
-                (started.Count > 0
-                    ? $"{message.Author.Mention} started feed(s) **{string.Join("**, **", started)}**."
-                    : string.Empty) +
-                (failed.Count > 0
-                    ? $"\r\n{message.Author.Mention} failed to start feed(s) **{string.Join("**, **", failed)}**."
-                    : string.Empty)
-            );
+            try
+            {
+                foreach (var cityName in feeds)
+                {
+                    if (TaskManager.StartTask("RM " + cityName))
+                    {
+                        started.Add(cityName);
+                    }
+                    else
+                    {
+                        failed.Add(cityName);
+                    }
+                }
+
+                await message.RespondAsync
+                (
+                    (started.Count > 0
+                        ? $"{message.Author.Mention} started feed(s) **{string.Join("**, **", started)}**."
+                        : string.Empty) +
+                    (failed.Count > 0
+                        ? $"\r\n{message.Author.Mention} failed to start feed(s) **{string.Join("**, **", failed)}**."
+                        : string.Empty)
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex);
+            }
         }
     }
 }

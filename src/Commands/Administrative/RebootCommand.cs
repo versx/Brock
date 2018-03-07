@@ -13,10 +13,10 @@
     [Command(
         Categories.Administrative,
         "Restarts " + FilterBot.BotName + ".",
-        "\tExample: `.restart`",    
-        "restart"
+        "\tExample: `.reboot`",
+        "reboot"
     )]
-    public class RestartCommand : ICustomCommand
+    public class RebootCommand : ICustomCommand
     {
         private readonly DiscordClient _client;
         private readonly IDatabase _db;
@@ -29,7 +29,7 @@
 
         #region Constructor
 
-        public RestartCommand(DiscordClient client, IDatabase db)
+        public RebootCommand(DiscordClient client, IDatabase db)
         {
             _client = client;
             _db = db;

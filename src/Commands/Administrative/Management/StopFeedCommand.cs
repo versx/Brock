@@ -54,14 +54,13 @@
             var failed = new List<string>();
             foreach (var cityName in feeds)
             {
-                if (TaskManager.StopTask(cityName))
+                if (TaskManager.StopTask("RM " + cityName))
                 {
                     started.Add(cityName);
                 }
                 else
                 {
                     failed.Add(cityName);
-                    await message.RespondAsync($"{message.Author.Mention} failed to stop feed {cityName}.");
                 }
             }
 

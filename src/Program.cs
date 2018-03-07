@@ -101,6 +101,11 @@
                 bot.RegisterCommand<DeleteRolesCommand>();
                 bot.RegisterCommand<AssignRoleCommand>();
                 bot.RegisterCommand<AssignRolesCommand>();
+
+                bot.RegisterCommand<StartFeedCommand>();
+                bot.RegisterCommand<StopFeedCommand>();
+                bot.RegisterCommand<RestartFeedCommand>();
+
                 bot.RegisterCommand<UptimeCommand>();
                 bot.RegisterCommand<SetCommand>();
                 bot.RegisterCommand<SayCommand>();
@@ -108,7 +113,7 @@
                 bot.RegisterCommand<SwitchWorkersCommand>();
                 bot.RegisterCommand<SwitchHighLevelCommand>();
                 bot.RegisterCommand<ReloadConfigCommand>();
-                bot.RegisterCommand<RestartCommand>();
+                bot.RegisterCommand<RebootCommand>();
                 bot.RegisterCommand<ShutdownCommand>();
 
                 await bot.StartAsync();
@@ -152,6 +157,9 @@
             {
                 if (args.Name.Contains("Autofac")) return GetAssembly("Autofac");
                 else if (args.Name.Contains("DSharpPlus")) return GetAssembly("DSharpPlus");
+                else if (args.Name.Contains("Microsoft.Win32.Primitives")) return GetAssembly("Microsoft.Win32.Primitives");
+                else if (args.Name.Contains("Microsoft.Win32.TaskScheduler")) return GetAssembly("Microsoft.Win32.TaskScheduler");
+                else if (args.Name.Contains("netstandard")) return GetAssembly("netstandard");
                 else if (args.Name.Contains("Newtonsoft.Json")) return GetAssembly("Newtonsoft.Json");
                 else if (args.Name.Contains("Nito.AsyncEx.Context")) return GetAssembly("Nito.AsyncEx.Context");
                 else if (args.Name.Contains("Nito.AsyncEx.Tasks")) return GetAssembly("Nito.AsyncEx.Tasks");
