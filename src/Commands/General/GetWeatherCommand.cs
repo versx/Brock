@@ -7,6 +7,7 @@
     using DSharpPlus.Entities;
 
     using BrockBot.Configuration;
+    using BrockBot.Diagnostics;
     using BrockBot.Services;
 
     [Command(
@@ -27,6 +28,7 @@
 
         private readonly DiscordClient _client;
         private readonly Config _config;
+        private readonly IEventLogger _logger;
         private readonly IWeatherService _weatherSvc;
 
         #endregion
@@ -39,10 +41,11 @@
 
         #region Constructor
 
-        public GetWeatherCommand(DiscordClient client, Config config, IWeatherService weatherSvc)
+        public GetWeatherCommand(DiscordClient client, Config config, IEventLogger logger, IWeatherService weatherSvc)
         {
             _client = client;
             _config = config;
+            _logger = logger;
             _weatherSvc = weatherSvc;
         }
 
@@ -65,35 +68,42 @@
                 return;
             }
 
-            var weather = _weatherSvc.GetWeatherConditions(city);
-            if (weather == null)
+            try
             {
-                await message.RespondAsync($"{message.Author.Mention} failed to retrieve the weather conditions for {city}.");
-                return;
+                var weather = _weatherSvc.GetWeatherConditions(city);
+                if (weather == null)
+                {
+                    await message.RespondAsync($"{message.Author.Mention} failed to retrieve the weather conditions for {city}.");
+                    return;
+                }
+
+                var eb = new DiscordEmbedBuilder();
+                eb.WithTitle($"{city} Weather Conditions");
+                eb.AddField("Weather", weather.GameplayWeather.ToString().Replace("_", null), true);
+                eb.AddField("Time", weather.WorldTime.ToString(), true);
+                eb.AddField("Severity", weather.Severity.ToString(), true);
+                eb.AddField("Warning Weather", weather.WarnWeather.ToString(), true);
+                eb.AddField("Cloud Level", weather.CloudLevel.ToString(), true);
+                eb.AddField("Rain Level", weather.RainLevel.ToString(), true);
+                eb.AddField("Fog Level", weather.FogLevel.ToString(), true);
+                eb.AddField("Snow Level", weather.SnowLevel.ToString(), true);
+                eb.AddField("Wind Level", weather.WindLevel.ToString(), true);
+                eb.AddField("Wind Direction", weather.WindDirection.ToString(), true);
+                eb.AddField("Last Updated", weather.LastUpdated.ToString());
+                //eb.AddField("Weather", weather.WeatherText, true);
+                //eb.AddField("Temperature", $"{weather.Temperature.Imperial.Value}°{weather.Temperature.Imperial.Unit}", true);
+                //eb.WithImageUrl(string.Format(WeatherIconUrl, weather.WeatherIcon.ToString("D2")));
+                //eb.WithUrl(weather.Link);
+
+                var embed = eb.Build();
+                if (embed == null) return;
+
+                await message.RespondAsync(string.Empty, false, embed);
             }
-
-            var eb = new DiscordEmbedBuilder();
-            eb.WithTitle($"{city} Weather Conditions");
-            eb.AddField("Weather", weather.GameplayWeather.ToString().Replace("_", null), true);
-            eb.AddField("Time", weather.WorldTime.ToString(), true);
-            eb.AddField("Severity", weather.Severity.ToString(), true);
-            eb.AddField("Warning Weather", weather.WarnWeather.ToString(), true);
-            eb.AddField("Cloud Level", weather.CloudLevel.ToString(), true);
-            eb.AddField("Rain Level", weather.RainLevel.ToString(), true);
-            eb.AddField("Fog Level", weather.FogLevel.ToString(), true);
-            eb.AddField("Snow Level", weather.SnowLevel.ToString(), true);
-            eb.AddField("Wind Level", weather.WindLevel.ToString(), true);
-            eb.AddField("Wind Direction", weather.WindDirection.ToString(), true);
-            eb.AddField("Last Updated", weather.LastUpdated.ToString());
-            //eb.AddField("Weather", weather.WeatherText, true);
-            //eb.AddField("Temperature", $"{weather.Temperature.Imperial.Value}°{weather.Temperature.Imperial.Unit}", true);
-            //eb.WithImageUrl(string.Format(WeatherIconUrl, weather.WeatherIcon.ToString("D2")));
-            //eb.WithUrl(weather.Link);
-
-            var embed = eb.Build();
-            if (embed == null) return;
-
-            await message.RespondAsync(string.Empty, false, embed);
+            catch (Exception ex)
+            {
+                _logger.Error(ex);
+            }
         }
 
         #endregion

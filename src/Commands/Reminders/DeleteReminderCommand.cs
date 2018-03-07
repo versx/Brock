@@ -76,7 +76,7 @@
                     return;
                 }
 
-                if (index == _db.Reminders[message.Author.Id].Count)
+                if (index == _db.Reminders[message.Author.Id].Count + 1)
                 {
                     await message.RespondAsync($"Action cancelled by user {message.Author.Mention}.");
                     return;

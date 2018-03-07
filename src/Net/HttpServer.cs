@@ -23,18 +23,12 @@
         #region Events
 
         public event EventHandler<PokemonReceivedEventArgs> PokemonReceived;
-
-        private void OnPokemonReceived(PokemonData pokemon)
-        {
-            PokemonReceived?.Invoke(this, new PokemonReceivedEventArgs(pokemon));
-        }
+		
+        private void OnPokemonReceived(PokemonData pokemon) => PokemonReceived?.Invoke(this, new PokemonReceivedEventArgs(pokemon));
 
         public event EventHandler<RaidReceivedEventArgs> RaidReceived;
-
-        private void OnRaidReceived(RaidData raid)
-        {
-            RaidReceived?.Invoke(this, new RaidReceivedEventArgs(raid));
-        }
+		
+        private void OnRaidReceived(RaidData raid) => RaidReceived?.Invoke(this, new RaidReceivedEventArgs(raid));
 
         #endregion
 

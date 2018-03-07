@@ -128,7 +128,7 @@
                 msg = $"**{user.Mention} Notification Settings:**\r\n";
                 msg += $"Enabled: **{(_db[author].Enabled ? "Yes" : "No")}**\r\n";
                 msg += $"Feed Zones: **{string.Join("**, **", feeds)}**\r\n";
-                msg += $"Pokemon Subscriptions: ({pokemon.Count}/{(isSupporter ? "Unlimited" : PokeMeCommand.MaxPokemonSubscriptions.ToString())} used)\r\n";
+                msg += $"Pokemon Subscriptions: ({pokemon.Count}/{(isSupporter ? "∞" : PokeMeCommand.MaxPokemonSubscriptions.ToString())} used)\r\n";
                 msg += "```";
 
                 if (exceedsLimits)

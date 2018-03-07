@@ -62,10 +62,10 @@
                 return;
             }
 
-            scanList.OrderBy(Convert.ToInt32);
+            var list = scanList.OrderBy(Convert.ToInt32);
             var pokemon = new List<string>();
 
-            foreach (var pkmn in scanList)
+            foreach (var pkmn in list)
             {
                 if (!_db.Pokemon.ContainsKey(pkmn)) continue;
 

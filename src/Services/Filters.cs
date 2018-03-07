@@ -116,8 +116,19 @@
         public bool MatchesGender(PokemonGender gender, PokemonGender desiredGender)
         {
             return gender == desiredGender ||
-                   (gender == PokemonGender.Unset ||
-                   gender == PokemonGender.Genderless);
+                   gender == PokemonGender.Unset ||
+                   gender == PokemonGender.Genderless;
+        }
+
+        public bool MatchesGender(PokemonGender gender, char desiredGender)
+        {
+            if (desiredGender == '*' || gender == PokemonGender.Genderless || gender == PokemonGender.Unset) return true;
+
+            if (desiredGender == 'm' && gender == PokemonGender.Male) return true;
+
+            if (desiredGender == 'f' && gender == PokemonGender.Female) return true;
+
+            return false;
         }
 
         public bool MatchesAttack(string atk, int minimumAtk)

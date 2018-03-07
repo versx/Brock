@@ -35,6 +35,13 @@
     //TODO: Ignore user subscriptions during community day events and only send the event pokemon with 90%+ IV.
     //TODO: Add deoxys forms
 
+    //TODO: .share command. Unique ids per Pokemon/raid message. (Brock needs to create the discord channel messages, PA alternative needs to mature.)
+
+    //TODO: Add despawn time to first line. (Discord)
+    //TODO: Suggest raid attackers.
+    //TODO: Lots more I can't remember right now. D:
+
+
     /**PokeAlarm Alternative Logic
      *******************************
      * Dictionary<string[city], List<AlarmObject>> to contain the feed alarm settings.

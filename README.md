@@ -14,81 +14,10 @@ Grant Brock the following Discord permissions:
 - Manage Messages (Required for Raid Lobbies and Advertisement Posting)
 - Read Message History (Required)
 
-### __Commands List Needs To Be Updated__
-### Usage
-**.team** - Assign yourself to a team role, available teams to join are the following: Valor, Mystic, or Instinct. You can only join one team at a time, type `.iam None` to leave a team.  
-	Example: `.team Valor`  
-	Example: `.team None`  
+### Documentation
+Documenation can be found at <http://brock.rtfd.io>  
 
-**.info** - Shows the your current Pokemon subscriptions and Raid sbuscriptions.  
-   Example: `.info`  
-  
-**.pokeme** - Subscribe to Pokemon notifications via pokedex number.  
-   Example: `.pokeme 147 0 96` (Subscribe to Dratini notifications at any CP level with a minimum IV of 96%)  
-   Example: `.pokeme 147` (Subscribes to Dratini notifications and uses 0 for the minimum CP and minimum IV values, any Dratini spawns will trigger the notification.)  
-   Example: `.pokeme 113,242,248` (Subscribe to the following Pokemon notifications with 0 as the minimum CP and minimum IV values.)  
-   
-**.pokemenot** - Unsubscribe from a single or multiple Pokemon notifications or even all subscribed Pokemon notifications.  
-   Example: `.pokemenot 149`  
-   Example: `.pokemenot 3,6,9,147,148,149`  
-   Example: `.pokemenot` (Removes all subscribed Pokemon notifications.)  
-   
-**.raidme** - Subscribe to Pokemon notifications via pokedex number.  
-   Example: `.raidme 147 0 96` (Subscribe to Dratini notifications at any CP level with a minimum IV of 96%)  
-   Example: `.raidme 147` (Subscribes to Dratini notifications and uses 0 for the minimum CP and minimum IV values, any Dratini spawns will trigger the notification.)  
-   Example: `.raidme 113,242,248` (Subscribe to the following Pokemon notifications with 0 as the minimum CP and minimum IV values.)  
-   
-**.raidmenot** - Unsubscribe from a single or multiple Raid notifications or even all subscribed Raid notifications.  
-   Example: `.raidmenot Magikarp`  
-   Example: `.raidmenot Absol,Tyranitar`  
-   Example: `.raidmenot` (Removes all subscribed Raid notifications.)  
-  
-**.feedme** - Assign yourself to a specific city feed's role.  
-   Example: `.feedme Upland`  
-   Example: `.feedme Upland,Ontario,Pomona,Families,Raids,Nests`  
-   Example: `.feedme all` (Assigns all available city feed roles to yourself.)  
-   
-**.feedmenot** - Unassign yourself from a specific city feed's role.  
-   Example: `.feedmenot Upland` (Unassign yourself from one specific city feed's role.)  
-   Example: `.feedmenot Upland,Ontario,Pomona,Families,Raids,Nests` (Unassign yourself from the specific city feed roles.)  
-   Example: `.feedmenot all` (Unassign yourself from all assigned city feed roles.)  
-   
-**.enable** - Activates the Pokemon and Raid notification subscriptions.  
-   Example: `.enable` (Enables all of your Pokemon and Raid notification subscriptions at once.)  
-   
-**.disable** - Deactivates the Pokemon and Raid notification subscriptions.
-   Example: `.disable` (Disables all of your Pokemon and Raid notification subscriptions at once.)  
-
-**.demo** - Demos how to use and setup Brock for notifications.  
-
-**.v**, **.ver**, or **.version** - Display the Brock's current version.  
-
-**.help** - Shows this help message.  
-
-
-**Raid Lobby System:**  
-
-**.lobby** - Creates a new raid lobby channel.  
-	Example: `.lobby Magikarp_4th 34234234234234`  
-	
-**.ontheway**, **.otw**, **.onmyway**, or **.omw** - Notifies people in the specified lobby that you are on the way with x amount of people and ETA.  
-	Example: `.onmyway Magikarp_4th 5mins 3` (Registers that you have 3 people including yourself on the way.)  
-	Example: `.otw Magikarp_4th 5mins` (Registers that you are by yourself on the way.)  
-	
-**.checkin** or **.here** - Checks you into the specified raid lobby notifying everyone that you have arrived to the raid location.  
-	Example: `.checkin Magikarp_4th`  
-
-**Custom Commands:**  
-	
-**Twitter Updates:**
-
-**Administration:**
-
-**.create\_roles** - Creates the required team roles to be assigned when users type the `.team <team>` commmand.  
-**.delete\_roles** - Deletes all team roles that Brock created.
-
-
-**For a fule list of available commands type `.help` in a direct message to Brock. I will update this more later will the full list.**
+**For a full list of available commands type `.help` in a direct message to Brock or visit <http://brock.rtfd.io>.**
 
 ### Available Text Replacement Variables
 

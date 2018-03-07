@@ -12,7 +12,7 @@
     using BrockBot.Services;
 
     [Command(
-        Categories.General,
+        Categories.Administrative,
         "Starts a giveaway at the specified time.",
         "\tExample: `.giveaway 4:30pm`",
         "giveaway"

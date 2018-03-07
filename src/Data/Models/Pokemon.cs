@@ -16,5 +16,8 @@
 
         [JsonProperty("minimumLvl")]
         public int MinimumLevel { get; set; }
+
+        [JsonProperty("gender")]
+        public char Gender { get; set; }
     }
 }

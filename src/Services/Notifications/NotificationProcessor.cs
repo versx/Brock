@@ -37,6 +37,8 @@
         private readonly Filters _filters;
         private readonly NotificationBuilder _builder;
 
+        private Dictionary<string, ulong> _uniqueMessageIds;
+
         #endregion
 
         #region Properties
@@ -55,6 +57,7 @@
             _logger = logger;
 
             _filters = new Filters(_logger);
+            _uniqueMessageIds = new Dictionary<string, ulong>();
 
             GeofenceSvc = new GeofenceService(GeofenceItem.Load(_config.GeofenceFolder, _config.CityRoles));
             _builder = new NotificationBuilder(_client, _config, _db, _logger, GeofenceSvc);
@@ -159,8 +162,9 @@
                     var matchesIV = _filters.MatchesIV(pkmn.IV, subscribedPokemon.MinimumIV);
                     //var matchesCP = MatchesCpFilter(pkmn.CP, subscribedPokemon.MinimumCP);
                     var matchesLvl = _filters.MatchesLvl(pkmn.Level, subscribedPokemon.MinimumLevel);
+                    var matchesGender = _filters.MatchesGender(pkmn.Gender, subscribedPokemon.Gender);
 
-                    if (!(matchesIV && matchesLvl)) continue;
+                    if (!(matchesIV && matchesLvl && matchesGender)) continue;
 
                     if (user.NotificationLimiter.IsLimited())
                     {
@@ -226,9 +230,9 @@
                     var subscribedRaid = user.Raids.Find(x => x.PokemonId == raid.PokemonId);
                     if (subscribedRaid == null) continue;
 
-                    if (!_db.Pokemon.ContainsKey(subscribedRaid.PokemonId.ToString())) continue;
-                    var pokemon = _db.Pokemon[subscribedRaid.PokemonId.ToString()];
-                    if (pokemon == null) continue;
+                    //if (!_db.Pokemon.ContainsKey(subscribedRaid.PokemonId.ToString())) continue;
+                    //var pokemon = _db.Pokemon[subscribedRaid.PokemonId.ToString()];
+                    //if (pokemon == null) continue;
 
                     if (_client == null) continue;
                     //if (!await _client.IsSupporterOrHigher(user.UserId, _config)) continue;
@@ -248,7 +252,7 @@
 
                     user.NotifiedOfLimited = false;
 
-                    _logger.Info($"Notifying user {discordUser.Username} that a {pokemon.Name} raid is available...");
+                    _logger.Info($"Notifying user {discordUser.Username} that a {raid.PokemonId} raid is available...");
 
                     var embed = await _builder.BuildRaidMessage(raid, user.UserId);
                     if (embed == null) continue;
@@ -257,7 +261,7 @@
 
                     user.NotificationsToday++;
 
-                    await SendNotification(discordUser, pokemon.Name, embed);
+                    await SendNotification(discordUser, raid.PokemonId.ToString(), embed);
                 }
                 catch (Exception ex)
                 {

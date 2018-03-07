@@ -42,8 +42,11 @@
       <HintPath>..\..\..\..\.nuget\packages\DSharpPlus.3.2.3\lib\net46\DSharpPlus.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\..\..\..\.nuget\packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Microsoft.Win32.TaskScheduler, Version=2.7.4.0, Culture=neutral, PublicKeyToken=c416bc1b32d97233, processorArchitecture=MSIL">
+      <HintPath>..\..\..\..\.nuget\packages\TaskScheduler.2.7.4\lib\net452\Microsoft.Win32.TaskScheduler.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=11.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\..\..\..\.nuget\packages\Newtonsoft.Json.11.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="Nito.AsyncEx.Context, Version=1.1.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\..\..\..\.nuget\packages\Nito.AsyncEx.Context.1.1.0\lib\net46\Nito.AsyncEx.Context.dll</HintPath>
@@ -121,6 +124,9 @@
   <ItemGroup>
     <Compile Include="Commands\Administrative\Accounts\SwitchHighLevelCommand.cs" />
     <Compile Include="Commands\Administrative\Accounts\SwitchWorkersCommand.cs" />
+    <Compile Include="Commands\Administrative\Management\RestartFeedCommand.cs" />
+    <Compile Include="Commands\Administrative\Management\StartFeedCommand.cs" />
+    <Compile Include="Commands\Administrative\Management\StopFeedCommand.cs" />
     <Compile Include="Commands\Administrative\Roles\AssignRoleCommand.cs" />
     <Compile Include="Commands\Administrative\ReloadConfigCommand.cs" />
     <Compile Include="Commands\Administrative\SupporterCommand.cs" />
@@ -134,6 +140,7 @@
     <Compile Include="Commands\Administrative\SayCommand.cs" />
     <Compile Include="Commands\Administrative\Fun\GiveawayCommand.cs" />
     <Compile Include="Commands\General\GetWeatherCommand.cs" />
+    <Compile Include="Commands\General\ShareCommand.cs" />
     <Compile Include="Commands\Moderator\SetEncounterListCommand.cs" />
     <Compile Include="Commands\General\CheckApiCommand.cs" />
     <Compile Include="Commands\General\DoorCommand.cs" />

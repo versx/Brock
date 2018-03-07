@@ -13,7 +13,8 @@
     [Command(
         Categories.Administrative,
         "Shows your current Pokemon and Raid boss notification subscriptions.",
-        "\tExample: `.info`",
+        "\tExample: `.supporter 6-12-2018 31 @mention`\r\n" +
+        "\tExample: `.supporter 6-12-2018 31 398423424`",
         "supporter"
     )]
     public class SupporterCommand : ICustomCommand

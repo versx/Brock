@@ -27,6 +27,7 @@
     public class PokeMeCommand : ICustomCommand
     {
         public const int MaxPokemonSubscriptions = 25;
+        public const int CommonTypeMinimumIV = 97;
 
         #region Variables
 
@@ -57,12 +58,11 @@
         {
             if (!command.HasArgs) return;
 
-            if (command.Args.Count == 3)
+            if (command.Args.Count >= 3)
             {
                 if (!await _client.IsSupporterOrHigher(message.Author.Id, _config))
                 {
-                    //await message.RespondAsync($"{message.Author.Mention} please provide correct values such as `{_config.CommandsPrefix}{command.Name} pikachu 97` or `{_config.CommandsPrefix}{command.Name} 25,raichu,89,90 100`");
-                    await message.RespondAsync($"{message.Author.Mention} the minimum level parameter is only available to Supporter members, please consider donating to unlock this feature..");
+                    await message.RespondAsync($"{message.Author.Mention} the minimum level and gender type parameters are only available to Supporter members, please consider donating to unlock this feature..");
                     return;
                 }
             }
@@ -74,6 +74,7 @@
             //var cpArg = command.Args.Count == 1 ? "0" : command.Args[1];
             var ivArg = command.Args.Count == 1 ? "0" : command.Args[1];
             var lvlArg = command.Args.Count < 3 ? "0" : command.Args[2];
+            var gendArg = command.Args.Count < 4 ? "*" : command.Args[3];
 
             //if (!int.TryParse(cpArg, out int cp))
             //{
@@ -83,16 +84,18 @@
 
             if (!int.TryParse(ivArg, out int iv))
             {
-                await message.RespondAsync($"{message.Author.Mention} '{ivArg}' is not a valid IV value.");
+                await message.RespondAsync($"{message.Author.Mention} {ivArg} is not a valid IV.");
                 return;
             }
 
-            //if (iv == 0)
-            //{
-            //    //TODO: Check if Pokemon is rare, in which allow a low IV otherwise restrict the IV to a high value.
-            //    await message.RespondAsync($"{message.Author.Mention} you must specify an IV higher than ");
-            //    return;
-            //}
+            if (!char.TryParse(gendArg, out char gender))
+            {
+                if (gendArg != "*" && gendArg != "m" && gendArg != "f")
+                {
+                    await message.RespondAsync($"{message.Author.Mention} {gendArg} is not a valid gender.");
+                    return;
+                }
+            }
 
             if (iv < 0 || iv > 100)
             {
@@ -102,7 +105,7 @@
 
             if (!int.TryParse(lvlArg.Replace("l", null).Replace("L", null), out int lvl))
             {
-                await message.RespondAsync($"{message.Author.Mention} '{lvlArg}' is not a valid value for Level.");
+                await message.RespondAsync($"{message.Author.Mention} {lvlArg} is not a valid Level.");
                 return;
             }
 
@@ -127,40 +130,36 @@
                     return;
                 }
 				
-				var previousIV = iv;
-
                 for (uint i = 1; i < 386; i++)
                 {
                     //Always ignore the user's input for Unown and set it to 0 by default.
-                    if (i == 201) iv = 0;
-
                     var pokemon = _db.Pokemon[i.ToString()];
                     if (!_db.Exists(author))
                     {
-                        _db.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon> { new Pokemon() { PokemonId = i, MinimumIV = iv, MinimumLevel = lvl } }, new List<Pokemon>()));
+                        _db.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon> { new Pokemon { PokemonId = i, MinimumIV = (i == 201 ? 0 : iv), MinimumLevel = lvl, Gender = gender } }, new List<Pokemon>()));
                     }
                     else
                     {
                         //User has already subscribed before, check if their new requested sub already exists.
                         if (!_db[author].Pokemon.Exists(x => x.PokemonId == i))
                         {
-                            _db[author].Pokemon.Add(new Pokemon { PokemonId = i, MinimumIV = iv, MinimumLevel = lvl });
+                            _db[author].Pokemon.Add(new Pokemon { PokemonId = i, MinimumIV = (i == 201 ? 0 : iv), MinimumLevel = lvl, Gender = gender });
                         }
                         else
                         {
                             //Check if minimum IV value is different from value in database, if not add it to the already subscribed list.
                             var subscribedPokemon = _db[author].Pokemon.Find(x => x.PokemonId == i);
                             if (iv != subscribedPokemon.MinimumIV ||
-                                lvl != subscribedPokemon.MinimumLevel)
+                                lvl != subscribedPokemon.MinimumLevel ||
+                                gender != subscribedPokemon.Gender)
                             {
-                                subscribedPokemon.MinimumIV = iv;
+                                subscribedPokemon.MinimumIV = (i == 201 ? 0 : iv);
                                 subscribedPokemon.MinimumLevel = lvl;
+                                subscribedPokemon.Gender = gender;
                                 continue;
                             }
                         }
                     }
-					
-					iv = previousIV;
                 }
 
                 await message.RespondAsync($"{message.Author.Mention} subscribed to **all** Pokemon notifications with a minimum IV of {iv}%.");
@@ -171,21 +170,21 @@
             var subscribed = new List<string>();
             foreach (var arg in cmd.Split(','))
             {
-                //TODO: Check if common type pokemon e.g. Pidgey, Ratatta, Spinarak 'they are beneath him and he refuses to discuss them further'
-
-                var pokeId = _db.PokemonIdFromName(arg);
-                if (pokeId == 0)
+                if (!uint.TryParse(arg, out uint pokeId))
                 {
-                    if (!uint.TryParse(arg, out pokeId))
+                    pokeId = _db.PokemonIdFromName(arg);
+
+                    if (pokeId == 0)
                     {
-                        await message.RespondAsync($"{message.Author.Mention} failed to lookup Pokemon by name and pokedex id using {arg}.");
-                        return;
+                        await message.RespondAsync($"{message.Author.Mention} failed to lookup Pokemon by name and pokedex id {arg}.");
+                        continue;
                     }
                 }
 
-                if (IsCommonPokemon(pokeId) && iv < 97)
+                //TODO: Check if common type pokemon e.g. Pidgey, Ratatta, Spinarak 'they are beneath him and he refuses to discuss them further'
+                if (IsCommonPokemon(pokeId) && iv < CommonTypeMinimumIV)
                 {
-                    await message.RespondAsync($"{message.Author.Mention} {pokeId} is a common type Pokemon and cannot be subscribed to for notifications unless the IV is set to at least 97% or higher.");
+                    await message.RespondAsync($"{message.Author.Mention} {_db.Pokemon[pokeId.ToString()].Name} is a common type Pokemon and cannot be subscribed to for notifications unless the IV is set to at least {CommonTypeMinimumIV}% or higher.");
                     continue;
                 }
 
@@ -199,7 +198,7 @@
                 var pokemon = _db.Pokemon[pokeId.ToString()];
                 if (!_db.Exists(author))
                 {
-                    _db.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon> { new Pokemon { PokemonId = pokeId, MinimumIV = iv, MinimumLevel = lvl } }, new List<Pokemon>()));
+                    _db.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon> { new Pokemon { PokemonId = pokeId, MinimumIV = iv, MinimumLevel = lvl, Gender = gender } }, new List<Pokemon>()));
                     subscribed.Add(pokemon.Name);
                 }
                 else
@@ -214,7 +213,7 @@
                             return;
                         }
 
-                        _db[author].Pokemon.Add(new Pokemon { PokemonId = pokeId, MinimumIV = iv, MinimumLevel = lvl });
+                        _db[author].Pokemon.Add(new Pokemon { PokemonId = pokeId, MinimumIV = iv, MinimumLevel = lvl, Gender = gender });
                         subscribed.Add(pokemon.Name);
                     }
                     else
@@ -222,10 +221,12 @@
                         //Check if minimum IV value is different from value in database, if not add it to the already subscribed list.
                         var subscribedPokemon = _db[author].Pokemon.Find(x => x.PokemonId == pokeId);
                         if (iv != subscribedPokemon.MinimumIV ||
-                            lvl != subscribedPokemon.MinimumLevel)
+                            lvl != subscribedPokemon.MinimumLevel ||
+                            gender != subscribedPokemon.Gender)
                         {
                             subscribedPokemon.MinimumIV = iv;
                             subscribedPokemon.MinimumLevel = lvl;
+                            subscribedPokemon.Gender = gender;
                             subscribed.Add(pokemon.Name);
                             continue;
                         }
