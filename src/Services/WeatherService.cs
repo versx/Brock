@@ -49,6 +49,10 @@
             _timer.Start();
         }
 
+        #endregion
+
+        #region Public Methods
+
         public List<WeatherData> GetWeatherConditions()
         {
             var urls = new string[]
@@ -78,7 +82,15 @@
             var conditions = GetWeatherConditions();
             foreach (var condition in conditions)
             {
+                if (condition == null)
+                {
+                    _logger.Debug($"Weather condition for {condition.Location} was null.");
+                    continue;
+                }
+
                 var geofence = _geofenceSvc.GetGeofence(new Location(condition.Latitude, condition.Longitude));
+                if (geofence == null) continue;
+
                 if (string.Compare(geofence.Name, city) == 0)
                 {
                     return condition;
@@ -88,13 +100,36 @@
             return null;
         }
 
+        #endregion
+
+        #region Private Methods
+
         private void CheckWeatherConditionsEventHandler(object sender, ElapsedEventArgs e)
         {
             _weatherConditions.Clear();
             _weatherConditions.AddRange(GetWeatherConditions());
         }
 
+        private string MakeRequest(string url)
+        {
+            try
+            {
+                using (var wc = new WebClient())
+                {
+                    wc.Proxy = null;
+                    return wc.DownloadString(url);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Failed to make request to {url} returned exception: {ex}");
+                return null;
+            }
+        }
+
         #endregion
+
+        #region Old AccuWeather
 
         #region Public Methods
 
@@ -141,22 +176,7 @@
         //    return null;
         //}
 
-        private string MakeRequest(string url)
-        {
-            try
-            {
-                using (var wc = new WebClient())
-                {
-                    wc.Proxy = null;
-                    return wc.DownloadString(url);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"Failed to make request to {url} returned exception: {ex}");
-                return null;
-            }
-        }
+        #endregion
 
         #endregion
     }

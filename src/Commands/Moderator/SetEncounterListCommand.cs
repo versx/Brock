@@ -57,6 +57,9 @@
                     {
                         if (string.IsNullOrEmpty(feed)) continue;
 
+                        //TODO: Find better way to skip these three without hard coding it.
+                        if (city == "Raids" || city == "Nests" || city == "Families") continue;
+
                         if (!SetEncounterList(_config.MapFolder, feed, result))
                         {
                             await message.RespondAsync($"{message.Author.Mention}, failed to switch encounter list for {feed} to {result}.");

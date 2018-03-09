@@ -33,6 +33,14 @@
         /// </summary>
         public const string MovesetDatabaseFileName = "moves.json";
 
+        /// <summary>
+        /// Default Pokemon CP multipliers file name with extension.
+        /// </summary>
+        public const string CpMultipliersFileName = "cp_multipliers.json";
+
+        /// <summary>
+        /// Default Data directory name.
+        /// </summary>
         public const string DataFolderName = "Data";
 
         #endregion
@@ -56,6 +64,9 @@
 
         [JsonIgnore]
         public Dictionary<string, Moveset> Movesets { get; }
+
+        [JsonIgnore]
+        public Dictionary<string, double> CpMultipliers { get; }
 
         /// <summary>
         /// Gets the config full config file path.
@@ -105,6 +116,16 @@
                 if (!string.IsNullOrEmpty(movesDb))
                 {
                     Movesets = JsonStringSerializer.Deserialize<Dictionary<string, Moveset>>(movesDb);
+                }
+            }
+
+            var cpMultipliersDb = Path.Combine(DataFolderName, CpMultipliersFileName);
+            if (File.Exists(cpMultipliersDb))
+            {
+                var multipliersDb = File.ReadAllText(cpMultipliersDb);
+                if (!string.IsNullOrEmpty(multipliersDb))
+                {
+                    CpMultipliers = JsonStringSerializer.Deserialize<Dictionary<string, double>>(multipliersDb);
                 }
             }
         }

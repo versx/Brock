@@ -19,6 +19,8 @@
 
         Dictionary<string, Moveset> Movesets { get; }
 
+        Dictionary<string, double> CpMultipliers { get; }
+
         ConcurrentDictionary<ulong, List<Reminder>> Reminders { get; }
 
         Subscription<Pokemon> this[ulong userId] { get; }

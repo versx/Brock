@@ -97,7 +97,7 @@
             eb.Description += $"**Despawn:** {pokemon.DespawnTime.ToLongTimeString()} ({Utils.ToReadableString(pokemon.SecondsLeft, true)} left)\r\n";
             if (pokemon.Attack != "?" && pokemon.Defense != "?" && pokemon.Stamina != "?")
             {
-                eb.Description += $"**IV Stats:** Atk: {pokemon.Attack}/Def: {pokemon.Defense}/Sta: {pokemon.Stamina}";
+                eb.Description += $"**IV Stats:** Atk: {pokemon.Attack}/Def: {pokemon.Defense}/Sta: {pokemon.Stamina}\r\n";
             }
 
             if (!string.IsNullOrEmpty(form))
@@ -241,7 +241,7 @@
             var eb = new DiscordEmbedBuilder
             {
                 Title = loc == null || string.IsNullOrEmpty(loc.Name) ? "DIRECTIONS" : loc.Name,
-                Description = $"{pkmn.Name} raid available until {raid.EndTime.ToLongTimeString()}!",
+                //Description = $"{pkmn.Name} raid available until {raid.EndTime.ToLongTimeString()}!",
                 Url = string.Format(Strings.GoogleMaps, raid.Latitude, raid.Longitude),
                 ImageUrl = string.Format(Strings.GoogleMapsStaticImage, raid.Latitude, raid.Longitude),
                 ThumbnailUrl = string.Format(Strings.PokemonImage, raid.PokemonId),
@@ -250,9 +250,15 @@
 
             var fixedEndTime = DateTime.Parse(raid.EndTime.ToLongTimeString());
             var remaining = GetRaidTimeRemaining(fixedEndTime);
-            eb.AddField($"{pkmn.Name} (#{raid.PokemonId})", $"Level {raid.Level} ({Convert.ToInt32(raid.CP ?? "0").ToString("N0")} CP)");
-            eb.AddField("Started:", raid.StartTime.ToLongTimeString());
-            eb.AddField("Despawn:", $"{raid.EndTime.ToLongTimeString()} ({Utils.ToReadableString(remaining, true)} left)");
+
+            eb.Description = $"{pkmn.Name} Raid Despawn: {raid.EndTime.ToLongTimeString()} ({Utils.ToReadableString(remaining, true)} left)\r\n\r\n";
+            eb.Description += $"**Started:** {raid.StartTime.ToLongTimeString()}\r\n";
+            eb.Description += $"**Despawn:** {raid.EndTime.ToLongTimeString()} ({Utils.ToReadableString(remaining, true)} left)\r\n";
+
+            var perfectCP = _db.GetPokemonCpRange(raid.PokemonId, 20);
+            var boostedCP = _db.GetPokemonCpRange(raid.PokemonId, 25);
+            eb.Description += $"**Perfect CP:** {perfectCP[1]}";
+            eb.Description += $"**Boosted CP:** {boostedCP[1]}";
 
             if (pkmn.Types.Count > 0)
             {
@@ -264,19 +270,19 @@
                         types.Add(Strings.TypeEmojis[x.Type.ToLower()] + " " + x.Type);
                     }
                 });
-                eb.AddField("Types:", string.Join("/", types));
+                eb.Description += $"**Types:** {string.Join("/", types)}\r\n";
             }
 
             var fastMove = _db.Movesets.ContainsKey(raid.FastMove) ? _db.Movesets[raid.FastMove] : null;
             if (fastMove != null)
             {
-                eb.AddField("Fast Move:", $"{fastMove.Name} ({fastMove.Type})");
+                eb.Description += $"**Fast Move:** {fastMove.Name} ({fastMove.Type})\r\n";
             }
 
             var chargeMove = _db.Movesets.ContainsKey(raid.ChargeMove) ? _db.Movesets[raid.ChargeMove] : null;
             if (chargeMove != null)
             {
-                eb.AddField("Charge Move:", $"{chargeMove.Name} ({chargeMove.Type})");
+                eb.Description += $"**Charge Move:** {chargeMove.Name} ({chargeMove.Type})\r\n";
             }
 
             var strengths = new List<string>();
@@ -301,15 +307,76 @@
 
             if (strengths.Count > 0)
             {
-                eb.AddField("Strong Against:", string.Join(", ", strengths));
+                eb.Description += $"**Strong Against:** {string.Join(", ", strengths)}\r\n";
             }
 
             if (weaknesses.Count > 0)
             {
-                eb.AddField("Weak Against:", string.Join(", ", weaknesses));
+                eb.Description += $"**Weaknesses:** {string.Join(", ", weaknesses)}\r\n";
             }
 
-            eb.AddField("Location:", $"{Math.Round(raid.Latitude, 5)},{Math.Round(raid.Longitude, 5)}");
+            eb.Description += $"**Location:** {Math.Round(raid.Latitude, 5)},{Math.Round(raid.Longitude, 5)}";
+
+            //eb.AddField($"{pkmn.Name} (#{raid.PokemonId})", $"Level {raid.Level} ({Convert.ToInt32(raid.CP ?? "0").ToString("N0")} CP)");
+            //eb.AddField("Started:", raid.StartTime.ToLongTimeString());
+            //eb.AddField("Despawn:", $"{raid.EndTime.ToLongTimeString()} ({Utils.ToReadableString(remaining, true)} left)");
+
+            //if (pkmn.Types.Count > 0)
+            //{
+            //    var types = new List<string>();
+            //    pkmn.Types.ForEach(x =>
+            //    {
+            //        if (Strings.TypeEmojis.ContainsKey(x.Type.ToLower()))
+            //        {
+            //            types.Add(Strings.TypeEmojis[x.Type.ToLower()] + " " + x.Type);
+            //        }
+            //    });
+            //    eb.AddField("Types:", string.Join("/", types));
+            //}
+
+            //var fastMove = _db.Movesets.ContainsKey(raid.FastMove) ? _db.Movesets[raid.FastMove] : null;
+            //if (fastMove != null)
+            //{
+            //    eb.AddField("Fast Move:", $"{fastMove.Name} ({fastMove.Type})");
+            //}
+
+            //var chargeMove = _db.Movesets.ContainsKey(raid.ChargeMove) ? _db.Movesets[raid.ChargeMove] : null;
+            //if (chargeMove != null)
+            //{
+            //    eb.AddField("Charge Move:", $"{chargeMove.Name} ({chargeMove.Type})");
+            //}
+
+            //var strengths = new List<string>();
+            //var weaknesses = new List<string>();
+            //foreach (var type in pkmn.Types)
+            //{
+            //    foreach (var strength in PokemonExtensions.GetStrengths(type.Type))
+            //    {
+            //        if (!strengths.Contains(strength))
+            //        {
+            //            strengths.Add(strength);
+            //        }
+            //    }
+            //    foreach (var weakness in PokemonExtensions.GetWeaknesses(type.Type))
+            //    {
+            //        if (!weaknesses.Contains(weakness))
+            //        {
+            //            weaknesses.Add(weakness);
+            //        }
+            //    }
+            //}
+
+            //if (strengths.Count > 0)
+            //{
+            //    eb.AddField("Strong Against:", string.Join(", ", strengths));
+            //}
+
+            //if (weaknesses.Count > 0)
+            //{
+            //    eb.AddField("Weak Against:", string.Join(", ", weaknesses));
+            //}
+
+            //eb.AddField("Location:", $"{Math.Round(raid.Latitude, 5)},{Math.Round(raid.Longitude, 5)}");
             eb.WithImageUrl(string.Format(Strings.GoogleMapsStaticImage, raid.Latitude, raid.Longitude));
             var embed = eb.Build();
 

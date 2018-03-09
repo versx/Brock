@@ -34,6 +34,25 @@
             return 0;
         }
 
+        public static int[] GetPokemonCpRange(this IDatabase db, int pokeId, int level)
+        {
+            if (!db.Pokemon.ContainsKey(pokeId.ToString())) return null;
+
+            var baseStats = db.Pokemon[pokeId.ToString()];
+            var baseAtk = baseStats.BaseStats.Attack;
+            var baseDef = baseStats.BaseStats.Defense;
+            var baseSta = baseStats.BaseStats.Stamina;
+            var cpMulti = db.CpMultipliers[level.ToString()];
+
+            int minCp = Convert.ToInt32(((baseAtk + 10.0) * Math.Pow(baseDef + 10.0, 0.5)
+                * Math.Pow(baseSta + 10.0, 0.5) * Math.Pow(cpMulti, 2)) / 10.0);
+            int maxCp = Convert.ToInt32(((baseAtk + 15.0) * Math.Pow(baseDef + 15.0, 0.5)
+                * Math.Pow(baseSta + 15.0, 0.5) * Math.Pow(cpMulti, 2)) / 10.0);
+
+            return new int[] { minCp, maxCp };
+            //Console.WriteLine($"CP Range: {minCp}-{maxCp} at L{level}");
+        }
+
         public static string GetPokemonForm(this int pokeId, string formId)
         {
             if (!int.TryParse(formId, out int form)) return null;

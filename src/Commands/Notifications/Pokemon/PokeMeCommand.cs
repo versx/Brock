@@ -88,13 +88,10 @@
                 return;
             }
 
-            if (!char.TryParse(gendArg, out char gender))
+            if (gendArg != "*" && gendArg != "m" && gendArg != "f")
             {
-                if (gendArg != "*" && gendArg != "m" && gendArg != "f")
-                {
-                    await message.RespondAsync($"{message.Author.Mention} {gendArg} is not a valid gender.");
-                    return;
-                }
+                await message.RespondAsync($"{message.Author.Mention} {gendArg} is not a valid gender.");
+                return;
             }
 
             if (iv < 0 || iv > 100)
@@ -136,14 +133,14 @@
                     var pokemon = _db.Pokemon[i.ToString()];
                     if (!_db.Exists(author))
                     {
-                        _db.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon> { new Pokemon { PokemonId = i, MinimumIV = (i == 201 ? 0 : iv), MinimumLevel = lvl, Gender = gender } }, new List<Pokemon>()));
+                        _db.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon> { new Pokemon { PokemonId = i, MinimumIV = (i == 201 ? 0 : iv), MinimumLevel = lvl, Gender = gendArg } }, new List<Pokemon>()));
                     }
                     else
                     {
                         //User has already subscribed before, check if their new requested sub already exists.
                         if (!_db[author].Pokemon.Exists(x => x.PokemonId == i))
                         {
-                            _db[author].Pokemon.Add(new Pokemon { PokemonId = i, MinimumIV = (i == 201 ? 0 : iv), MinimumLevel = lvl, Gender = gender });
+                            _db[author].Pokemon.Add(new Pokemon { PokemonId = i, MinimumIV = (i == 201 ? 0 : iv), MinimumLevel = lvl, Gender = gendArg });
                         }
                         else
                         {
@@ -151,11 +148,11 @@
                             var subscribedPokemon = _db[author].Pokemon.Find(x => x.PokemonId == i);
                             if (iv != subscribedPokemon.MinimumIV ||
                                 lvl != subscribedPokemon.MinimumLevel ||
-                                gender != subscribedPokemon.Gender)
+                                gendArg != subscribedPokemon.Gender)
                             {
                                 subscribedPokemon.MinimumIV = (i == 201 ? 0 : iv);
                                 subscribedPokemon.MinimumLevel = lvl;
-                                subscribedPokemon.Gender = gender;
+                                subscribedPokemon.Gender = gendArg;
                                 continue;
                             }
                         }
@@ -188,7 +185,6 @@
                     continue;
                 }
 
-                //var pokeId = Convert.ToUInt32(arg);
                 if (!_db.Pokemon.ContainsKey(pokeId.ToString()))
                 {
                     await message.RespondAsync($"{message.Author.Mention} {pokeId} is not a valid Pokemon id.");
@@ -198,7 +194,7 @@
                 var pokemon = _db.Pokemon[pokeId.ToString()];
                 if (!_db.Exists(author))
                 {
-                    _db.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon> { new Pokemon { PokemonId = pokeId, MinimumIV = iv, MinimumLevel = lvl, Gender = gender } }, new List<Pokemon>()));
+                    _db.Subscriptions.Add(new Subscription<Pokemon>(author, new List<Pokemon> { new Pokemon { PokemonId = pokeId, MinimumIV = iv, MinimumLevel = lvl, Gender = gendArg } }, new List<Pokemon>()));
                     subscribed.Add(pokemon.Name);
                 }
                 else
@@ -213,7 +209,7 @@
                             return;
                         }
 
-                        _db[author].Pokemon.Add(new Pokemon { PokemonId = pokeId, MinimumIV = iv, MinimumLevel = lvl, Gender = gender });
+                        _db[author].Pokemon.Add(new Pokemon { PokemonId = pokeId, MinimumIV = iv, MinimumLevel = lvl, Gender = gendArg });
                         subscribed.Add(pokemon.Name);
                     }
                     else
@@ -222,11 +218,11 @@
                         var subscribedPokemon = _db[author].Pokemon.Find(x => x.PokemonId == pokeId);
                         if (iv != subscribedPokemon.MinimumIV ||
                             lvl != subscribedPokemon.MinimumLevel ||
-                            gender != subscribedPokemon.Gender)
+                            gendArg != subscribedPokemon.Gender)
                         {
                             subscribedPokemon.MinimumIV = iv;
                             subscribedPokemon.MinimumLevel = lvl;
-                            subscribedPokemon.Gender = gender;
+                            subscribedPokemon.Gender = gendArg;
                             subscribed.Add(pokemon.Name);
                             continue;
                         }
@@ -239,10 +235,10 @@
             await message.RespondAsync
             (
                 (subscribed.Count > 0
-                    ? $"{message.Author.Mention} has subscribed to **{string.Join("**, **", subscribed)}** notifications with a minimum IV of {iv}%{(command.Args.Count > 2 ? $" and a minimum level of {lvl}" : null)}."
+                    ? $"{message.Author.Mention} has subscribed to **{string.Join("**, **", subscribed)}** notifications with a minimum IV of {iv}%{(command.Args.Count > 2 ? $" and a minimum level of {lvl}" : null)}{(command.Args.Count > 3 ? $" and only '{gendArg}' gender types" : null)}."
                     : string.Empty) +
                 (alreadySubscribed.Count > 0
-                    ? $"\r\n{message.Author.Mention} is already subscribed to **{string.Join("**, **", alreadySubscribed)}** notifications with a minimum IV of {iv}%{(command.Args.Count > 2 ? $" and a minimum level of {lvl}" : null)}."
+                    ? $"\r\n{message.Author.Mention} is already subscribed to **{string.Join("**, **", alreadySubscribed)}** notifications with a minimum IV of {iv}%{(command.Args.Count > 2 ? $" and a minimum level of {lvl}" : null)}{(command.Args.Count > 3 ? $" and only '{gendArg}' gender types" : null)}."
                     : string.Empty)
             );
         }

@@ -36,8 +36,10 @@
     //TODO: Add deoxys forms
 
     //TODO: .share command. Unique ids per Pokemon/raid message. (Brock needs to create the discord channel messages, PA alternative needs to mature.)
+    //TODO: Move database and scanner instances to ram drives to increase performance.
 
     //TODO: Add despawn time to first line. (Discord)
+    //TODO: Move webservers to separate server.
     //TODO: Suggest raid attackers.
     //TODO: Lots more I can't remember right now. D:
 

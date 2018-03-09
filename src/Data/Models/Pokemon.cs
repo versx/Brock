@@ -18,6 +18,11 @@
         public int MinimumLevel { get; set; }
 
         [JsonProperty("gender")]
-        public char Gender { get; set; }
+        public string Gender { get; set; }
+
+        public Pokemon()
+        {
+            Gender = "*";
+        }
     }
 }

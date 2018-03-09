@@ -120,13 +120,15 @@
                    gender == PokemonGender.Genderless;
         }
 
-        public bool MatchesGender(PokemonGender gender, char desiredGender)
+        public bool MatchesGender(PokemonGender gender, string desiredGender)
         {
-            if (desiredGender == '*' || gender == PokemonGender.Genderless || gender == PokemonGender.Unset) return true;
+            desiredGender = desiredGender.ToLower();
 
-            if (desiredGender == 'm' && gender == PokemonGender.Male) return true;
+            if (desiredGender == "*" || gender == PokemonGender.Genderless || gender == PokemonGender.Unset) return true;
 
-            if (desiredGender == 'f' && gender == PokemonGender.Female) return true;
+            if (desiredGender == "m" && gender == PokemonGender.Male) return true;
+
+            if (desiredGender == "f" && gender == PokemonGender.Female) return true;
 
             return false;
         }
