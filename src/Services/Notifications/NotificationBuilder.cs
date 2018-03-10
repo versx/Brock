@@ -251,14 +251,14 @@
             var fixedEndTime = DateTime.Parse(raid.EndTime.ToLongTimeString());
             var remaining = GetRaidTimeRemaining(fixedEndTime);
 
-            eb.Description = $"{pkmn.Name} Raid Despawn: {raid.EndTime.ToLongTimeString()} ({Utils.ToReadableString(remaining, true)} left)\r\n\r\n";
-            eb.Description += $"**Started:** {raid.StartTime.ToLongTimeString()}\r\n";
-            eb.Description += $"**Despawn:** {raid.EndTime.ToLongTimeString()} ({Utils.ToReadableString(remaining, true)} left)\r\n";
+            eb.Description = $"{pkmn.Name} Raid Ends: {raid.EndTime.ToLongTimeString()} ({Utils.ToReadableString(remaining, true)} left)\r\n\r\n";
+            eb.Description += $"**Starts:** {raid.StartTime.ToLongTimeString()}\r\n";
+            eb.Description += $"**Ends:** {raid.EndTime.ToLongTimeString()} ({Utils.ToReadableString(remaining, true)} left)\r\n";
 
             var perfectCP = _db.GetPokemonCpRange(raid.PokemonId, 20);
             var boostedCP = _db.GetPokemonCpRange(raid.PokemonId, 25);
-            eb.Description += $"**Perfect CP:** {perfectCP[1]}";
-            eb.Description += $"**Boosted CP:** {boostedCP[1]}";
+            eb.Description += $"**Perfect CP:** {perfectCP[1]}\r\n";
+            eb.Description += $"**Boosted CP:** {boostedCP[1]}\r\n";
 
             if (pkmn.Types.Count > 0)
             {
