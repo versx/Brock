@@ -322,7 +322,7 @@
                 Description = $"{pkmn.Name}{pokemon.Gender.GetPokemonGenderIcon()} {pokemon.CP}CP {pokemon.IV} LV{pokemon.Level} has spawned!",
                 Url = string.Format(Strings.GoogleMaps, pokemon.Latitude, pokemon.Longitude),
                 ImageUrl = string.Format(Strings.GoogleMapsStaticImage, pokemon.Latitude, pokemon.Longitude),
-                ThumbnailUrl = string.Format(Strings.PokemonImage, pokemon.Id),
+                ThumbnailUrl = string.Format(Strings.PokemonImage, pokemon.Id, 0),
                 Color = DiscordHelpers.BuildColor(pokemon.IV)
             };
 
@@ -380,45 +380,6 @@
         //        .Replace("East Los Angeles", "EastLA")
         //        .Replace("Commerce", "EastLA")
         //        .Replace("Santa Fe Springs", "Whittier");
-        //}
-
-        //private async Task<bool> CheckIfExceededNotificationLimit(Subscription<Pokemon> user)
-        //{
-        //    var hasExceeded = await HasExceededNotificationLimit(user);
-        //    if (hasExceeded)
-        //    {
-        //        var discordUser = await _client.GetUser(user.UserId);
-        //        if (discordUser == null)
-        //        {
-        //            _logger.Error($"Failed to find user with id {user.UserId}.");
-        //            return false;
-        //        }
-
-        //        if (user.Notified) return true;
-
-        //        //TODO: Send direct message explaining to adjust settings.
-        //        await _client.SendDirectMessage(discordUser, "You've exceeded the maximum amount of notifications for today, to increase this limit please consider donating in order to keep the feeds active. You may want to adjust your notification settings so you don't exceed this limit again and possibly miss an important one.", null);
-        //        user.Notified = true;
-        //    }
-
-        //    return hasExceeded;
-        //}
-
-        //private async Task<bool> HasExceededNotificationLimit(Subscription<Pokemon> user)
-        //{
-        //    var isModerator = user.UserId.IsModeratorOrHigher(_config);
-        //    if (isModerator) return false;
-
-        //    var isSupporter = await _client.HasSupporterRole(user.UserId, _config.SupporterRoleId);
-        //    if (isSupporter)
-        //    {
-        //        if (user.NotificationsToday >= MaxNotificationsPerDaySupporter)
-        //        {
-        //            return true;
-        //        }
-        //    }
-
-        //    return user.NotificationsToday >= MaxNotificationsPerDayNormal;
         //}
 
         #endregion

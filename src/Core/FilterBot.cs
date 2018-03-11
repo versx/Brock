@@ -643,7 +643,7 @@
 
             if (_client == null) return;
 
-            //await CheckSupporterStatus();
+            await CheckSupporterStatus();
 
             if (_lobbyManager == null) return;
 
@@ -706,34 +706,38 @@
             var owner = await _client.GetUser(_config.OwnerId);
             if (owner == null) return;
 
-            foreach (var guild in _client.Guilds)
+            foreach (var user in _config.Supporters)
             {
-                foreach (var member in guild.Value.Members)
+                var member = await _client.GetMemberFromUserId(user.Key);
+                if (member == null)
                 {
-                    if (!member.HasSupporterRole(_config.SupporterRoleId)) continue;
-
-                    if (!await _client.IsSupporterStatusExpired(_config, member.Id))
-
-                        _logger.Debug($"Removing supporter role from user {member.Id} because their time has expired...");
-
-                    await _client.SendDirectMessage(owner, $"{member.Mention} (Alias: {member.Username}, Id: {member.Id}) supportor status has expired, please remove their role.", null);
-
-                    //if (_db.Subscriptions.Exists(x => x.UserId == member.Id))
-                    //{
-                    //    _db.Subscriptions.Find(x => x.UserId == member.Id).Enabled = false;
-                    //    _db.Save();
-
-                    //    _logger.Debug($"Disabled Pokemon and Raid notifications for user {member.Username} ({member.Id}) because their subscription has expired.");
-                    //}
-
-                    //if (!await _client.RemoveRole(member.Id, guild.Key, _config.SupporterRoleId))
-                    //{
-                    //    _logger.Error($"Failed to remove supporter role from user {member.Id}.");
-                    //    continue;
-                    //}
-
-                    _logger.Debug($"Successfully removed supporter role from user {member.Id}.");
+                    _logger.Error($"Failed to find discord member with id {user.Key}.");
+                    continue;
                 }
+
+                if (!member.HasSupporterRole(_config.SupporterRoleId)) continue;
+
+                if (!await _client.IsSupporterStatusExpired(_config, member.Id)) continue;
+
+                _logger.Debug($"Removing supporter role from user {member.Id} because their time has expired...");
+
+                await _client.SendDirectMessage(owner, $"{member.Mention} (Alias: {member.Username}, Id: {member.Id}) supportor status has expired, please remove their role.", null);
+
+                //if (_db.Subscriptions.Exists(x => x.UserId == member.Id))
+                //{
+                //    _db.Subscriptions.Find(x => x.UserId == member.Id).Enabled = false;
+                //    _db.Save();
+
+                //    _logger.Debug($"Disabled Pokemon and Raid notifications for user {member.Username} ({member.Id}) because their subscription has expired.");
+                //}
+
+                //if (!await _client.RemoveRole(member.Id, guild.Key, _config.SupporterRoleId))
+                //{
+                //    _logger.Error($"Failed to remove supporter role from user {member.Id}.");
+                //    continue;
+                //}
+
+                _logger.Debug($"Successfully removed supporter role from user {member.Id}.");
             }
         }
 

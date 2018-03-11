@@ -60,7 +60,15 @@
             switch (pokeId)
             {
                 case 201: //Unown
-                    return form.NumberToAlphabet(true).ToString();
+                    switch (form)
+                    {
+                        case 27:
+                            return "!";
+                        case 28:
+                            return "?";
+                        default:
+                            return form.NumberToAlphabet(true).ToString();
+                    }
                 case 351: //Castform
                     switch (form)
                     {
@@ -69,9 +77,9 @@
                         case 30: //Sunny
                             return "Sunny";
                         case 31: //Water
-                            return "Water";
+                            return "Rainy";
                         case 32: //Snow
-                            return "Snow";
+                            return "Snowy";
                     }
                     break;
                 case 386: //Deoxys

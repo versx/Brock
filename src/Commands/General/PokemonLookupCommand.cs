@@ -90,7 +90,7 @@
                 }
             };
             //eb.AddField(pkmn.Name, $"ID: {pokeId}, Gen: {pkmn.BaseStats.Generation}{(pkmn.BaseStats.Legendary ? " Legendary" : "")}", true);
-            eb.AddField("IV Statistics:", $"Atk: {pkmn.BaseStats.Attack}, Def: {pkmn.BaseStats.Defense}, Sta: {pkmn.BaseStats.Stamina}", true);
+            eb.AddField("Base Stats:", $"Atk: {pkmn.BaseStats.Attack}, Def: {pkmn.BaseStats.Defense}, Sta: {pkmn.BaseStats.Stamina}", true);
             if (!string.IsNullOrEmpty(pkmn.Rarity))
             {
                 eb.AddField("Rarity:", pkmn.Rarity, true);
@@ -136,7 +136,7 @@
                 eb.AddField("Weaknesses:", string.Join(", ", weaknesses));
             }
 
-            eb.ImageUrl = string.Format(Strings.PokemonImage, pokeId);
+            eb.ImageUrl = string.Format(Strings.PokemonImage, pokeId, 0);
             var embed = eb.Build();
 
             await message.RespondAsync(string.Empty, false, embed);

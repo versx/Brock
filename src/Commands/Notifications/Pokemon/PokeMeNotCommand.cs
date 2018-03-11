@@ -11,8 +11,6 @@
     using BrockBot.Data;
     using BrockBot.Extensions;
 
-    //TODO: Add confirmation when deleting user subscriptions.
-
     [Command(
         Categories.Notifications,
         "Unsubscribe from a one or more or even all subscribed Pokemon notifications by pokedex number or name.",

@@ -13,8 +13,8 @@
     [Command(
         Categories.Administrative,
         "Shows your current Pokemon and Raid boss notification subscriptions.",
-        "\tExample: `.supporter 6-12-2018 31 @mention`\r\n" +
-        "\tExample: `.supporter 6-12-2018 31 398423424`",
+        "\tExample: `.supporter @mention 6-12-2018 31`\r\n" +
+        "\tExample: `.supporter 398423424 6-12-2018 31`",
         "supporter"
     )]
     public class SupporterCommand : ICustomCommand
@@ -34,8 +34,6 @@
 
         public async Task Execute(DiscordMessage message, Command command)
         {
-            //TODO: Create .supporter @mention/userId <date> <days> command and add them to supporters list.
-
             if (!command.HasArgs) return;
             if (command.Args.Count != 3) return;
 
@@ -74,6 +72,8 @@
             }
 
             _config.Save();
+
+            await message.RespondAsync($"{message.Author.Mention} {userId} has been added to the supporters list with {daysAvailable} days available.");
         }
     }
 }

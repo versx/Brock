@@ -108,7 +108,7 @@
             catch (Exception ex)
             {
                 LogError(ex);
-                return null;
+                return data;
             }
         }
 
