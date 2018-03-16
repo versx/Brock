@@ -11,7 +11,7 @@
 
     [Command(
         Categories.Administrative,
-        "Deletes all team roles that " + FilterBot.BotName + " has created.",
+        "Deletes all team roles that " + Strings.BotName + " has created.",
         "\tExample: `.delete-roles`",
         "delete-roles"
     )]

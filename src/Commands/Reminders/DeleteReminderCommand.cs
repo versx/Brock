@@ -12,7 +12,7 @@
 
     [Command(
         Categories.Reminders,
-        "Stop " + FilterBot.BotName + " from reminding you to do something based on the reminders index.",
+        "Stop " + Strings.BotName + " from reminding you to do something based on the reminders index.",
         "\tExample: `.remindmenot 4`",
         "remindmenot"
     )]

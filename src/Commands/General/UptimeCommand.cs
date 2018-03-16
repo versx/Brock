@@ -8,22 +8,26 @@
     using DSharpPlus.Entities;
 
     using BrockBot.Data;
-    using BrockBot.Utilities;
+    using BrockBot.Extensions;
 
     [Command(
-        Categories.Administrative,
-        "Displays how long " + FilterBot.BotName + " has been online for.",
+        Categories.General,
+        "Displays how long " + Strings.BotName + " has been online for.",
         "\tExample: `.uptime`",
         "uptime"
     )]
     public class UptimeCommand : ICustomCommand
     {
+        #region Variables
+
         private readonly DiscordClient _client;
         private readonly IDatabase _db;
 
+        #endregion
+
         #region Properties
 
-        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.Admin;
+        public CommandPermissionLevel PermissionLevel => CommandPermissionLevel.User;
 
         #endregion
 
@@ -45,10 +49,12 @@
             var now = DateTime.Now;
             var uptime = now.Subtract(start);
 
-            var eb = new DiscordEmbedBuilder();
-            eb.AddField("Started:", start.ToString("MM/dd/yyyy hh:mm:ss tt"));
-            eb.AddField("Uptime:", Utils.ToReadableString(uptime));
+            var eb = new DiscordEmbedBuilder { Color = DiscordColor.Green, Title = $"{Strings.BotName} Uptime" };
+            eb.AddField("Started:", start.ToString("MM/dd/yyyy hh:mm:ss tt"), true);
+            eb.AddField("Uptime:", uptime.ToReadableString(),  true);
+
             var embed = eb.Build();
+            if (embed == null) return;
 
             await message.RespondAsync(string.Empty, false, embed);
         }

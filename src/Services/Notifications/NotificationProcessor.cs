@@ -297,6 +297,8 @@
 
         #endregion
 
+        #region Private Methods
+
         private async Task SendNotification(DiscordUser user, string pokemon, DiscordEmbed embed)
         {
             Notify(pokemon, embed);
@@ -304,8 +306,6 @@
             await _client.SendDirectMessage(user, string.Empty, embed);
             await Utils.Wait(NotificationTimeout);
         }
-
-        #region Private Methods
 
         private DiscordEmbed BuildEmbedPokemonFromAlarm(PokemonData pokemon, AlarmObject alarm)
         {
@@ -346,7 +346,7 @@
                 eb.AddField("Types: ", string.Join("/", types));
             }
 
-            eb.AddField("Despawn:", $"{pokemon.DespawnTime.ToLongTimeString()} ({Utils.ToReadableString(pokemon.SecondsLeft, true)} left)");
+            eb.AddField("Despawn:", $"{pokemon.DespawnTime.ToLongTimeString()} ({pokemon.SecondsLeft.ToReadableString(true)} left)");
             eb.AddField("Location:", $"{Math.Round(pokemon.Latitude, 5)},{Math.Round(pokemon.Longitude, 5)}");
             eb.WithImageUrl(string.Format(Strings.GoogleMapsStaticImage, pokemon.Latitude, pokemon.Longitude) + $"&key={_config.GmapsKey}");
             var embed = eb.Build();

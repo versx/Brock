@@ -14,7 +14,7 @@
 
     [Command(
         Categories.Reminders,
-        "Have " + FilterBot.BotName + " remind you to do something.",
+        "Have " + Strings.BotName + " remind you to do something.",
         "\tExample: `.remindme to update you in 2 minutes 30s` (Direct message)\r\n" +
         "\tExample: `.remindme here \"to update you in 2 minutes 30s\"` (In the current channel.)",
         "remindme"

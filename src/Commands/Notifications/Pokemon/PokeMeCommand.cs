@@ -19,15 +19,19 @@
         "\tExample: `.pokeme pikachu 97`\r\n" +
         "\tExample: `.pokeme 113,242,248 90`\r\n" +
         "\tExample: `.pokeme pikachu,26,129,Dratini 97`\r\n" +
-        "\tExample: `.pokeme 113 90 L35` (Supporters Only: Subscribe to Chansey notifications with minimum IV of 90% and minimum level of 32.)\r\n" +
+        "\tExample: `.pokeme 113 90 L32` (Supporters Only: Subscribe to Chansey notifications with minimum IV of 90% and minimum level of 32.)\r\n" +
         "\tExample: `.pokeme all 90` (Subscribe to all Pokemon notifications with minimum IV of 90%. Excludes Unown)\r\n" +
         "\tExample: `.pokeme all 90 L30 (Supporters Only: Subscribe to all Pokemon notifications with minimum IV of 90% and minimum level of 30.)",
         "pokeme"
     )]
     public class PokeMeCommand : ICustomCommand
     {
+        #region Constants
+
         public const int MaxPokemonSubscriptions = 25;
         public const int CommonTypeMinimumIV = 97;
+
+        #endregion
 
         #region Variables
 
@@ -53,6 +57,8 @@
         }
 
         #endregion
+
+        #region Public Methods
 
         public async Task Execute(DiscordMessage message, Command command)
         {
@@ -88,21 +94,21 @@
                 return;
             }
 
-            if (gendArg != "*" && gendArg != "m" && gendArg != "f")
-            {
-                await message.RespondAsync($"{message.Author.Mention} {gendArg} is not a valid gender.");
-                return;
-            }
-
             if (iv < 0 || iv > 100)
             {
                 await message.RespondAsync($"{message.Author.Mention} {iv} must be within the range of 0-100.");
                 return;
             }
 
+            if (gendArg != "*" && gendArg != "m" && gendArg != "f")
+            {
+                await message.RespondAsync($"{message.Author.Mention} {gendArg} is not a valid gender.");
+                return;
+            }
+
             if (!int.TryParse(lvlArg.Replace("l", null).Replace("L", null), out int lvl))
             {
-                await message.RespondAsync($"{message.Author.Mention} {lvlArg} is not a valid Level.");
+                await message.RespondAsync($"{message.Author.Mention} {lvlArg} is not a valid level.");
                 return;
             }
 
@@ -243,6 +249,10 @@
             );
         }
 
+        #endregion
+
+        #region Private Methods
+
         private bool IsCommonPokemon(uint pokeId)
         {
             var commonPokemon = new List<uint>
@@ -305,5 +315,7 @@
             };
             return commonPokemon.Contains(pokeId);
         }
+
+        #endregion
     }
 }

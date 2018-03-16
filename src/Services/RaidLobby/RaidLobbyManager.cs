@@ -13,6 +13,7 @@
     using BrockBot.Data.Models;
     using BrockBot.Diagnostics;
     using BrockBot.Extensions;
+    using BrockBot.Services.Geofence;
     using BrockBot.Utilities;
 
     public class RaidLobbyManager
@@ -22,6 +23,7 @@
         private readonly DiscordClient _client;
         private readonly Config _config;
         private readonly IEventLogger _logger;
+        private readonly GeofenceService _geofenceSvc;
 
         #endregion
 
@@ -47,11 +49,12 @@
 
         #region Constructor
 
-        public RaidLobbyManager(DiscordClient client, Config config, IEventLogger logger)
+        public RaidLobbyManager(DiscordClient client, Config config, IEventLogger logger, GeofenceService geofenceSvc)
         {
             _client = client;
             _config = config;
             _logger = logger;
+            _geofenceSvc = geofenceSvc;
         }
 
         #endregion
@@ -468,6 +471,19 @@
             var lobbyMessage = await raidLobbyChannel.GetMessage(lobby.LobbyMessageId);
             if (lobbyMessage != null)
             {
+                var coordinates = Utils.GetLastLine(raidMessage.Description);
+                var latitude = double.Parse(coordinates.Split(',')[0]);
+                var longitude = double.Parse(coordinates.Split(',')[1]);
+
+                var city = "Unknown";
+                var loc = _geofenceSvc.GetGeofence(new Location(latitude, longitude));
+                if (loc == null)
+                {
+                    _logger.Error($"Failed to lookup city for coordinates {latitude},{longitude}...");
+                }
+                city = loc.Name;
+
+                msg = $"**City:** {city}\r\n{msg}";
                 await lobbyMessage.DeleteAsync();
                 lobbyMessage = null;
             }

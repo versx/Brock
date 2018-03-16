@@ -139,7 +139,7 @@
     <Compile Include="Commands\Administrative\Twitter\ListTwitterCommand.cs" />
     <Compile Include="Commands\Administrative\SayCommand.cs" />
     <Compile Include="Commands\Administrative\Fun\GiveawayCommand.cs" />
-    <Compile Include="Commands\General\GetWeatherCommand.cs" />
+    <Compile Include="Commands\General\WeatherCommand.cs" />
     <Compile Include="Commands\General\ShareCommand.cs" />
     <Compile Include="Commands\Moderator\SetEncounterListCommand.cs" />
     <Compile Include="Commands\General\CheckApiCommand.cs" />
@@ -178,7 +178,7 @@
     <Compile Include="Commands\Notifications\Pokemon\PokeMeCommand.cs" />
     <Compile Include="Commands\General\TeamsCommand.cs" />
     <Compile Include="Commands\Notifications\Pokemon\PokeMeNotCommand.cs" />
-    <Compile Include="Commands\Administrative\UptimeCommand.cs" />
+    <Compile Include="Commands\General\UptimeCommand.cs" />
     <Compile Include="Commands\General\VersionCommand.cs" />
     <Compile Include="Commands\Reminders\DeleteReminderCommand.cs" />
     <Compile Include="Commands\Reminders\GetRemindersCommand.cs" />
@@ -187,6 +187,7 @@
     <Compile Include="Configuration\AdvertisementConfig.cs" />
     <Compile Include="Configuration\Config.cs" />
     <Compile Include="Configuration\FeedStatusConfig.cs" />
+    <Compile Include="Configuration\Giveaway.cs" />
     <Compile Include="Configuration\RaidLobbyConfig.cs" />
     <Compile Include="Configuration\SponsoredRaidsConfig.cs" />
     <Compile Include="Configuration\TwitterUpdatesConfig.cs" />
@@ -206,6 +207,7 @@
     <Compile Include="Extensions\HelpExtensions.cs" />
     <Compile Include="Extensions\IntegerExtensions.cs" />
     <Compile Include="Extensions\PokemonExtensions.cs" />
+    <Compile Include="Extensions\TimeSpanExtensions.cs" />
     <Compile Include="Net\PokemonData.cs" />
     <Compile Include="Net\PokemonReceivedEventArgs.cs" />
     <Compile Include="Net\RaidData.cs" />
@@ -262,6 +264,7 @@
     <Compile Include="Utilities\AssemblyUtils.cs" />
     <Compile Include="Utilities\DiscordHelpers.cs" />
     <Compile Include="Utilities\NetUtils.cs" />
+    <Compile Include="Utilities\Randomizer.cs" />
     <Compile Include="Utilities\Utils.cs" />
   </ItemGroup>
   <ItemGroup>

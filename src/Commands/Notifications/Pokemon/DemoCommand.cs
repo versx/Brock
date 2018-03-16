@@ -11,7 +11,7 @@
 
     [Command(
         Categories.Notifications,
-        "Demos how to use " + FilterBot.BotName + ".",
+        "Demos how to use " + Strings.BotName + ".",
         null,
         "demo"
     )]

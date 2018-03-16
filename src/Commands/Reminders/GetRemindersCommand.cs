@@ -14,7 +14,7 @@
 
     [Command(
         Categories.Reminders,
-        "List all reminders that " + FilterBot.BotName + " will notify you of.",
+        "List all reminders that " + Strings.BotName + " will notify you of.",
         "\tExample: `.reminders`",
         "reminders"
     )]

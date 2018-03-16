@@ -2,8 +2,6 @@
 {
     using DSharpPlus.Entities;
 
-    using BrockBot.Data.Models;
-
     public class RaidLobbySettings
     {
         //public RaidLobby Lobby { get; set; }

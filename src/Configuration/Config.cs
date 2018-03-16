@@ -368,19 +368,4 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
 
         #endregion
     }
-
-    [JsonObject("giveaway")]
-    public class Giveaway
-    {
-        [JsonProperty("pokemonId")]
-        public uint PokemonId { get; set; }
-
-        [JsonProperty("winner")]
-        public ulong Winner { get; set; }
-
-        public DateTime StartTime { get; set; }
-
-        [JsonProperty("started")]
-        public bool Started { get; set; }
-    }
 }

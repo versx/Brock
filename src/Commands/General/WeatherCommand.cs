@@ -16,7 +16,7 @@
         "\tExample: `.weather Upland`",
         "weather"
     )]
-    public class GetWeatherCommand : ICustomCommand
+    public class WeatherCommand : ICustomCommand
     {
         #region Constants
 
@@ -41,7 +41,7 @@
 
         #region Constructor
 
-        public GetWeatherCommand(DiscordClient client, Config config, IEventLogger logger, IWeatherService weatherSvc)
+        public WeatherCommand(DiscordClient client, Config config, IEventLogger logger, IWeatherService weatherSvc)
         {
             _client = client;
             _config = config;
@@ -89,7 +89,7 @@
                 eb.AddField("Snow Level", weather.SnowLevel.ToString(), true);
                 eb.AddField("Wind Level", weather.WindLevel.ToString(), true);
                 eb.AddField("Wind Direction", weather.WindDirection.ToString(), true);
-                eb.AddField("Last Updated", weather.LastUpdated.ToString());
+                eb.AddField("Last Updated", weather.LastUpdated.ToLocalTime().ToString());
                 //eb.AddField("Weather", weather.WeatherText, true);
                 //eb.AddField("Temperature", $"{weather.Temperature.Imperial.Value}°{weather.Temperature.Imperial.Unit}", true);
                 //eb.WithImageUrl(string.Format(WeatherIconUrl, weather.WeatherIcon.ToString("D2")));

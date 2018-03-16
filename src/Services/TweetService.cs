@@ -36,7 +36,7 @@
             _config = config;
             _logger = logger;
 
-            _timer = new Timer { Interval = FilterBot.OneMinute };
+            _timer = new Timer { Interval = 1000 * 60 * 5 };
             _timer.Elapsed += MinuteTimerEventHandler;
 
             var creds = SetCredentials(_config.TwitterUpdates);

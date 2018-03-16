@@ -10,7 +10,7 @@
 
     [Command(
         Categories.General,
-        "Display " + FilterBot.BotName + "'s current version.",
+        "Display " + Strings.BotName + "'s current version.",
         null,
         "v", "ver", "version", "about"
     )]
@@ -45,11 +45,11 @@
             var eb = new DiscordEmbedBuilder();
             eb.AddField
             (
-                $"About {FilterBot.BotName} Bot",
-                $"{FilterBot.BotName} Bot is a simple Discord bot that allows you to assign yourself to your Pokemon team, create Raid Lobbies, filter sponsored raids, Pokemon spawn notifier and more."
+                $"About {Strings.BotName} Bot",
+                $"{Strings.BotName} Bot is a simple Discord bot that allows you to assign yourself to your Pokemon team, create Raid Lobbies, filter sponsored raids, Pokemon spawn notifier and more."
             );
             eb.AddField("Developer", "versx#8151");
-            eb.AddField("Debugger & Reviewer", "Boracyk#7608");
+            eb.AddField("Debugger & Idea Machine", "Boracyk#7608");
             eb.AddField("Company", AssemblyUtils.CompanyName);
             eb.AddField("Discord", "https://discord.me/versx");
             eb.AddField
@@ -58,7 +58,8 @@
                 "https://github.com/versx/Brock\n\nTo make a suggestion or report a bug regarding Brock, " +
                 "go to the GitHub repository and use the issue tab to create an issue or mesage me on Discord @ versx#8151."
             );
-            eb.WithFooter($"{AssemblyUtils.Copyright}, Version {AssemblyUtils.AssemblyVersion}");
+            //eb.WithFooter($"{AssemblyUtils.Copyright}, Version {AssemblyUtils.AssemblyVersion}");
+            eb.WithFooter($"Version {AssemblyUtils.AssemblyVersion}");
 
             var embed = eb.Build();
             return embed;

@@ -38,7 +38,15 @@
             "🇧",
             "🇨",
             "🇩",
-            "🇪"
+            "🇪",
+            "🇫",
+            "🇬",
+            "🇭",
+            "🇮",
+            "🇯",
+            "🇰",
+            "🇱",
+            "🇲"
         };
 
         #endregion
@@ -86,7 +94,7 @@
             var eb = new DiscordEmbedBuilder { Title = poll.Question, Color = DiscordColor.Purple };
             for (int i = 0; i < poll.Answers.Count; i++)
             {
-                eb.Description += $"{_validVotingReactions[i]}: {poll.Answers[i]}\r\n\r\n";
+                eb.Description += $"{_validVotingReactions[i]} {poll.Answers[i]}\r\n\r\n";
             }
 
             eb.ImageUrl = VotingImage;

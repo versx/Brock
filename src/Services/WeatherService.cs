@@ -21,11 +21,15 @@
 
     public class WeatherService : IWeatherService
     {
+        #region Variables
+
         //private readonly string _apiKey;
         private readonly IEventLogger _logger;
         private readonly Timer _timer;
         private readonly List<WeatherData> _weatherConditions;
         private readonly GeofenceService _geofenceSvc;
+
+        #endregion
 
         #region Properties
 
@@ -47,6 +51,8 @@
             _timer = new Timer { Interval = (60 * 1000) * 15 };
             _timer.Elapsed += CheckWeatherConditionsEventHandler;
             _timer.Start();
+
+            _logger.Trace($"WeatherService::WeatherService");
         }
 
         #endregion
@@ -55,6 +61,8 @@
 
         public List<WeatherData> GetWeatherConditions()
         {
+            _logger.Trace("WeatherService::GetWeatherConditions");
+
             var urls = new string[]
             {
                 "https://pokemap.ver.sx/weather",
@@ -79,8 +87,12 @@
 
         public WeatherData GetWeatherConditions(string city)
         {
-            var conditions = GetWeatherConditions();
-            foreach (var condition in conditions)
+            _logger.Trace($"WeatherService::GetWeatherConditions [City={city}]");
+
+            //var conditions = GetWeatherConditions();
+            if (_weatherConditions == null) return null;
+
+            foreach (var condition in _weatherConditions)
             {
                 if (condition == null)
                 {
@@ -112,6 +124,8 @@
 
         private string MakeRequest(string url)
         {
+            _logger.Trace($"WeatherService::MakeRequest [Url={url}]");
+
             try
             {
                 using (var wc = new WebClient())

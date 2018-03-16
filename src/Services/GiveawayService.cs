@@ -8,6 +8,7 @@
 
     using BrockBot.Configuration;
     using BrockBot.Extensions;
+    using BrockBot.Utilities;
 
     public class GiveawayService
     {
@@ -50,10 +51,10 @@
 
             if (pokeId == 0)
             {
-                _pokemonId = (uint)BrockBot.Utilities.Utils.RandomInt(MinPokemon, MaxPokemon);
+                _pokemonId = (uint)Randomizer.RandomInt(MinPokemon, MaxPokemon);
                 while (_config.Giveaways.Exists(x => x.PokemonId == _pokemonId))
                 {
-                    _pokemonId = (uint)BrockBot.Utilities.Utils.RandomInt(MinPokemon, MaxPokemon);
+                    _pokemonId = (uint)Randomizer.RandomInt(MinPokemon, MaxPokemon);
                 }
             }
             else

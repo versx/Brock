@@ -100,7 +100,7 @@
                 eb.Description = $"{pkmn.Name} {form}{pokemon.Gender.GetPokemonGenderIcon()} {pokemon.IV} L{pokemon.Level} Despawn: {pokemon.DespawnTime.ToLongTimeString()}\r\n\r\n";
                 eb.Description += $"**Details:** CP: {pokemon.CP} IV: {pokemon.IV} LV: {pokemon.Level}\r\n";
             }
-            eb.Description += $"**Despawn:** {pokemon.DespawnTime.ToLongTimeString()} ({Utils.ToReadableString(pokemon.SecondsLeft, true)} left)\r\n";
+            eb.Description += $"**Despawn:** {pokemon.DespawnTime.ToLongTimeString()} ({pokemon.SecondsLeft.ToReadableStringNoSeconds()} left)\r\n";
             if (pokemon.Attack != "?" && pokemon.Defense != "?" && pokemon.Stamina != "?")
             {
                 eb.Description += $"**IV Stats:** Atk: {pokemon.Attack}/Def: {pokemon.Defense}/Sta: {pokemon.Stamina}\r\n";
@@ -111,8 +111,14 @@
                 eb.Description += $"**Form:** {form}\r\n";
             }
 
+            if (int.TryParse(pokemon.Level, out int lvl) && lvl >= 30)
+            {
+                eb.Description += $":white_sun_rain_cloud: Boosted\r\n";
+            }
+
             var maxCp = _db.MaxCpAtLevel(pokemon.Id, 40);
-            eb.Description += "**Max CP:** " + maxCp.ToString("N0") + "\r\n";
+            var maxWildCp = _db.MaxCpAtLevel(pokemon.Id, 35);
+            eb.Description += $"**Max Wild CP:** {maxWildCp}, **Max CP:** {maxCp} \r\n";
 
             if (pkmn.Types.Count > 0)
             {
@@ -121,19 +127,16 @@
                 {
                     if (Strings.TypeEmojis.ContainsKey(x.Type.ToLower()))
                     {
-                        types.Add(Strings.TypeEmojis[x.Type.ToLower()] + " " + x.Type);
+                        types.Add($"{Strings.TypeEmojis[x.Type.ToLower()]} {x.Type}");
                     }
                 });
                 eb.Description += $"**Types:** {string.Join("/", types)}\r\n";
             }
 
-            if (pokemon.Height != "?" && pokemon.Weight != "?")
+            if (float.TryParse(pokemon.Height, out float height) && float.TryParse(pokemon.Weight, out float weight))
             {
-                if (float.TryParse(pokemon.Height, out float height) && float.TryParse(pokemon.Weight, out float weight))
-                {
-                    var size = _db.GetSize(pokemon.Id, height, weight);
-                    eb.Description += $"**Size:** {size}\r\n";
-                }
+                var size = _db.GetSize(pokemon.Id, height, weight);
+                eb.Description += $"**Size:** {size}\r\n";
             }
 
             var fastMove = _db.Movesets.ContainsKey(pokemon.FastMove) ? _db.Movesets[pokemon.FastMove] : null;
@@ -152,6 +155,10 @@
 
             eb.Description += $"**Location:** {Math.Round(pokemon.Latitude, 5)},{Math.Round(pokemon.Longitude, 5)}";
             eb.ImageUrl = string.Format(Strings.GoogleMapsStaticImage, pokemon.Latitude, pokemon.Longitude) + $"&key={_config.GmapsKey}";
+            eb.Footer = new DiscordEmbedBuilder.EmbedFooter
+            {
+                Text = $"versx | {DateTime.Now}"
+            };
             var embed = eb.Build();
 
             return embed;
@@ -177,7 +184,7 @@
             var loc = _geofenceSvc.GetGeofence(new Location(raid.Latitude, raid.Longitude));
             if (loc == null)
             {
-                _logger.Error($"Failed to lookup city for coordinates {raid.Longitude},{raid.Longitude}, skipping...");
+                _logger.Error($"Failed to lookup city for coordinates {raid.Latitude},{raid.Longitude}, skipping...");
                 return null;
             }
 
@@ -205,13 +212,13 @@
             var fixedEndTime = DateTime.Parse(raid.EndTime.ToLongTimeString());
             var remaining = GetRaidTimeRemaining(fixedEndTime);
 
-            eb.Description = $"{pkmn.Name} Raid Ends: {raid.EndTime.ToLongTimeString()} ({Utils.ToReadableString(remaining, true)} left)\r\n\r\n";
+            eb.Description = $"{pkmn.Name} Raid Ends: {raid.EndTime.ToLongTimeString()}\r\n\r\n";
             eb.Description += $"**Starts:** {raid.StartTime.ToLongTimeString()}\r\n";
-            eb.Description += $"**Ends:** {raid.EndTime.ToLongTimeString()} ({Utils.ToReadableString(remaining, true)} left)\r\n";
+            eb.Description += $"**Ends:** {raid.EndTime.ToLongTimeString()} ({remaining.ToReadableStringNoSeconds()} left)\r\n";
 
-            var perfectCP = _db.GetPokemonCpRange(raid.PokemonId, 20);
-            var boostedCP = _db.GetPokemonCpRange(raid.PokemonId, 25);
-            eb.Description += $"**Perfect CP:** {perfectCP[1]} / :white_sun_rain_cloud: {boostedCP[1]}\r\n";
+            var perfectRange = _db.GetPokemonCpRange(raid.PokemonId, 20);
+            var boostedRange = _db.GetPokemonCpRange(raid.PokemonId, 25);
+            eb.Description += $"**Perfect CP:** {perfectRange.Best} / :white_sun_rain_cloud: {boostedRange.Best}\r\n";
 
             if (pkmn.Types.Count > 0)
             {
@@ -229,13 +236,13 @@
             var fastMove = _db.Movesets.ContainsKey(raid.FastMove) ? _db.Movesets[raid.FastMove] : null;
             if (fastMove != null)
             {
-                eb.Description += $"**Fast Move:** {fastMove.Name} ({fastMove.Type})\r\n";
+                eb.Description += $"**Fast Move:** {Strings.TypeEmojis[fastMove.Type.ToLower()]} {fastMove.Name}\r\n";
             }
 
             var chargeMove = _db.Movesets.ContainsKey(raid.ChargeMove) ? _db.Movesets[raid.ChargeMove] : null;
             if (chargeMove != null)
             {
-                eb.Description += $"**Charge Move:** {chargeMove.Name} ({chargeMove.Type})\r\n";
+                eb.Description += $"**Charge Move:** {Strings.TypeEmojis[chargeMove.Type.ToLower()]} {chargeMove.Name}\r\n";
             }
 
             var strengths = new List<string>();
@@ -270,6 +277,10 @@
 
             eb.Description += $"**Location:** {Math.Round(raid.Latitude, 5)},{Math.Round(raid.Longitude, 5)}";
             eb.ImageUrl = string.Format(Strings.GoogleMapsStaticImage, raid.Latitude, raid.Longitude) + $"&key={_config.GmapsKey}";
+            eb.Footer = new DiscordEmbedBuilder.EmbedFooter
+            {
+                Text = $"versx | {DateTime.Now}"
+            };
             var embed = eb.Build();
 
             return embed;

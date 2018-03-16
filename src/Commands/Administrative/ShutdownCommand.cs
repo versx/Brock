@@ -10,7 +10,7 @@
 
     [Command(
         Categories.Administrative,
-        "Shuts down " + FilterBot.BotName + ".",
+        "Shuts down " + Strings.BotName + ".",
         null,
         "shutdown"
     )]

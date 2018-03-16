@@ -25,7 +25,7 @@
 
     //TODO: Add rate limiter to prevent spam.
     //TODO: Notify via SMS or Email or Twilio or w/e.
-    //TODO: Keep track of supporters, have a command to check if a paypal email etc or username rather has donated.
+    //TODO: Keep track of supporters, have a command to check if a user has donated.
     //TODO: Fix new geofence lookup, Upland picked up as Montclair.
 
     //TODO: Add .cancel-giveaway command.
@@ -56,18 +56,6 @@
 
     public class FilterBot
     {
-        #region Constants
-
-        public const string BotName = "Brock";
-        public const int OneSecond = 1000;
-        public const int OneMinute = OneSecond * 60;
-        public const int OneHour = OneMinute * 60;
-        public const string UnauthorizedAttemptsFileName = "unauthorized_attempts.txt";
-        public const string DefaultAlarmsFileName = "alarms.json";
-        public const string DefaultCrashMessage = "I JUST CRASHED!";
-
-        #endregion
-
         #region Variables
 
         private readonly DiscordClient _client;
@@ -137,7 +125,7 @@
 
             _reminderSvc = new ReminderService(_client, _db, _logger);
             _notificationProcessor = new NotificationProcessor(_client, _db, _config, _logger);
-            _lobbyManager = new RaidLobbyManager(_client, _config, _logger);
+            _lobbyManager = new RaidLobbyManager(_client, _config, _logger, _notificationProcessor.GeofenceSvc);
             _weatherSvc = new WeatherService(/*_config.AccuWeatherApiKey*/_notificationProcessor.GeofenceSvc, _logger);
 
             //LoadAlarms(Path.Combine(Directory.GetCurrentDirectory(), DefaultAlarmsFileName));
@@ -433,7 +421,7 @@
 
             if (_timer == null)
             {
-                _timer = new Timer(OneMinute);
+                _timer = new Timer(1000 * 60 * 15);
                 _timer.Elapsed += MinuteTimerEventHandler;
                 _timer.Start();
             }
@@ -566,7 +554,7 @@
                 return;
             }
 
-            await _client.SendDirectMessage(owner, DefaultCrashMessage, null);
+            await _client.SendDirectMessage(owner, Strings.DefaultCrashMessage, null);
         }
 
         #endregion
@@ -765,7 +753,7 @@
                     case CommandPermissionLevel.Admin:
                         if (!isOwner)
                         {
-                            message.Author.LogUnauthorizedAccess(command.FullCommand, UnauthorizedAttemptsFileName);
+                            message.Author.LogUnauthorizedAccess(command.FullCommand, Strings.UnauthorizedAttemptsFileName);
                             await message.RespondAsync($"{message.Author.Mention} is not authorized to execute these type of commands, your unique user id has been logged.");
                             return;
                         }

@@ -51,7 +51,7 @@
                 bot.RegisterCommand<GoogleCommand>();
                 bot.RegisterCommand<DoorCommand>();
                 bot.RegisterCommand<CheckApiCommand>();
-                bot.RegisterCommand<GetWeatherCommand>();
+                bot.RegisterCommand<WeatherCommand>();
                 bot.RegisterCommand<VersionCommand>();
 
                 bot.RegisterCommand<GiveawayCommand>();

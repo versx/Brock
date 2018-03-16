@@ -5,10 +5,21 @@
 
     using BrockBot.Data;
 
+    public class CpRange
+    {
+        public int Worst { get; }
+
+        public int Best { get; }
+
+        public CpRange(int worst, int best)
+        {
+            Worst = worst;
+            Best = best;
+        }
+    }
+
     public static class PokemonExtensions
     {
-        //private readonly Database _db;
-
         private static double[] cpMultipliers =
         {
             0.094, 0.16639787, 0.21573247, 0.25572005, 0.29024988,
@@ -34,7 +45,7 @@
             return 0;
         }
 
-        public static int[] GetPokemonCpRange(this IDatabase db, int pokeId, int level)
+        public static CpRange GetPokemonCpRange(this IDatabase db, int pokeId, int level)
         {
             if (!db.Pokemon.ContainsKey(pokeId.ToString())) return null;
 
@@ -49,7 +60,7 @@
             int maxCp = Convert.ToInt32(((baseAtk + 15.0) * Math.Pow(baseDef + 15.0, 0.5)
                 * Math.Pow(baseSta + 15.0, 0.5) * Math.Pow(cpMulti, 2)) / 10.0);
 
-            return new int[] { minCp, maxCp };
+            return new CpRange(minCp, maxCp);
             //Console.WriteLine($"CP Range: {minCp}-{maxCp} at L{level}");
         }
 
@@ -99,7 +110,6 @@
                     return "♀";//\u2640
                 default:
                     return "⚲";//?
-
             }
         }
 

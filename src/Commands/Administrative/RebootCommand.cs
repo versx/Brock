@@ -12,7 +12,7 @@
 
     [Command(
         Categories.Administrative,
-        "Restarts " + FilterBot.BotName + ".",
+        "Restarts " + Strings.BotName + ".",
         "\tExample: `.reboot`",
         "reboot"
     )]

@@ -37,7 +37,7 @@
             _config = config;
             _logger = logger;
 
-            _adTimer = new Timer { Interval = _config.Advertisement.PostInterval * FilterBot.OneMinute };
+            _adTimer = new Timer { Interval = _config.Advertisement.PostInterval * 1000 * 60 };
             _adTimer.Elapsed += AdvertisementTimerEventHandler;
         }
 

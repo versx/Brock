@@ -1,6 +1,8 @@
 ﻿namespace BrockBot.Utilities
 {
     using System;
+    using System.IO;
+    using System.Net;
     using System.Net.NetworkInformation;
     using System.Net.Sockets;
 
@@ -35,6 +37,39 @@
                 }
             }
             return result;
+        }
+
+        public static void MakeWebRequest(string url, string payload)
+        {
+            var request = (HttpWebRequest)WebRequest.Create(url);
+            request.Method = "POST";
+            request.ContentType = "application/json";
+            request.ContentLength = payload.Length;
+            using (var webStream = request.GetRequestStream())
+            using (var requestWriter = new StreamWriter(webStream, System.Text.Encoding.ASCII))
+            {
+                requestWriter.Write(payload);
+            }
+
+            try
+            {
+                var webResponse = request.GetResponse();
+                using (var webStream = webResponse.GetResponseStream())
+                {
+                    if (webStream != null)
+                    {
+                        using (var responseReader = new StreamReader(webStream))
+                        {
+                            string response = responseReader.ReadToEnd();
+                            Console.WriteLine("Response: {0}", response);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Utils.LogError(ex);
+            }
         }
     }
 }
