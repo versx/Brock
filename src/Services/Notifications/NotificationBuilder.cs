@@ -87,7 +87,7 @@
                 //Description = $"{pkmn.Name}{pokemon.Gender.GetPokemonGenderIcon()} {pokemon.CP}CP {pokemon.IV} Despawn: {pokemon.DespawnTime.ToLongTimeString()}",
                 Url = string.Format(Strings.GoogleMaps, pokemon.Latitude, pokemon.Longitude),
                 ImageUrl = string.Format(Strings.GoogleMapsStaticImage, pokemon.Latitude, pokemon.Longitude),
-                ThumbnailUrl = string.Format(Strings.PokemonImage, pokemon.Id, Convert.ToInt32(pokemon.FormId ?? "0")),
+                ThumbnailUrl = string.Format(Strings.PokemonImage, pokemon.Id, Convert.ToInt32(string.IsNullOrEmpty(pokemon.FormId) ? "0" : pokemon.FormId)),
                 Color = DiscordHelpers.BuildColor(pokemon.IV)
             };
 
@@ -210,7 +210,7 @@
             };
 
             var fixedEndTime = DateTime.Parse(raid.EndTime.ToLongTimeString());
-            var remaining = GetRaidTimeRemaining(fixedEndTime);
+            var remaining = GetTimeRemaining(fixedEndTime);
 
             eb.Description = $"{pkmn.Name} Raid Ends: {raid.EndTime.ToLongTimeString()}\r\n\r\n";
             eb.Description += $"**Starts:** {raid.StartTime.ToLongTimeString()}\r\n";
@@ -290,7 +290,7 @@
 
         #region Private Methods
 
-        private TimeSpan GetRaidTimeRemaining(DateTime endTime)
+        private TimeSpan GetTimeRemaining(DateTime endTime)
         {
             var start = DateTime.Now;
             var end = DateTime.Parse(endTime.ToLongTimeString());

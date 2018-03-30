@@ -250,8 +250,8 @@
     {
         Clear,
         Rainy,
-        Partly_Cloudy,
-        Overcast,
+        Partly_Cloudy, //Overcast
+        //Overcast,
         Cloudy,
         Windy,
         Snow,

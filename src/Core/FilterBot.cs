@@ -42,6 +42,9 @@
     //TODO: Move webservers to separate server.
     //TODO: Suggest raid attackers.
     //TODO: Lots more I can't remember right now. D:
+	
+	//TODO: Add message if no IV provided.
+	//TODO: Allow Mods/Admin to subscribe to common type pokemon.
 
 
     /**PokeAlarm Alternative Logic

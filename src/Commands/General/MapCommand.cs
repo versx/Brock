@@ -40,7 +40,9 @@
         {
             var eb = new DiscordEmbedBuilder();
             eb.AddField("Pokemon Map Scanner", "https://pokemap.ver.sx");
-            eb.AddField("Gyms & Raids Map Scanner", "https://gymmap.ver.sx");
+            eb.AddField("EastLA Map Scanner", "https://eastla.ver.sx");
+            eb.AddField("Whittier Map Scanner", "https://whittier.ver.sx");
+            eb.AddField("Raids Map Scanner", "https://raids.ver.sx");
             var embed = eb.Build();
 
             await message.RespondAsync(string.Empty, false, embed);

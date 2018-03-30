@@ -89,11 +89,13 @@
 
         #region Data Parsing Methods
 
-        private void ParseData(string data)
+        public void ParseData(string data)
         {
             try
             {
                 if (string.IsNullOrEmpty(data)) return;
+
+                //File.AppendAllText("debug.txt", data + "\r\n");
 
                 var obj = JsonConvert.DeserializeObject<dynamic>(data);
                 if (obj == null) return;
@@ -169,6 +171,52 @@
              *}]
              */
 
+            /*
+            [{
+[{
+"message": {
+	"great_catch": null, 
+	"boosted_weather": 0, 
+	"disappear_time": 1521468677, 
+	"weight": null, 
+	"seconds_until_despawn": 67, 
+	"def_grade": null, 
+	"spawnpoint_id": 8848490882789,
+	"atk_grade": null, 
+	"cp_multiplier": null,
+	"individual_defense": null,
+	"height": null, 
+	"time_until_hidden_ms": 66363,
+	"rating_attack": null, 
+	"costume": 0, 
+	"last_modified_time": 1521468610681, 
+	"catch_prob_1": null, 
+	"catch_prob_2": null,
+	"catch_prob_3": null,
+	"encounter_id": 3073404211164322811, 
+	"spawn_end": 677,
+	"move_1": null, 
+	"move_2": null, 
+	"cp": null, 
+	"verified": true, 
+	"form": null, 
+	"pokemon_id": 216, 
+	"player_level": 7, 
+	"individual_stamina": null,
+	"weather_boosted_condition": null,
+	"longitude": -117.73234339051918, 
+	"spawn_start": 2478, 
+	"rating_defense": null,
+	"base_catch": null,
+	"weather": 1, 
+	"gender": null,
+	"latitude": 34.03153351968487,
+	"individual_attack": null,
+	"s2_cell_id": -9168428341303181312,
+	"ultra_catch": null
+}, "type": "pokemon"}]
+             */
+
             try
             {
                 var pokeId = Convert.ToInt32(Convert.ToString(message["pokemon_id"]));
@@ -187,7 +235,7 @@
                 var height = Convert.ToString(message["height"] ?? "?");
                 var weight = Convert.ToString(message["weight"] ?? "?");
                 //var verified = Convert.ToBoolean(Convert.ToString(message["verified"]));
-                var formId = Convert.ToString(message["form"]);
+                var formId = Convert.ToString(message["form"] ?? "0");
 
                 var iv = "?";
                 if (!string.IsNullOrEmpty(stamina) && stamina != "?" &&
@@ -263,6 +311,7 @@
                 }
 
                 var gymId = Convert.ToString(message["gym_id"]);
+                var teamId = Convert.ToInt32(Convert.ToString(message["team_id"] ?? "0"));
                 var latitude = Convert.ToDouble(Convert.ToString(message["latitude"]));
                 var longitude = Convert.ToDouble(Convert.ToString(message["longitude"]));
                 var spawn = Convert.ToInt64(Convert.ToString(message["spawn"]));
@@ -283,6 +332,7 @@
                 var raid = new RaidData
                 (
                     pokemonId,
+                    (PokemonTeam)teamId,
                     level,
                     cp,
                     move1,

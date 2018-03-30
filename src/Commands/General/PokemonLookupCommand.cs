@@ -89,7 +89,7 @@
             var types = pkmn.Types.Count > 1 ? pkmn.Types[0].Type + "/" + pkmn.Types[1].Type : pkmn.Types[0].Type;
             var evolutions = (pkmn.Evolutions == null || pkmn.Evolutions.Count == 0 ? string.Empty : string.Join(", ", pkmn.Evolutions));
 
-            var test = string.Empty;
+            var text = string.Empty;
             //var eb = new DiscordEmbedBuilder
             //{
             //    Author = new DiscordEmbedBuilder.EmbedAuthor
@@ -98,36 +98,36 @@
             //    }
             //};
             //eb.AddField(pkmn.Name, $"ID: {pokeId}, Gen: {pkmn.BaseStats.Generation}{(pkmn.BaseStats.Legendary ? " Legendary" : "")}", true);
-            test += $"**{pkmn.Name}** (Id: {pokeId}, Gen: {pkmn.BaseStats.Generation}{(pkmn.BaseStats.Legendary ? " Legendary" : "")})\r\n";
+            text += $"**{pkmn.Name}** (Id: {pokeId}, Gen {pkmn.BaseStats.Generation}{(pkmn.BaseStats.Legendary ? " Legendary" : "")})\r\n";
 
             if (Convert.ToUInt32(pokeId).IsValidRaidBoss(_config.RaidBosses))
             {
                 var perfectRange = _db.GetPokemonCpRange(pokeId, 20);
                 var boostedRange = _db.GetPokemonCpRange(pokeId, 25);
-                test += $"**Perfect CP:** {perfectRange.Best.ToString("N0")} / :white_sun_rain_cloud: {boostedRange.Best.ToString("N0")}\r\n";
+                text += $"**Perfect CP:** {perfectRange.Best.ToString("N0")} / :white_sun_rain_cloud: {boostedRange.Best.ToString("N0")}\r\n";
             }
 
             //eb.AddField("Base Stats:", $"Atk: {pkmn.BaseStats.Attack}, Def: {pkmn.BaseStats.Defense}, Sta: {pkmn.BaseStats.Stamina}", true);
-            test += $"**Base Stats:** Atk: {pkmn.BaseStats.Attack}, Def: {pkmn.BaseStats.Defense}, Sta: {pkmn.BaseStats.Stamina}\r\n";
+            text += $"**Base Stats:** Atk: {pkmn.BaseStats.Attack}, Def: {pkmn.BaseStats.Defense}, Sta: {pkmn.BaseStats.Stamina}\r\n";
             if (!string.IsNullOrEmpty(pkmn.Rarity))
             {
                 //eb.AddField("Rarity:", pkmn.Rarity, true);
-                test += $"**Rarity:** {pkmn.Rarity}\r\n";
+                text += $"**Rarity:** {pkmn.Rarity}\r\n";
             }
             if (!string.IsNullOrEmpty(pkmn.SpawnRate))
             {
                 //eb.AddField("Spawn Rate:", pkmn.SpawnRate, true);
-                test += $"**Spawn Rate:** {pkmn.SpawnRate}\r\n";
+                text += $"**Spawn Rate:** {pkmn.SpawnRate}\r\n";
             }
             //eb.AddField("Gender Ratio:", $"{Math.Round(pkmn.GenderRatio.Male * 100, 2)}% Male/{Math.Round(pkmn.GenderRatio.Female * 100, 2)}% Female", true);
-            test += $"**Gender Ratio:** {Math.Round(pkmn.GenderRatio.Male * 100, 2)}% Male/{Math.Round(pkmn.GenderRatio.Female * 100, 2)}% Female\r\n";
+            text += $"**Gender Ratio:** {Math.Round(pkmn.GenderRatio.Male * 100, 2)}% Male/{Math.Round(pkmn.GenderRatio.Female * 100, 2)}% Female\r\n";
             if (!string.IsNullOrEmpty(evolutions))
             {
                 //eb.AddField("Evolutions:", evolutions, true);
-                test += $"**Evolutions:** {evolutions}\r\n";
+                text += $"**Evolutions:** {evolutions}\r\n";
             }
             //eb.AddField("Type:", types, true);
-            test += $"**Types:** {types}\r\n";
+            text += $"**Types:** {types}\r\n";
 
             var strengths = new List<string>();
             var weaknesses = new List<string>();
@@ -151,21 +151,21 @@
 
             if (strengths.Count > 0)
             {
-                test += $"**Strong Against:** :types_{string.Join(": :types_", strengths)}:\r\n";
+                text += $"**Strong Against:** :types_{string.Join(": :types_", strengths)}:\r\n";
                 //eb.AddField("Strong Against:", ":types_" + string.Join(": :types_", strengths) + ":");
             }
 
             if (weaknesses.Count > 0)
             {
                 //eb.AddField("Weaknesses:", ":types_" + string.Join(": :types_", weaknesses) + ":");
-                test += $"**Weaknesses:** :types_{string.Join(": :types_", weaknesses)}:\r\n";
+                text += $"**Weaknesses:** :types_{string.Join(": :types_", weaknesses)}:\r\n";
             }
 
             //eb.ImageUrl = string.Format(Strings.PokemonImage, pokeId, 0);
             //var embed = eb.Build();
 
             //await message.RespondAsync(test, false, embed);
-            await message.RespondAsync(test);
+            await message.RespondAsync(text);
         }
 
         #endregion

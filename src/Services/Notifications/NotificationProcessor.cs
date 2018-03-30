@@ -10,6 +10,7 @@
 
     using BrockBot.Configuration;
     using BrockBot.Data;
+    using BrockBot.Data.Models;
     using BrockBot.Diagnostics;
     using BrockBot.Extensions;
     using BrockBot.Net;
@@ -118,25 +119,39 @@
                 return;
             }
 
-            //var onlyEventPokemon = true;
-            //var eventPokemon = new List<int> { 0 };
-            //var isEventPokemon = eventPokemon.Contains(pkmn.PokemonId);
-            //if (onlyEventPokemon && !isEventPokemon)
-            //{
-            //    //TODO: Only send event Pokemon subscriptions of 90% IV and higher.
-            //    return;
-            //}
+            var isEventPokemon = _config.EventPokemon.Contains(Convert.ToUInt32(pkmn.Id));
+            if (_config.OnlySendEventPokemon && !isEventPokemon)
+            {
+                _logger.Info($"Only event Pokemon can be sent with a minimum IV of {_config.EventPokemonMinimumIV}%.");
+                return;
+            }
 
             //TODO: Split up subscriptions list to multiple threads to check or add some kind of queue.
 
             DiscordUser discordUser;
+            Subscription<Pokemon> user;
+            //bool isSupporter;
+            Pokemon subscribedPokemon;
+            PokemonInfo pokemon;
+            bool matchesIV;
+            bool matchesLvl;
+            bool matchesGender;
+            DiscordEmbed embed;
+
             for (int i = 0; i < _db.Subscriptions.Count; i++)
             {
                 try
                 {
-                    var user = _db.Subscriptions[i];
+                    user = _db.Subscriptions[i];
                     if (user == null) continue;
                     if (!user.Enabled) continue;
+
+                    //isSupporter = await _client.IsSupporterOrHigher(user.UserId, _config);
+                    //if (pkmn.Id == 132 && !isSupporter)
+                    //{
+                    //    _logger.Debug($"User {user.UserId} is not a supporter, Ditto has been skipped...");
+                    //    continue;
+                    //}
 
                     discordUser = await _client.GetUser(user.UserId);
                     if (discordUser == null)
@@ -149,20 +164,20 @@
                     }
 
                     if (!user.Pokemon.Exists(x => x.PokemonId == pkmn.Id)) continue;
-                    var subscribedPokemon = user.Pokemon.Find(x => x.PokemonId == pkmn.Id);
+                    subscribedPokemon = user.Pokemon.Find(x => x.PokemonId == pkmn.Id);
                     if (subscribedPokemon == null) continue;
 
                     if (!_db.Pokemon.ContainsKey(subscribedPokemon.PokemonId.ToString())) continue;
-                    var pokemon = _db.Pokemon[subscribedPokemon.PokemonId.ToString()];
+                    pokemon = _db.Pokemon[subscribedPokemon.PokemonId.ToString()];
                     if (pokemon == null) continue;
 
                     if (_client == null) continue;
                     //if (!await _client.IsSupporterOrHigher(user.UserId, _config)) continue;
 
-                    var matchesIV = _filters.MatchesIV(pkmn.IV, subscribedPokemon.MinimumIV);
+                    matchesIV = _filters.MatchesIV(pkmn.IV, _config.OnlySendEventPokemon ? _config.EventPokemonMinimumIV : subscribedPokemon.MinimumIV);
                     //var matchesCP = MatchesCpFilter(pkmn.CP, subscribedPokemon.MinimumCP);
-                    var matchesLvl = _filters.MatchesLvl(pkmn.Level, subscribedPokemon.MinimumLevel);
-                    var matchesGender = _filters.MatchesGender(pkmn.Gender, subscribedPokemon.Gender);
+                    matchesLvl = _filters.MatchesLvl(pkmn.Level, subscribedPokemon.MinimumLevel);
+                    matchesGender = _filters.MatchesGender(pkmn.Gender, subscribedPokemon.Gender);
 
                     if (!(matchesIV && matchesLvl && matchesGender)) continue;
 
@@ -181,7 +196,7 @@
 
                     _logger.Info($"Notifying user {discordUser.Username} that a {pokemon.Name} {pkmn.CP}CP {pkmn.IV} IV L{pkmn.Level} has spawned...");
 
-                    var embed = await _builder.BuildPokemonMessage(pkmn, user.UserId);
+                    embed = await _builder.BuildPokemonMessage(pkmn, user.UserId);
                     if (embed == null) continue;
 
                     //if (await CheckIfExceededNotificationLimit(user)) return;
@@ -208,11 +223,15 @@
             }
 
             DiscordUser discordUser;
+            Subscription<Pokemon> user;
+            Pokemon subscribedRaid;
+            DiscordEmbed embed;
+
             for (int i = 0; i < _db.Subscriptions.Count; i++)
             {
                 try
                 {
-                    var user = _db.Subscriptions[i];
+                    user = _db.Subscriptions[i];
                     if (user == null) continue;
                     if (!user.Enabled) continue;
 
@@ -227,7 +246,7 @@
                     }
 
                     if (!user.Raids.Exists(x => x.PokemonId == raid.PokemonId)) continue;
-                    var subscribedRaid = user.Raids.Find(x => x.PokemonId == raid.PokemonId);
+                    subscribedRaid = user.Raids.Find(x => x.PokemonId == raid.PokemonId);
                     if (subscribedRaid == null) continue;
 
                     //if (!_db.Pokemon.ContainsKey(subscribedRaid.PokemonId.ToString())) continue;
@@ -254,7 +273,7 @@
 
                     _logger.Info($"Notifying user {discordUser.Username} that a {raid.PokemonId} raid is available...");
 
-                    var embed = await _builder.BuildRaidMessage(raid, user.UserId);
+                    embed = await _builder.BuildRaidMessage(raid, user.UserId);
                     if (embed == null) continue;
 
                     //if (await CheckIfExceededNotificationLimit(user)) return;
@@ -280,6 +299,9 @@
 
             var msg = string.Empty;
             var subs = _db.Subscriptions;
+            var total = 0ul;
+            var pokemon = 0;
+            var raids = 0;
             foreach (var sub in _db.Subscriptions)
             {
                 var user = await _client.GetUser(sub.UserId);
@@ -289,7 +311,13 @@
                 }
 
                 msg += $"{user.Username} ({sub.UserId}): Pokemon Subscriptions: {sub.Pokemon.Count}, Raid Subscriptions: {sub.Raids.Count}, Total Notifications: {sub.NotificationsToday}\r\n";
+                total += sub.NotificationsToday;
+                pokemon += sub.Pokemon.Count;
+                raids += sub.Raids.Count;
             }
+
+            msg = $"Total Notifications: {total}, Total Pokemon Subscriptions: {pokemon}, Total Raid Subscriptions: {raids}\r\n{msg}";
+
             var now = DateTime.Now;
             var path = Path.Combine(statsDirectory, $"notifications-{now.ToString("yyyy-MM-dd_hhmmss")}.txt");
             File.WriteAllText(path, msg);

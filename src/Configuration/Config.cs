@@ -186,6 +186,15 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
         [JsonProperty("votingPollsChannelId")]
         public ulong VotingPollsChannelId { get; set; }
 
+        [JsonProperty("onlySendEventPokemon")]
+        public bool OnlySendEventPokemon { get; set; }
+
+        [JsonProperty("eventPokemonMinimumIV")]
+        public int EventPokemonMinimumIV { get; set; }
+
+        [JsonProperty("eventPokemon")]
+        public List<uint> EventPokemon { get; set; }
+
         /// <summary>
         /// Gets the config full config file path.
         /// </summary>
@@ -219,6 +228,7 @@ Once you've completed the above steps you'll be all set to go catch those elusiv
             CityRoles = new List<string>();
             CommandsPrefix = '.';
             CustomCommands = new Dictionary<string, string>();
+            EventPokemon = new List<uint>();
             NearbyNests = new Dictionary<string, int>();
             NotifyMemberBanned = true;
             NotifyMemberUnbanned = true;

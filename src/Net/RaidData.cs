@@ -2,9 +2,19 @@
 {
     using System;
 
+    public enum PokemonTeam
+    {
+        Neutral = 0,
+        Mystic,
+        Valor,
+        Instinct
+    }
+
     public sealed class RaidData
     {
         public int PokemonId { get; }
+
+        public PokemonTeam Team { get; }
 
         public string Level { get; }
 
@@ -22,9 +32,10 @@
 
         public DateTime EndTime { get; }
 
-        public RaidData(int pokemonId, string level, string cp, string move1, string move2, double lat, double lng, DateTime startTime, DateTime endTime)
+        public RaidData(int pokemonId, PokemonTeam team, string level, string cp, string move1, string move2, double lat, double lng, DateTime startTime, DateTime endTime)
         {
             PokemonId = pokemonId;
+            Team = team;
             Level = level;
             CP = cp;
             FastMove = move1;

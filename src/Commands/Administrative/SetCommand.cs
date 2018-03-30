@@ -209,6 +209,19 @@
 
                     _config.RaidLobbies.Enabled = raidLobbies;
                     break;
+                #endregion
+                case "enable-feed-monitor":
+                case "enable-feeds-monitor":
+                case "enable-monitor-feeds":
+                    #region
+                    if (!bool.TryParse(value, out bool monitorFeeds))
+                    {
+                        await message.RespondAsync($"{value} is not a valid value, please use true or false.");
+                        return;
+                    }
+
+                    _config.FeedStatus.Enabled = monitorFeeds;
+                    break;
                     #endregion
             }
 

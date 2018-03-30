@@ -94,6 +94,12 @@
                 return;
             }
 
+            if (iv == 0)
+            {
+                //await message.RespondAsync($"{message.Author.Mention} you entered 0% for a minimum IV, are you s you want to do this?");
+                //return;
+            }
+
             if (iv < 0 || iv > 100)
             {
                 await message.RespondAsync($"{message.Author.Mention} {iv} must be within the range of 0-100.");
@@ -118,9 +124,10 @@
                 return;
             }
 
+            var isSupporter = await _client.IsSupporterOrHigher(author, _config);
+            var isModOrHigher = author.IsModeratorOrHigher(_config);
             if (string.Compare(cmd, "all", true) == 0)
             {
-                var isSupporter = await _client.IsSupporterOrHigher(author, _config);
                 if (!isSupporter)
                 {
                     await message.RespondAsync($"{message.Author.Mention} non-supporter members have a limited Pokemon notification amount of {MaxPokemonSubscriptions}, thus you may not use the 'all' parameter. Please narrow down your Pokemon notification subscriptions to be more specific and try again.");
@@ -135,6 +142,12 @@
 				
                 for (uint i = 1; i < 386; i++)
                 {
+                    if (i == 132 && !isSupporter)
+                    {
+                        await message.RespondAsync($"{message.Author.Mention} Ditto has been skipped since he is only available to Supporters. Please consider donating to lift this restriction.");
+                        continue;
+                    }
+
                     //Always ignore the user's input for Unown and set it to 0 by default.
                     var pokemon = _db.Pokemon[i.ToString()];
                     if (!_db.Exists(author))
@@ -184,8 +197,14 @@
                     }
                 }
 
+                if (pokeId == 132 && !isSupporter)
+                {
+                    await message.RespondAsync($"{message.Author.Mention} Ditto has been skipped since he is only available to Supporters. Please consider donating to lift this restriction.");
+                    continue;
+                }
+
                 //TODO: Check if common type pokemon e.g. Pidgey, Ratatta, Spinarak 'they are beneath him and he refuses to discuss them further'
-                if (IsCommonPokemon(pokeId) && iv < CommonTypeMinimumIV)
+                if (IsCommonPokemon(pokeId) && iv < CommonTypeMinimumIV && !isModOrHigher)
                 {
                     await message.RespondAsync($"{message.Author.Mention} {_db.Pokemon[pokeId.ToString()].Name} is a common type Pokemon and cannot be subscribed to for notifications unless the IV is set to at least {CommonTypeMinimumIV}% or higher.");
                     continue;
@@ -208,7 +227,6 @@
                     //User has already subscribed before, check if their new requested sub already exists.
                     if (!_db[author].Pokemon.Exists(x => x.PokemonId == pokeId))
                     {
-                        var isSupporter = await _client.IsSupporterOrHigher(author, _config);
                         if (!isSupporter && _db[author].Pokemon.Count >= MaxPokemonSubscriptions)
                         {
                             await message.RespondAsync($"{message.Author.Mention} non-supporter members have a limited notification amount of {MaxPokemonSubscriptions} different Pokemon, please consider donating to lift this to every Pokemon. Otherwise you will need to remove some subscriptions in order to subscribe to new Pokemon.");

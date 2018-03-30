@@ -139,8 +139,11 @@
     <Compile Include="Commands\Administrative\Twitter\ListTwitterCommand.cs" />
     <Compile Include="Commands\Administrative\SayCommand.cs" />
     <Compile Include="Commands\Administrative\Fun\GiveawayCommand.cs" />
+    <Compile Include="Commands\General\CheckCpCommand.cs" />
+    <Compile Include="Commands\General\CheckRaidCpCommand.cs" />
     <Compile Include="Commands\General\WeatherCommand.cs" />
     <Compile Include="Commands\General\ShareCommand.cs" />
+    <Compile Include="Commands\Moderator\PokemonEventCommand.cs" />
     <Compile Include="Commands\Moderator\SetEncounterListCommand.cs" />
     <Compile Include="Commands\General\CheckApiCommand.cs" />
     <Compile Include="Commands\General\DoorCommand.cs" />
@@ -217,6 +220,7 @@
     <Compile Include="Services\Alarms\AlarmObject.cs" />
     <Compile Include="Services\Alarms\FilterObject.cs" />
     <Compile Include="Services\Alarms\FilterType.cs" />
+    <Compile Include="Services\CalcIV.cs" />
     <Compile Include="Services\FeedMonitorService.cs" />
     <Compile Include="Services\Filters.cs" />
     <Compile Include="Services\Geofence\Geofence.cs" />

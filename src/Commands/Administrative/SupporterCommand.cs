@@ -1,4 +1,4 @@
-﻿namespace BrockBot.Commands.Administrative
+﻿namespace BrockBot.Commands
 {
     using System;
     using System.Threading.Tasks;
@@ -12,7 +12,7 @@
 
     [Command(
         Categories.Administrative,
-        "Shows your current Pokemon and Raid boss notification subscriptions.",
+        "Adds the specified user to the supporter list.",
         "\tExample: `.supporter @mention 6-12-2018 31`\r\n" +
         "\tExample: `.supporter 398423424 6-12-2018 31`",
         "supporter"

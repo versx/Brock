@@ -44,6 +44,8 @@
                 bot.RegisterCommand<FeedMeCommand>();
                 bot.RegisterCommand<FeedMeNotCommand>();
                 bot.RegisterCommand<PokemonLookupCommand>();
+                bot.RegisterCommand<CheckRaidCpCommand>();
+                bot.RegisterCommand<CheckCpCommand>();
                 bot.RegisterCommand<MapCommand>();
                 bot.RegisterCommand<DonateCommand>();
                 bot.RegisterCommand<ScanListCommand>();
@@ -95,6 +97,7 @@
                 //Moderator Commands
                 bot.RegisterCommand<AssignEliteCommand>();
                 bot.RegisterCommand<SetEncounterListCommand>();
+                bot.RegisterCommand<PokemonEventCommand>();
 
                 //Administrative Commands
                 bot.RegisterCommand<CreateRolesCommand>();
@@ -110,6 +113,7 @@
                 bot.RegisterCommand<SetCommand>();
                 bot.RegisterCommand<SayCommand>();
                 //bot.RegisterCommand<LeaveGuildCommand>();
+                bot.RegisterCommand<SupporterCommand>();
                 bot.RegisterCommand<SwitchWorkersCommand>();
                 bot.RegisterCommand<SwitchHighLevelCommand>();
                 bot.RegisterCommand<ReloadConfigCommand>();
